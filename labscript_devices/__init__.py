@@ -2,7 +2,9 @@
 import os
 import sys
 
-from .__version__ import __version__
+from labscript_utils.versions import package_version
+
+__version__ = package_version(__package__)
 
 from labscript_utils.device_registry import *
 
