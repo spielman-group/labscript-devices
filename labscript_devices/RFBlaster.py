@@ -18,14 +18,7 @@ from labscript_utils.setup_logging import setup_logging
 
 # Define a RFBlasterPseudoclock that only accepts one child clockline
 class RFBlasterPseudoclock(Pseudoclock):    
-    def add_device(self, device):
-        if isinstance(device, ClockLine):
-            # only allow one child
-            if self.child_devices:
-                raise LabscriptError('The pseudoclock of the RFBlaster %s only supports 1 clockline, which is automatically created. Please use the clockline located at %s.clockline'%(self.parent_device.name, self.parent_device.name))
-            Pseudoclock.add_device(self, device)
-        else:
-            raise LabscriptError('You have connected %s to %s (the Pseudoclock of %s), but %s only supports children that are ClockLines. Please connect your device to %s.clockline instead.'%(device.name, self.name, self.parent_device.name, self.name, self.parent_device.name))
+    max_clock_lines = 1
 
 
 class RFBlaster(PseudoclockDevice):
@@ -33,6 +26,7 @@ class RFBlaster(PseudoclockDevice):
     clock_limit = 500e3
     clock_resolution = 13.33333333333333333333e-9
     allowed_children = [RFBlasterPseudoclock]
+    max_pseudoclocks = 1
     
     # TODO: find out what these actually are!
     trigger_delay = 873.75e-6
@@ -59,18 +53,6 @@ class RFBlaster(PseudoclockDevice):
     def direct_outputs(self):
         return self._direct_output_device
     
-    def add_device(self, device):
-        if not self.child_devices and isinstance(device, Pseudoclock):
-            PseudoclockDevice.add_device(self, device)
-        elif isinstance(device, Pseudoclock):
-            raise LabscriptError('The %s %s automatically creates a Pseudoclock because it only supports one. '%(self.description, self.name) +
-                                 'Instead of instantiating your own Pseudoclock object, please use the internal' +
-                                 ' one stored in %s.pseudoclock'%self.name)
-        elif isinstance(device, DDS):
-            #TODO: Defensive programming: device.name may not exist!
-            raise LabscriptError('You have connected %s directly to %s, which is not allowed. You should instead specify the parent_device of %s as %s.direct_outputs'%(device.name, self.name, device.name, self.name))
-        else:
-            raise LabscriptError('You have connected %s (class %s) to %s, but %s does not support children with that class.'%(device.name, device.__class__, self.name, self.name))
         
         
     def generate_code(self, hdf5_file):

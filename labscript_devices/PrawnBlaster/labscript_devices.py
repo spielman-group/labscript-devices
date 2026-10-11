@@ -43,23 +43,7 @@ class _PrawnBlasterPseudoclock(Pseudoclock):
         super().__init__(*args, **kwargs)
         self.i = i
 
-    def add_device(self, device):
-        """
-        Args:
-            device (:class:`~labscript.ClockLine`): Clockline to attach to the
-                pseudoclock.
-        """
-        if isinstance(device, ClockLine):
-            # only allow one child
-            if self.child_devices:
-                raise LabscriptError(
-                    f"Each pseudoclock of the PrawnBlaster {self.parent_device.name} only supports 1 clockline, which is automatically created. Please use the clockline located at {self.parent_device.name}.clocklines[{self.i}]"
-                )
-            Pseudoclock.add_device(self, device)
-        else:
-            raise LabscriptError(
-                f"You have connected {device.name} to {self.name} (a Pseudoclock of {self.parent_device.name}), but {self.name} only supports children that are ClockLines. Please connect your device to {self.parent_device.name}.clocklines[{self.i}] instead."
-            )
+    max_clock_lines = 1
 
 
 #
@@ -253,6 +237,8 @@ class PrawnBlaster(PseudoclockDevice):
         self.num_pseudoclocks = num_pseudoclocks
         # Wait monitor can only be used if this is the master pseudoclock
         self.use_wait_monitor = use_wait_monitor and self.is_master_pseudoclock
+        # One pseudoclock per output, and the internal one a wait monitor hangs from.
+        self.max_pseudoclocks = num_pseudoclocks + self.use_wait_monitor
 
         # Set the BLACS connections
         self.BLACS_connection = com_port
@@ -340,32 +326,6 @@ class PrawnBlaster(PseudoclockDevice):
 
         return copy.copy(self._clocklines)
 
-    def add_device(self, device):
-        """Adds child devices.
-
-        This is automatically called by the labscript compiler.
-
-        Args:
-            device (:class:`_PrawnBlasterPseudoclock` or :class:`_PrawnBlasterDummyPseudoclock`):
-                Instance to attach to the device. Only the allowed children can be attached.
-        """
-
-        if len(self.child_devices) < (
-            self.num_pseudoclocks + self.use_wait_monitor
-        ) and isinstance(
-            device, (_PrawnBlasterPseudoclock, _PrawnBlasterDummyPseudoclock)
-        ):
-            PseudoclockDevice.add_device(self, device)
-        elif isinstance(device, _PrawnBlasterPseudoclock):
-            raise LabscriptError(
-                f"The {self.description} {self.name} automatically creates the correct number of pseudoclocks."
-                + "Instead of instantiating your own Pseudoclock object, please use the internal"
-                + f" ones stored in {self.name}.pseudoclocks"
-            )
-        else:
-            raise LabscriptError(
-                f"You have connected {device.name} (class {device.__class__}) to {self.name}, but {self.name} does not support children with that class."
-            )
 
     def generate_code(self, hdf5_file):
         """Generates the hardware instructions for the pseudoclocks.

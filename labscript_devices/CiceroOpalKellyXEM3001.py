@@ -65,14 +65,7 @@ def add_instruction_to_bytearray(data, instruction, on, off, reps):
         
 # Define a CiceroOpalKellyXEM3001Clock that only accepts one child clockline
 class CiceroOpalKellyXEM3001Pseudoclock(Pseudoclock):    
-    def add_device(self, device):
-        if isinstance(device, ClockLine):
-            # only allow one child
-            if self.child_devices:
-                raise LabscriptError('The pseudoclock of the CiceroOpalKellyXEM3001 %s only supports 1 clockline, which is automatically created. Please use the clockline located at %s.clockline'%(self.pseudoclock_device.name, self.pseudoclock_device.name))
-            Pseudoclock.add_device(self, device)
-        else:
-            raise LabscriptError('You have connected %s to %s (the Pseudoclock of %s), but %s only supports children that are ClockLines. Please connect your device to %s.clockline instead.'%(device.name, self.name, self.pseudoclock_device.name, self.name, self.pseudoclock_device.name))
+    max_clock_lines = 1
         
     
 #
@@ -125,6 +118,8 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
     description = 'CiceroOpalKellyXEM3001'
     trigger_edge_type = 'rising' 
     allowed_children = [CiceroOpalKellyXEM3001Pseudoclock, CiceroOpalKellyXEM3001DummyPseudoclock]
+    # Its own pseudoclock, and the internal one its wait monitor hangs from.
+    max_pseudoclocks = 2
     
     # Determined by confirming that an instruction table that is 2049 long
     # does not output the last instruction
@@ -186,15 +181,6 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
     def clockline(self):
         return self._clock_line
     
-    def add_device(self, device):
-        if len(self.child_devices) < 2 and isinstance(device, Pseudoclock):
-            PseudoclockDevice.add_device(self, device)            
-        elif isinstance(device, Pseudoclock):
-            raise LabscriptError('The %s %s automatically creates a Pseudoclock because it only supports one. '%(self.description, self.name) +
-                                 'Instead of instantiating your own Pseudoclock object, please use the internal' +
-                                 ' one stored in %s.pseudoclock'%self.name)
-        else:
-            raise LabscriptError('You have connected %s (class %s) to %s, but %s does not support children with that class.'%(device.name, device.__class__, self.name, self.name))
     
     def generate_code(self, hdf5_file):
         PseudoclockDevice.generate_code(self, hdf5_file)

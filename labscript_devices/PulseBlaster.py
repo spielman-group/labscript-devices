@@ -130,6 +130,7 @@ class PulseBlaster(PseudoclockDevice):
     
     # This device can only have Pseudoclock children (digital outs and DDS outputs should be connected to a child device)
     allowed_children = [Pseudoclock]
+    max_pseudoclocks = 1
     
     @set_passed_properties(
         property_names = {"connection_table_properties": ["firmware",  "programming_scheme"],
@@ -239,19 +240,6 @@ class PulseBlaster(PseudoclockDevice):
     def direct_outputs(self):
         return self._direct_output_device
     
-    def add_device(self, device):
-        if not self.child_devices and isinstance(device, Pseudoclock):
-            PseudoclockDevice.add_device(self, device)
-            
-        elif isinstance(device, Pseudoclock):
-            raise LabscriptError('The %s %s automatically creates a Pseudoclock because it only supports one. '%(self.description, self.name) +
-                                 'Instead of instantiating your own Pseudoclock object, please use the internal' +
-                                 ' one stored in %s.pseudoclock'%self.name)
-        elif isinstance(device, DDS) or isinstance(device, PulseBlasterDDS) or isinstance(device, DigitalOut):
-            #TODO: Defensive programming: device.name may not exist!
-            raise LabscriptError('You have connected %s directly to %s, which is not allowed. You should instead specify the parent_device of %s as %s.direct_outputs'%(device.name, self.name, device.name, self.name))
-        else:
-            raise LabscriptError('You have connected %s (class %s) to %s, but %s does not support children with that class.'%(device.name, device.__class__, self.name, self.name))
                 
     def flag_valid(self, flag):
         if -1 < flag < self.n_flags:

@@ -19,14 +19,7 @@ from labscript import PseudoclockDevice, Pseudoclock, ClockLine, config, Labscri
 import numpy as np
 
 class _DummyPseudoclock(Pseudoclock):    
-    def add_device(self, device):
-        if isinstance(device, ClockLine):
-            # only allow one child
-            if self.child_devices:
-                raise LabscriptError('The pseudoclock of the DummyPseudoclock %s only supports 1 clockline, which is automatically created. Please use the clockline located at %s.clockline'%(self.parent_device.name, self.parent_device.name))
-            Pseudoclock.add_device(self, device)
-        else:
-            raise LabscriptError('You have connected %s to %s (the Pseudoclock of %s), but %s only supports children that are ClockLines. Please connect your device to %s.clockline instead.'%(device.name, self.name, self.parent_device.name, self.name, self.parent_device.name))
+    max_clock_lines = 1
 
 
 class DummyPseudoclock(PseudoclockDevice):
@@ -37,6 +30,7 @@ class DummyPseudoclock(PseudoclockDevice):
     trigger_delay = 350e-9
     wait_delay = 2.5e-6
     allowed_children = [_DummyPseudoclock]
+    max_pseudoclocks = 1
     max_instructions = 1e5
 
     def __init__(
@@ -63,15 +57,6 @@ class DummyPseudoclock(PseudoclockDevice):
     def clockline(self):
         return self._clock_line
 
-    def add_device(self, device):
-        if not self.child_devices and isinstance(device, Pseudoclock):
-            PseudoclockDevice.add_device(self, device)            
-        elif isinstance(device, Pseudoclock):
-            raise LabscriptError('The %s %s automatically creates a Pseudoclock because it only supports one. '%(self.description, self.name) +
-                                 'Instead of instantiating your own Pseudoclock object, please use the internal' +
-                                 ' one stored in %s.pseudoclock'%self.name)
-        else:
-            raise LabscriptError('You have connected %s (class %s) to %s, but %s does not support children with that class.'%(device.name, device.__class__, self.name, self.name))
 
     def generate_code(self, hdf5_file):
         PseudoclockDevice.generate_code(self, hdf5_file)
