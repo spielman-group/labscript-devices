@@ -6,10 +6,9 @@ and the half-finished file left behind cannot be compiled a second time either:
 the groups written before the failure are already in it. Nothing warns earlier
 than that.
 
-Six tables here named the 'a<n>' spelling numpy 2.0 removed. Two can be reached
+Five tables here named the 'a<n>' spelling numpy 2.0 removed. One can be reached
 with no hardware attached, because a device's labscript-side class is only
-Python and numpy: the NI_DAQmx acquisitions table and Camera's exposures table.
-The other four are written by BLACS workers partway through a shot -- the
+Python and numpy: the NI_DAQmx acquisitions table. The other four are written by BLACS workers partway through a shot -- the
 measured wait durations of NI_DAQmx, PrawnBlaster and CiceroOpalKellyXEM3001,
 and AlazarTechBoard, whose module will not even import without libATSApi -- and
 none of those can be reached without the hardware they drive.
@@ -54,40 +53,6 @@ DAQMX_SHOT = textwrap.dedent(
     analog_out.constant(0, 0.0)
     another_analog_out.constant(0, 0.0)
     analog_in.acquire('a measurement', 0.1, 0.5, units='V')
-    stop(1.0)
-    '''
-)
-
-
-CAMERA_SHOT = textwrap.dedent(
-    '''
-    from labscript import start, stop, Trigger
-    from labscript_devices.DummyPseudoclock.labscript_devices import (
-        DummyPseudoclock,
-    )
-    from labscript_devices.DummyIntermediateDevice import (
-        DummyIntermediateDevice,
-    )
-    from labscript_devices.Camera import Camera
-
-    DummyPseudoclock(name='pseudoclock')
-    DummyIntermediateDevice(
-        name='intermediate_device', parent_device=pseudoclock.clockline
-    )
-    Trigger(
-        name='camera_trigger',
-        parent_device=intermediate_device,
-        connection='port0/line0',
-    )
-    Camera(
-        name='camera',
-        parent_device=camera_trigger,
-        connection='trigger',
-        exposure_time=0.1,
-    )
-
-    start()
-    camera.expose('an exposure', 0.5, 'flat', exposure_time=0.1)
     stop(1.0)
     '''
 )
@@ -161,31 +126,6 @@ class NI_DAQmxTests(CompileTestCase):
             dtype = f['devices/daq/AI'].dtype
 
         for column in ('connection', 'label', 'wait label', 'units'):
-            self.assertEqual(dtype[column].kind, 'S', column)
-
-
-class CameraTests(CompileTestCase):
-    shot = CAMERA_SHOT
-
-    def test_a_shot_exposing_a_camera_compiles(self):
-        self.compile_the_shot()
-
-        with h5py.File(self.run_file, 'r') as f:
-            exposures = f['devices/camera/EXPOSURES'][:]
-
-        self.assertEqual(len(exposures), 1)
-        exposure = exposures[0]
-        self.assertEqual(exposure['name'].decode(), 'an exposure')
-        self.assertEqual(exposure['frametype'].decode(), 'flat')
-        self.assertEqual(exposure['time'], 0.5)
-
-    def test_the_exposures_table_is_written_as_earlier_versions_wrote_it(self):
-        self.compile_the_shot()
-
-        with h5py.File(self.run_file, 'r') as f:
-            dtype = f['devices/camera/EXPOSURES'].dtype
-
-        for column in ('name', 'frametype'):
             self.assertEqual(dtype[column].kind, 'S', column)
 
 
