@@ -17,7 +17,7 @@ from labscript_devices import runviewer_parser, BLACS_tab, BLACS_worker, labscri
 import numpy as np
 import labscript_utils.h5_lock, h5py
 import labscript_utils.properties
-from labscript_utils.connections import _ensure_str
+from labscript_utils import ensure_str
 
 #
 # Helper functions
@@ -613,7 +613,7 @@ class CiceroOpalKellyXEM3001Worker(Worker):
                 self.measured_waits[self.current_wait] = retrigger_wait_samples-self.measured_waits.sum()
 
                 # Inform any interested parties that a wait has completed:
-                self.wait_completed.post(self.h5_file, data=_ensure_str(self.wait_table[self.current_wait]['label']))
+                self.wait_completed.post(self.h5_file, data=ensure_str(self.wait_table[self.current_wait]['label']))
 
                 # increment the wait we are looking for!
                 self.current_wait += 1

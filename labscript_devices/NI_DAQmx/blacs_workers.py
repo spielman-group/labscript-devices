@@ -27,7 +27,7 @@ from zprocess.utils import _reraise
 
 import labscript_utils.properties as properties
 from labscript_utils import dedent
-from labscript_utils.connections import _ensure_str
+from labscript_utils import ensure_str
 
 from blacs.tab_base_classes import Worker
 
@@ -560,7 +560,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
             AI_table = group['AI'][:]
             device_properties = properties.get(f, device_name, 'device_properties')
 
-        chans = [_ensure_str(c) for c in AI_table['connection']]
+        chans = [ensure_str(c) for c in AI_table['connection']]
         # Remove duplicates and sort:
         if chans:
             self.buffered_chans = sorted(set(chans), key=split_conn_AI)
@@ -651,8 +651,8 @@ class NI_DAQmxAcquisitionWorker(Worker):
 
             t0 = self.AI_start_delay
             for connection, label, t_start, t_end, _, _, _ in acquisitions:
-                connection = _ensure_str(connection)
-                label = _ensure_str(label)
+                connection = ensure_str(connection)
+                label = ensure_str(label)
                 if waits_in_use:
                     # add durations from all waits that start prior to t_start of
                     # acquisition
@@ -816,7 +816,7 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                     self.logger.debug('Wait completed')
                     current_time = wait['time'] + semiperiods[-1]
                     # Inform any interested parties that a wait has completed:
-                    postdata = _ensure_str(wait['label'])
+                    postdata = ensure_str(wait['label'])
                     self.wait_completed.post(self.h5_file, data=postdata)
                 # Inform any interested parties that waits have all finished:
                 self.logger.debug('All waits finished')

@@ -16,7 +16,7 @@ import h5py
 import numpy as np
 from blacs.tab_base_classes import Worker
 from labscript import LabscriptError
-from labscript_utils.connections import _ensure_str
+from labscript_utils import ensure_str
 import labscript_utils.properties as properties
 
 
@@ -238,7 +238,7 @@ class PrawnBlasterWorker(Worker):
                 # Inform any interested parties that a wait has completed:
                 self.wait_completed.post(
                     self.h5_file,
-                    data=_ensure_str(self.wait_table[self.current_wait]["label"]),
+                    data=ensure_str(self.wait_table[self.current_wait]["label"]),
                 )
 
                 # increment the wait we are looking for!
