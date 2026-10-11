@@ -13,7 +13,7 @@ This is done by adding the **labscript-device** code into the `userlib/user_devi
 
 This import statement assumes your custom device follows the new device structure organization. 
 
-Note that both the `userlib` path and the `user_devices` folder name can be custom configured in the `labconfig.ini` file. 
+Note that both the `userlib` path and the `user_devices` folder name can be custom configured in the labconfig file.
 The `user_devices` folder must be in the `userlib` path. 
 If a different `user_devices` folder name is used, the import uses that folder name in place of `user_devices` in the above import statement.
 
