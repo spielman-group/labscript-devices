@@ -70,7 +70,7 @@ atsExternalClockAdvice = {
     'ATS9462': 'a 200mV sine (conservatively peak-to-peak) between 9.5 and 10.5 MHz.'
 }
 
-from labscript import Device, AnalogIn, bitfield, config, LabscriptError, set_passed_properties
+from labscript import Device, AnalogIn, config, LabscriptError, set_passed_properties
 import labscript_utils.h5_lock
 import h5py
 import labscript_utils.properties
