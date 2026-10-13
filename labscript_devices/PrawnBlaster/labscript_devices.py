@@ -381,6 +381,7 @@ class PrawnBlaster(PseudoclockDevice):
                                 "reps": 0,
                             }
                         )
+                        continue
 
                 # Normal instruction
                 reps = instruction["reps"]
