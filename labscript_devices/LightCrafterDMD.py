@@ -25,7 +25,7 @@ import labscript_utils.h5_lock, h5py
 from labscript_devices import labscript_device, BLACS_tab, BLACS_worker, runviewer_parser
 
 # LABSCRIPT IMPORTS
-from labscript import Device, IntermediateDevice, LabscriptError, Output, config
+from labscript import Device, IntermediateDevice, LabscriptError, Output, compiler
 import numpy as np
 
 
@@ -152,7 +152,7 @@ class LightCrafterDMD(IntermediateDevice):
         # Apparently you should use np.void for binary data in a h5 file. Then on the way out, we need to use data.tobytes() to decode again.
         out_table = np.void(output.raw_output)
         grp = self.init_device_group(hdf5_file)
-        grp.create_dataset('IMAGE_TABLE',compression=config.compression,data=out_table)
+        grp.create_dataset('IMAGE_TABLE',compression=compiler.compression,data=out_table)
         
 @BLACS_tab
 class LightCrafterTab(DeviceTab):

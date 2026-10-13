@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 import os
-from labscript import PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, config, startupinfo, LabscriptError, set_passed_properties
+from labscript import PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, compiler, startupinfo, LabscriptError, set_passed_properties
 import numpy as np
 from labscript_devices import BLACS_tab, runviewer_parser
 from labscript_utils.setup_logging import setup_logging
@@ -81,7 +81,7 @@ class RFBlaster(PseudoclockDevice):
             data['amp%s'%connection] = dds.amplitude.raw_output
             data['phase%s'%connection] = dds.phase.raw_output
         group = hdf5_file['devices'].create_group(self.name)
-        group.create_dataset('TABLE_DATA',compression=config.compression, data=data)
+        group.create_dataset('TABLE_DATA',compression=compiler.compression, data=data)
         
         # Quantise the data and save it to the h5 file:
         quantised_dtypes = [('time',np.int64),
@@ -96,7 +96,7 @@ class RFBlaster(PseudoclockDevice):
             quantised_data['freq%d'%dds] = np.array(c.fF*1e-6*data['freq%d'%dds] + 0.5)
             quantised_data['amp%d'%dds]  = np.array((2**c.bitsA - 1)*data['amp%d'%dds] + 0.5)
             quantised_data['phase%d'%dds] = np.array(c.pP*data['phase%d'%dds] + 0.5)
-        group.create_dataset('QUANTISED_DATA',compression=config.compression, data=quantised_data)
+        group.create_dataset('QUANTISED_DATA',compression=compiler.compression, data=quantised_data)
         # Generate some assembly code and compile it to machine code:
         assembly_group = group.create_group('ASSEMBLY_CODE')
         binary_group = group.create_group('BINARY_CODE')
@@ -147,7 +147,7 @@ class RFBlaster(PseudoclockDevice):
                     assembly_code = assembly_file.read()
                     assembly_group.create_dataset('DDS%d'%dds, data=assembly_code)
                     for i, diff_table in enumerate(diff_tables):
-                        diff_group.create_dataset('DDS%d_difftable%d'%(dds,i), compression=config.compression, data=diff_table)
+                        diff_group.create_dataset('DDS%d_difftable%d'%(dds,i), compression=compiler.compression, data=diff_table)
                 # compile to binary:
                 compilation = Popen([caspr,temp_assembly_filepath,temp_binary_filepath],
                                      stdout=PIPE, stderr=PIPE, cwd=rfjuice_folder,startupinfo=startupinfo)

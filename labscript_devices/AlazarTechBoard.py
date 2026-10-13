@@ -70,7 +70,7 @@ atsExternalClockAdvice = {
     'ATS9462': 'a 200mV sine (conservatively peak-to-peak) between 9.5 and 10.5 MHz.'
 }
 
-from labscript import Device, AnalogIn, config, LabscriptError, set_passed_properties
+from labscript import Device, AnalogIn, compiler, LabscriptError, set_passed_properties
 import labscript_utils.h5_lock
 import h5py
 import labscript_utils.properties
@@ -166,7 +166,7 @@ class AlazarTechBoard(Device):
             grp = self.init_device_group(hdf5_file)
         if len(acquisition_table):  # Table must be non empty
             grp.create_dataset(
-                'ACQUISITIONS', compression=config.compression, data=acquisition_table)
+                'ACQUISITIONS', compression=compiler.compression, data=acquisition_table)
             self.set_property('analog_in_channels', ', '.join(
                 input_attrs), location='device_properties')
 

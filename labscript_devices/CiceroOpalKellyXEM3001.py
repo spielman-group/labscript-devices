@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 
-from labscript import Device, PseudoclockDevice, Pseudoclock, ClockLine, config, LabscriptError, set_passed_properties, compiler, IntermediateDevice, WaitMonitor, DigitalOut
+from labscript import Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, IntermediateDevice, WaitMonitor, DigitalOut
 from labscript_devices import runviewer_parser, BLACS_tab, BLACS_worker, labscript_device
 
 import numpy as np
@@ -233,7 +233,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
             pulse_program[i]['on_period'] = instruction['on']
             pulse_program[i]['off_period'] = instruction['off']
             pulse_program[i]['reps'] = instruction['reps']
-        group.create_dataset('PULSE_PROGRAM', compression = config.compression, data=pulse_program)
+        group.create_dataset('PULSE_PROGRAM', compression = compiler.compression, data=pulse_program)
         
         self.set_property('is_master_pseudoclock', self.is_master_pseudoclock, location='device_properties')
         self.set_property('stop_time', self.stop_time, location='device_properties')

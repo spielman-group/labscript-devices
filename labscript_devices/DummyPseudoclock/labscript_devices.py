@@ -15,7 +15,7 @@
 # and labscript. The device is a PseudoclockDevice, and can be the sole device
 # in a connection table or experiment.
 
-from labscript import PseudoclockDevice, Pseudoclock, ClockLine, config, LabscriptError
+from labscript import PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError
 import numpy as np
 
 class _DummyPseudoclock(Pseudoclock):    
@@ -97,7 +97,7 @@ class DummyPseudoclock(PseudoclockDevice):
             pulse_program[i]['period'] = instruction['period']
             pulse_program[i]['reps'] = instruction['reps']
         group.create_dataset(
-            'PULSE_PROGRAM', compression=config.compression, data=pulse_program
+            'PULSE_PROGRAM', compression=compiler.compression, data=pulse_program
         )
         # TODO: is this needed, the PulseBlasters don't save it...
         self.set_property(

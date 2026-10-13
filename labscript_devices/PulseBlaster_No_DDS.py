@@ -13,7 +13,7 @@
 
 from labscript_devices import BLACS_tab, runviewer_parser
 from labscript_devices.PulseBlaster import PulseBlaster, PulseBlasterParser
-from labscript import PseudoclockDevice, config
+from labscript import PseudoclockDevice, compiler
 
 import numpy as np
 
@@ -39,7 +39,7 @@ class PulseBlaster_No_DDS(PulseBlaster):
         
         # Okay now write it to the file: 
         group = hdf5_file['/devices/'+self.name]  
-        group.create_dataset('PULSE_PROGRAM', compression=config.compression,data = pb_inst_table)         
+        group.create_dataset('PULSE_PROGRAM', compression=compiler.compression,data = pb_inst_table)         
         self.set_property('stop_time', self.stop_time, location='device_properties')
         
     def generate_code(self, hdf5_file):

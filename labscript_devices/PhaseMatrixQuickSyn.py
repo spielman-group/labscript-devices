@@ -14,7 +14,7 @@
 import numpy as np
 from labscript_devices import BLACS_tab, runviewer_parser
 
-from labscript import Device, StaticDDS, StaticAnalogQuantity, StaticDigitalOut, config, LabscriptError, set_passed_properties
+from labscript import Device, StaticDDS, StaticAnalogQuantity, StaticDigitalOut, compiler, LabscriptError, set_passed_properties
 import labscript_utils.properties
 
 class QuickSynDDS(StaticDDS):
@@ -97,7 +97,7 @@ class PhaseMatrixQuickSyn(Device):
         static_table['freq0'] = dds.frequency.raw_output[0]
         static_table['gate0'] = dds.gate.raw_output[0]
         grp = hdf5_file.create_group('/devices/'+self.name)
-        grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
+        grp.create_dataset('STATIC_DATA',compression=compiler.compression,data=static_table) 
         self.set_property('frequency_scale_factor', 1000, location='device_properties')
         
         

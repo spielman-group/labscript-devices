@@ -21,7 +21,6 @@ from labscript import (
     Pseudoclock,
     WaitMonitor,
     compiler,
-    config,
     set_passed_properties,
 )
 import numpy as np
@@ -426,7 +425,7 @@ class PrawnBlaster(PseudoclockDevice):
                 pulse_program[j]["half_period"] = instruction["half_period"]
                 pulse_program[j]["reps"] = instruction["reps"]
             group.create_dataset(
-                f"PULSE_PROGRAM_{i}", compression=config.compression, data=pulse_program
+                f"PULSE_PROGRAM_{i}", compression=compiler.compression, data=pulse_program
             )
 
         # This is needed so the BLACS worker knows whether or not to be a wait monitor

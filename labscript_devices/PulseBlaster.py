@@ -24,7 +24,6 @@ from labscript import (
     DigitalOut,
     DDS,
     DDSQuantity,
-    config,
     LabscriptError,
     set_passed_properties,
     compiler,
@@ -372,9 +371,9 @@ class PulseBlaster(PseudoclockDevice):
             phase_table = np.array([0] + list(phases), dtype = np.float64)
             
             subgroup = group.create_group('DDS%d'%num)
-            subgroup.create_dataset('FREQ_REGS', compression=config.compression, data = freq_table)
-            subgroup.create_dataset('AMP_REGS', compression=config.compression, data = amp_table)
-            subgroup.create_dataset('PHASE_REGS', compression=config.compression, data = phase_table)
+            subgroup.create_dataset('FREQ_REGS', compression=compiler.compression, data = freq_table)
+            subgroup.create_dataset('AMP_REGS', compression=compiler.compression, data = amp_table)
+            subgroup.create_dataset('PHASE_REGS', compression=compiler.compression, data = phase_table)
             
         return freqdicts, ampdicts, phasedicts
         
@@ -599,7 +598,7 @@ class PulseBlaster(PseudoclockDevice):
                                 
         # Okay now write it to the file: 
         group = hdf5_file['/devices/'+self.name]  
-        group.create_dataset('PULSE_PROGRAM', compression=config.compression,data = pb_inst_table)   
+        group.create_dataset('PULSE_PROGRAM', compression=compiler.compression,data = pb_inst_table)   
         self.set_property('stop_time', self.stop_time, location='device_properties')
 
 

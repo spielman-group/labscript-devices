@@ -50,7 +50,7 @@ Detailed Documentation
 """
 
 from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
-from labscript import IntermediateDevice, DigitalOut, AnalogOut, config
+from labscript import IntermediateDevice, DigitalOut, AnalogOut, compiler
 import numpy as np
 
 class DummyIntermediateDevice(IntermediateDevice):
@@ -88,7 +88,7 @@ class DummyIntermediateDevice(IntermediateDevice):
         for device in self.child_devices:
             out_table[device.name][:] = device.raw_output
 
-        group.create_dataset('OUTPUTS', compression=config.compression, data=out_table)
+        group.create_dataset('OUTPUTS', compression=compiler.compression, data=out_table)
 
 
 from blacs.device_base_class import DeviceTab

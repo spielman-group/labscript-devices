@@ -22,7 +22,6 @@ from labscript import (
     StaticDigitalOut,
     AnalogIn,
     bitfield,
-    config,
     compiler,
     LabscriptError,
     set_passed_properties,
@@ -619,11 +618,11 @@ class NI_DAQmx(IntermediateDevice):
 
         grp = self.init_device_group(hdf5_file)
         if AO_table is not None:
-            grp.create_dataset('AO', data=AO_table, compression=config.compression)
+            grp.create_dataset('AO', data=AO_table, compression=compiler.compression)
         if DO_table is not None:
-            grp.create_dataset('DO', data=DO_table, compression=config.compression)
+            grp.create_dataset('DO', data=DO_table, compression=compiler.compression)
         if AI_table is not None:
-            grp.create_dataset('AI', data=AI_table, compression=config.compression)
+            grp.create_dataset('AI', data=AI_table, compression=compiler.compression)
 
 
 from .models import *

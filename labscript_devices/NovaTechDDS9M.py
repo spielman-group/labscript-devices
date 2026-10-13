@@ -13,7 +13,7 @@
 
 from labscript_devices import runviewer_parser, BLACS_tab
 
-from labscript import IntermediateDevice, DDS, StaticDDS, Device, config, LabscriptError, set_passed_properties
+from labscript import IntermediateDevice, DDS, StaticDDS, Device, compiler, LabscriptError, set_passed_properties
 from labscript_utils.unitconversions import NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion
 
 import numpy as np
@@ -225,8 +225,8 @@ class NovaTechDDS9M(IntermediateDevice):
             out_table = np.concatenate([out_table[0:1], out_table])
 
         grp = self.init_device_group(hdf5_file)
-        grp.create_dataset('TABLE_DATA',compression=config.compression,data=out_table) 
-        grp.create_dataset('STATIC_DATA',compression=config.compression,data=static_table) 
+        grp.create_dataset('TABLE_DATA',compression=compiler.compression,data=out_table) 
+        grp.create_dataset('STATIC_DATA',compression=compiler.compression,data=static_table) 
         self.set_property('frequency_scale_factor', 10, location='device_properties')
         self.set_property('amplitude_scale_factor', 1023, location='device_properties')
         self.set_property('phase_scale_factor', 45.511111111111113, location='device_properties')
