@@ -148,12 +148,12 @@ class NovaTechDDS9M(IntermediateDevice):
                 channel = int(channel)
             except:
                 raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
-                                     'Format must be \'channel n\' with n from 0 to 4.')
+                                     'Format must be \'channel n\' with n from 0 to 3.')
             DDSs[channel] = output
         for connection in DDSs:
+            dds = DDSs[connection]
             if connection in range(4):
                 # Dynamic DDS
-                dds = DDSs[connection]   
                 dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.raw_output, dds)
                 dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.raw_output, dds)
                 dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
@@ -165,7 +165,7 @@ class NovaTechDDS9M(IntermediateDevice):
                 # dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.static_value, dds)
             else:
                 raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(dds.description,dds.name,str(dds.connection)) + 
-                                     'Format must be \'channel n\' with n from 0 to 4.')
+                                     'Format must be \'channel n\' with n from 0 to 3.')
                                 
         dtypes = [('freq%d'%i,np.uint32) for i in range(2)] + \
                  [('phase%d'%i,np.uint16) for i in range(2)] + \

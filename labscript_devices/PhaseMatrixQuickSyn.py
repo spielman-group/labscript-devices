@@ -75,10 +75,10 @@ class PhaseMatrixQuickSyn(Device):
                 channel = int(channel)
             except:
                 raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
-                                     'Format must be \'channel n\' with n equal 0.')
+                                     'Format must be \'dds 0\'.')
             if channel != 0:
                 raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
-                                     'Format must be \'channel n\' with n equal 0.')
+                                     'Format must be \'dds 0\'.')
             dds = output
         # Call these functions to finalise stuff:
         ignore = dds.frequency.get_change_times()
