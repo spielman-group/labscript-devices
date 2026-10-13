@@ -310,13 +310,13 @@ class NI_DAQmx(IntermediateDevice):
 
         self.BLACS_connection = self.MAX_name
 
-        # Cannot be set with set_passed_properties because of name mangling with the
-        # initial double underscore:
-        self.set_property('__version__', __version__, 'connection_table_properties')
-
         # This is called late since it must be called after our clock_limit attribute is
         # set:
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
+
+        # Cannot be set with set_passed_properties because of name mangling with the
+        # initial double underscore:
+        self.set_property('__version__', __version__, 'connection_table_properties')
 
     def add_device(self, device):
         """Error checking for adding a child device.
