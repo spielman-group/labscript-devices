@@ -4,6 +4,31 @@ Novatech DDS 9m
 Labscript device for control of the Novatech DDS9m synthesizer. 
 With minor modifications, it can also control the Novatech 409B DDS.
 
+Usage
+~~~~~
+
+Outputs connect as `'channel 0'` to `'channel 3'`.
+Channels 0 and 1 step through a table on each clock tick, so use a `DDS`; channels 2 and 3 hold one value for the shot, so use a `StaticDDS`.
+
+.. code-block:: python
+
+	from labscript import *
+
+	from labscript_devices.DummyPseudoclock.labscript_devices import DummyPseudoclock
+	from labscript_devices.NovaTechDDS9M import NovaTechDDS9M
+
+	DummyPseudoclock(name='pseudoclock')
+	NovaTechDDS9M(name='novatech', parent_device=pseudoclock.clockline, com_port='COM1')
+
+	DDS(name='dds_0', parent_device=novatech, connection='channel 0')
+	StaticDDS(name='dds_2', parent_device=novatech, connection='channel 2')
+
+	start()
+	dds_0.setfreq(0, 10e6)
+	dds_0.setfreq(0.5, 20e6)
+	dds_2.setfreq(30e6)
+	stop(1)
+
 .. note::
 	The following text is copied from the old labscriptsuite.org blog.
 	Its information dates from 2014.

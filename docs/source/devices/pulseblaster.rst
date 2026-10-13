@@ -22,20 +22,26 @@ The corresponding python wrapper, `spinapi <https://github.com/chrisjbillington/
 Usage
 ~~~~~
 
+`board_number` is the SpinCore board index, which BLACS passes to `pb_select_board`.
+The PulseBlaster has 12 flags, `'flag 0'` to `'flag 11'`, and two DDS outputs, `'dds 0'` and `'dds 1'`.
+Each flag is either a clock line, a `ClockLine` on `pb.pseudoclock`, or a `DigitalOut` on `pb.direct_outputs`.
+DDS outputs, `DDS` or `PulseBlasterDDS`, also go on `pb.direct_outputs`; their gate is internal to the PulseBlaster, so they take no `digital_gate`.
+Outputs on `pb.direct_outputs` cannot ramp.
+
 .. code-block:: python
 
 	from labscript import *
 
-	from labscript_devices.PulseBlaster import PulseBlaster
+	from labscript_devices.PulseBlaster import PulseBlaster, PulseBlasterDDS
 
 	PulseBlaster(name='pb',board_number=0,programming_scheme='pb_start/BRANCH')
 
-	Clockline(name='pb_clockline_fast', pseudoclock=pb.pseudoclock,connection='flag 0')
-	Clockline(name='pb_clockline_slow', pseudoclock=pb.pseudoclock,connection='flag 1')
+	ClockLine(name='pb_clockline_fast', pseudoclock=pb.pseudoclock,connection='flag 0')
+	ClockLine(name='pb_clockline_slow', pseudoclock=pb.pseudoclock,connection='flag 1')
 
 	DigitalOut(name='pb_0',parent_device=pb.direct_outputs,connection='flag 2')
 
-	PulseBlasterDDS(name='pb_dds_0',parent_device=pb.direct_outputs, 'channel 0')
+	PulseBlasterDDS(name='pb_dds_0',parent_device=pb.direct_outputs,connection='dds 0')
 
 	start()
 

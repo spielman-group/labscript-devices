@@ -77,7 +77,21 @@ Exact numbers of channels, performance, and configuration depend on the model of
 	AnalogIn('daq_ai1',daq,'ai1')
 
 	AnalogOut('daq_ao0',daq,'ao0')
-	AnalogIn('daq_ai1',daq,'ai1')
+	AnalogOut('daq_ao1',daq,'ao1')
+
+Every NI_DAQmx device must have an even number of analog outputs and an even number of digital outputs, static or buffered, since the DAQmx library needs an even total number of samples.
+Add an unused output to make up the number.
+
+Analog inputs
+-------------
+
+`acquisition_rate` is the sample rate, in Hz, of every analog input on the device; an `AnalogIn` cannot be added without it.
+The device also needs a parent clock line, even without buffered outputs: in a shot, BLACS starts recording the inputs in use on the first clock tick at `clock_terminal`, then samples on the DAQ's own clock (see `AI timing skew`_).
+Each `acquire` window is cut from that record and saved to the shot file as `/data/traces/<label>`, with columns `t` and `values`.
+In a shot with waits, analog input needs a wait monitor.
+
+The rate may not exceed the model's `max_AI_single_chan_rate`.
+With more than one input acquiring, the rate times the number of those inputs may not exceed `max_AI_multi_chan_rate`, unless the model samples its inputs simultaneously, when the rate alone may not.
 
 WaitMonitors
 ------------
