@@ -5,6 +5,15 @@ A planning document for the code-health campaign in labscript-devices
 deep pass's candidates for Ian's review, one section per step. It is deleted
 when the pass is done. Nothing is removed until Ian has reviewed each entry.
 
+## Commits
+
+Each stage's commits on `CodeHealth`, for review:
+
+- The contract, step 1, the end-of-shot wait and the decided items:
+  `0895d6c..` the commit that records this line. Paired with labscript's
+  `73af05d` (is_master_pseudoclock, stop_time and the pseudoclock stop order),
+  which must merge with `4534238`.
+
 ## The test contract
 
 Marks:
