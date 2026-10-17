@@ -212,7 +212,8 @@ class PulseBlaster(PseudoclockDevice):
                 raise LabscriptError(message)
             # Round pulse width up to the nearest multiple of clock resolution:
             quantised_pulse_width = 2*pulse_width/self.clock_resolution
-            quantised_pulse_width = int(quantised_pulse_width) + 1 # ceil(quantised_pulse_width)
+            # Rounding first drops float error, so a width already a multiple stays one:
+            quantised_pulse_width = int(np.ceil(round(quantised_pulse_width, 9)))
             # This will be used as the high time of clock ticks:
             pulse_width = quantised_pulse_width*self.clock_resolution/2
             # This pulse width, if larger than the minimum, may limit how fast we can tick.
