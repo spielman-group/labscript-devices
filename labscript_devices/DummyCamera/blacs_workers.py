@@ -11,7 +11,6 @@
 #                                                                   #
 #####################################################################
 
-from labscript_utils import dedent
 
 from labscript_devices.DummyCamera.sensor import blank_image, sensor_size
 from labscript_devices.TriggerableCamera.blacs_workers import (
@@ -78,11 +77,6 @@ class Dummy_Camera(TriggerableCameraInterface):
     def grab(self):
         if self.images is None:
             return self.snap()
-        if self.index >= len(self.images):
-            msg = """This shot compiled %d images and the camera has been asked
-                for one more. A dummy camera produces one image per exposure, so
-                more triggers have arrived than the shot has exposures."""
-            raise ValueError(dedent(msg) % len(self.images))
         image = self.images[self.index]
         self.index += 1
         return image

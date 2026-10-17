@@ -248,11 +248,6 @@ class TriggerableCameraWorker(Worker):
         """Return an instance of the camera interface class. Subclasses may override
         this method to pass required arguments to their class if they require more
         than just the serial number."""
-        if self.interface_class is None:
-            msg = """%s names no interface class. A camera worker sets
-                interface_class to the class that talks to its camera, or
-                reimplements get_camera()."""
-            raise NotImplementedError(dedent(msg) % type(self).__name__)
         return self.interface_class(self.serial_number)
 
     def load_shot_data(self, shot_file):

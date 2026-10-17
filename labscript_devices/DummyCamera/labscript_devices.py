@@ -106,12 +106,6 @@ class DummyCamera(TriggerableCamera):
         The function is passed by keyword. An exposure given none gets a
         blank frame.
         """
-        if callable(trigger_duration):
-            msg = """%s was passed where this exposure's trigger duration goes.
-                A dummy camera takes its image function by keyword:
-                camera.expose(t, name, frametype, function=%s)."""
-            name_of = getattr(trigger_duration, '__name__', trigger_duration)
-            raise ValueError(dedent(msg) % (name_of, name_of))
         trigger_duration = TriggerableCamera.expose(
             self, t, name, frametype, trigger_duration
         )

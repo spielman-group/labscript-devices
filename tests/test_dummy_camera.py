@@ -31,7 +31,6 @@ from labscript_devices.DummyCamera.blacs_workers import (
 )
 from labscript_devices.IMAQdxCamera.blacs_workers import IMAQdxCameraWorker
 import labscript_devices.TriggerableCamera.blacs_workers as camera_workers
-from labscript_devices.TriggerableCamera.blacs_workers import TriggerableCameraWorker
 
 from test_compile_device_tables import CompileTestCase
 
@@ -162,19 +161,6 @@ NO_SENSOR_SIZE_SHOT = PREAMBLE.replace(
     '''
     start()
     camera.expose(0.1, 'an exposure')
-    stop(1.0)
-    '''
-)
-
-
-# A function handed to expose() positionally, where trigger_duration goes.
-MISPLACED_FUNCTION_SHOT = PREAMBLE + textwrap.dedent(
-    '''
-    def an_image(X, Y):
-        return np.zeros(X.shape)
-
-    start()
-    camera.expose(0.1, 'oops', 'atoms', an_image)
     stop(1.0)
     '''
 )
@@ -324,20 +310,6 @@ class RejectedFunctionTests(DummyCameraTestCase):
 
         self.assertIn('finite', str(raised.exception))
         self.assertIn('nan', str(raised.exception))
-
-
-class MisplacedFunctionTests(DummyCameraTestCase):
-    shot = MISPLACED_FUNCTION_SHOT
-
-    def test_a_function_where_the_trigger_duration_goes_says_so(self):
-        # Without this it is a TypeError from comparing a function to a number,
-        # naming neither expose() nor the function.
-        with self.assertRaises(ValueError) as raised:
-            self.compile_with_globals()
-
-        message = str(raised.exception)
-        self.assertIn('an_image', message)
-        self.assertIn('function=', message)
 
 
 class SensorSizeTests(DummyCameraTestCase):
@@ -556,15 +528,6 @@ class PlaybackTests(unittest.TestCase):
 
         np.testing.assert_array_equal(self.camera.grab(), self.frames[0])
 
-    def test_more_triggers_than_exposures_during_a_shot_is_an_error(self):
-        # Still inside the shot: the frames are loaded and every one has been
-        # handed out, so another trigger has arrived than the shot accounts for.
-        self.camera.load_images(self.frames)
-        self.camera.grab_multiple(3, [])
-
-        with self.assertRaises(ValueError):
-            self.camera.grab()
-
     def test_manual_mode_after_a_shot_does_not_grab_the_shot_again(self):
         # BLACS resumes continuous acquisition after a shot by configuring a
         # continuous acquisition. Without this the first grab of the resumed
@@ -613,22 +576,6 @@ class PlaybackTests(unittest.TestCase):
         # take, rather than pixels drawn onto the data.
         self.assertIs(self.camera.get_attribute('NOT_REAL_DATA'), True)
         self.assertIn('NOT_REAL_DATA', self.camera.get_attribute_names())
-
-
-class InterfaceClassTests(unittest.TestCase):
-    """A camera worker that names no interface class."""
-
-    def test_a_worker_with_no_interface_class_says_which_one(self):
-        # Every vendor worker is now a two-line subclass, so forgetting the one
-        # line that matters is easy; without this it is a bare TypeError about
-        # NoneType from inside a worker process.
-        worker = TriggerableCameraWorker.__new__(TriggerableCameraWorker)
-
-        with self.assertRaises(NotImplementedError) as raised:
-            worker.get_camera()
-
-        self.assertIn('TriggerableCameraWorker', str(raised.exception))
-        self.assertIn('interface_class', str(raised.exception))
 
 
 if __name__ == '__main__':
