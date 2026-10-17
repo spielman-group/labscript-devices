@@ -350,8 +350,12 @@ class PrawnDOWorker(PseudoclockWorker):
         try:
             self.wait_for_end_of_shot()
         except TimeoutError:
-            # program hasn't ended, probably bad triggering
-            self.abort_buffered()
+            # Stop the program, probably badly triggered, without waiting to see
+            # it stop as abort_buffered does: a stuck board might never report it.
+            try:
+                self.intf.send_command_ok('abt')
+            except LabscriptError:
+                self.logger.exception('The PrawnDO did not accept the abort.')
             raise
         return True
 
