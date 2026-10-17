@@ -629,7 +629,9 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
         #       written
         #       self.wait_durations_analysed.post(self.h5_file)
     
-        self.wait_for_end_of_shot()
+        # The master's tab has seen it finish already:
+        if not self.is_master_pseudoclock:
+            self.wait_for_end_of_shot()
         clock_frequency = self.connection_table_properties['clock_frequency']
 
         if self.wait_table is not None:

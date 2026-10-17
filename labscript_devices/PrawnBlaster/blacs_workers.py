@@ -498,7 +498,9 @@ class PrawnBlasterWorker(PseudoclockWorker):
             bool: `True` if transition to manual is successful.
         """
 
-        self.wait_for_end_of_shot()
+        # The master's tab has seen it finish already:
+        if not self.is_master_pseudoclock:
+            self.wait_for_end_of_shot()
         if self.wait_table is not None:
             with h5py.File(self.h5_file, "a") as hdf5_file:
                 # Work out how long the waits were, save em, post an event saying so

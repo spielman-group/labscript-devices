@@ -24,6 +24,7 @@ class EndOfShotTests(unittest.TestCase):
         # Only the board is stood in for: it reports these run statuses in turn.
         worker = PrawnBlasterWorker.__new__(PrawnBlasterWorker)
         worker.device_name = 'prawnblaster'
+        worker.is_master_pseudoclock = False
         worker.wait_table = None
         worker.end_of_shot_timeout = 0.2
         worker.read_status = lambda: (next(run_statuses), 0)

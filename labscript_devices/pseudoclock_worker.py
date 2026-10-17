@@ -20,8 +20,9 @@ class PseudoclockWorker(Worker):
     """The worker of a pseudoclock device.
 
     BLACS begins the transition to manual mode when the master pseudoclock has
-    finished, and a secondary one may still be running then. Each
-    ``transition_to_manual`` calls :meth:`wait_for_end_of_shot` first.
+    finished, and a secondary one may still be running then, so
+    ``transition_to_manual`` calls :meth:`wait_for_end_of_shot` first. A master
+    whose tab has already seen it finish may skip it.
     """
 
     # Seconds a board may run on once the transition to manual mode begins:
