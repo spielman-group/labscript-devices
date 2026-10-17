@@ -275,7 +275,7 @@ class PrawnDOWorker(Worker):
             group = hdf5_file['devices'][device_name]
             if 'pulse_program' not in group:
                 # if no output commanded, return
-                return
+                return {}
             self.device_properties = labscript_utils.properties.get(
                 hdf5_file, device_name, "device_properties")
             pulse_program = group['pulse_program'][()]
