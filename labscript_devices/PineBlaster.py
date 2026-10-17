@@ -203,7 +203,7 @@ class PineblasterTab(DeviceTab):
      
     @define_state(MODE_BUFFERED,True)  
     def status_monitor(self, notify_queue):
-        status = yield(self.queue_work(self.primary_worker, 'shot_finished'))        
+        status = yield(self.queue_work(self.primary_worker, 'status_monitor'))        
         if status:
             # Experiment is over. Tell the queue manager about it
             notify_queue.put('done')
@@ -285,7 +285,7 @@ class PineblasterWorker(PseudoclockWorker):
         response = self.pineblaster.readline().decode()
         assert response == 'ok\r\n', 'PineBlaster said \'%s\', expected \'ok\''%repr(response)
     
-    def shot_finished(self):
+    def status_monitor(self):
         # Wait to see if it's done within the timeout:
         response = self.pineblaster.readline().decode()
         if response:
@@ -293,6 +293,9 @@ class PineblasterWorker(PseudoclockWorker):
             return True
         return False
         
+    def shot_finished(self):
+        return self.status_monitor()
+
     def transition_to_manual(self):
         # The master's 'done' was read already, by its tab's status monitor:
         if not self.is_master_pseudoclock:
