@@ -93,9 +93,6 @@ class PineBlaster(PseudoclockDevice):
             pulse_program[i]['period'] = instruction['period']
             pulse_program[i]['reps'] = instruction['reps']
         group.create_dataset('PULSE_PROGRAM', compression = compiler.compression, data=pulse_program)
-        # TODO: is this needed, the PulseBlasters don't save it... 
-        self.set_property('is_master_pseudoclock', self.is_master_pseudoclock, location='device_properties')
-        self.set_property('stop_time', self.stop_time, location='device_properties')
  
 
 @runviewer_parser

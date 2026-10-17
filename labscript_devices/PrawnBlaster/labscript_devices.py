@@ -428,11 +428,3 @@ class PrawnBlaster(PseudoclockDevice):
             group.create_dataset(
                 f"PULSE_PROGRAM_{i}", compression=compiler.compression, data=pulse_program
             )
-
-        # This is needed so the BLACS worker knows whether or not to be a wait monitor
-        self.set_property(
-            "is_master_pseudoclock",
-            self.is_master_pseudoclock,
-            location="device_properties",
-        )
-        self.set_property("stop_time", self.stop_time, location="device_properties")

@@ -24,7 +24,7 @@ class DummyPseudoclockWorker(PseudoclockWorker):
         # get stop time:
         with h5py.File(h5file, 'r') as f:
             props = properties.get(f, self.device_name, 'device_properties')
-            self.stop_time = props.get('stop_time', None) # stop_time may be absent if we are not the master pseudoclock
+            self.stop_time = props['stop_time']
         return {}
     
     def check_if_done(self):
