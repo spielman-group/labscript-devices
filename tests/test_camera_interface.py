@@ -39,11 +39,6 @@ VENDOR_MUST_WRITE = [
     'close',
 ]
 
-# What the inherited, composing get_attributes_as_dict reaches for. Not in the
-# list above because a camera that writes its own get_attributes_as_dict never
-# reads an attribute one at a time and owes neither of these.
-COMPOSING_DEFAULT_NEEDS = ['get_attribute_names', 'get_attribute']
-
 # Every camera in the tree.
 EVERY_CAMERA = [
     IMAQdx_Camera,
@@ -77,47 +72,6 @@ class ContractTests(unittest.TestCase):
                         f'{camera.__name__} does not implement {name}(); it '
                         f'would inherit the stub, which raises mid-shot',
                     )
-
-    def test_every_camera_in_the_tree_inherits_the_base(self):
-        # Inheriting supplies grab_multiple, abort_acquisition and the flags the
-        # acquisition loop reads, so this asks whether each camera still gets
-        # them from the base, not merely whether each name resolves.
-        for camera in EVERY_CAMERA:
-            with self.subTest(camera=camera.__name__):
-                self.assertTrue(issubclass(camera, TriggerableCameraInterface))
-
-    def test_every_camera_can_read_its_attributes_as_a_dict(self):
-        # Two ways to satisfy this, and every camera takes one of them: write
-        # get_attributes_as_dict, the way Pylon and FlyCapture2 do because
-        # their APIs hand over the lot in one call, or inherit the composing
-        # default and write the two readers it reaches for.
-        for camera in EVERY_CAMERA:
-            with self.subTest(camera=camera.__name__):
-                if written_by_the_camera(camera, 'get_attributes_as_dict'):
-                    continue
-                missing = [
-                    name
-                    for name in COMPOSING_DEFAULT_NEEDS
-                    if not written_by_the_camera(camera, name)
-                ]
-                self.assertEqual(
-                    missing,
-                    [],
-                    f'{camera.__name__} inherits the composing '
-                    f'get_attributes_as_dict but does not implement '
-                    f'{" or ".join(missing)}; it would inherit the stub, '
-                    f'which raises mid-shot',
-                )
-
-    def test_an_unwritten_member_names_the_camera_and_the_member(self):
-        class ACameraMissingSnap(TriggerableCameraInterface):
-            pass
-
-        with self.assertRaises(NotImplementedError) as raised:
-            ACameraMissingSnap().snap()
-
-        self.assertIn('ACameraMissingSnap', str(raised.exception))
-        self.assertIn('snap', str(raised.exception))
 
 
 class AWaitingForTrigger(Exception):

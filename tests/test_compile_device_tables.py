@@ -116,7 +116,7 @@ class NI_DAQmxTests(CompileTestCase):
         self.assertEqual(acquisition['start'], 0.1)
         self.assertEqual(acquisition['stop'], 0.5)
 
-    def test_the_acquisitions_table_is_written_as_earlier_versions_wrote_it(self):
+    def test_the_acquisitions_table_stores_its_strings_as_bytes(self):
         # 'a256' was only ever an alias for 'S256', so renaming it changed
         # nothing on disk. Pinning bytes here is what says the shot files this
         # writes are still the ones BLACS and lyse already know how to read.

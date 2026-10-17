@@ -27,21 +27,21 @@ running the suite: "M1" and so on name those runs.
 ### Totals
 
 - Test files: 4, plus `conftest.py`, which holds no tests.
-- Tests: 38, after step 1 removed three with their behaviours (entries 2, 4 and 7).
-- Marks: keep 25, rename 1, trim 4, cut 8.
+- Tests: 41 at the start. Step 1 removed three with their behaviours (entries 2,
+  4 and 7), and the contract, applied as Ian approved it, cut seven more: 31 remain.
+- Marks, of the 38 left after step 1: keep 27, rename 1, trim 3, cut 7.
 
-### A decision the list depends on
+### The vendor-camera guard
 
 The four `ContractTests` check how the vendor camera classes are written
-(which methods each defines, what it inherits), not what they do. They are cut
-under rule 13 (attribute names). They are also the only check that runs on the
-vendor classes, whose SDKs are absent here, so a refactor that dropped, say,
-`Pylon_Camera.snap` would pass the suite. If Ian keeps that guard, the first
-of the four stays and the other three still go.
+(which methods each defines, what it inherits), not what they do, which rule
+13 cuts. But they are the only check that runs on the vendor classes, whose
+SDKs are absent here, so Ian kept the first as a guard: without it, a refactor
+that dropped, say, `Pylon_Camera.snap` would pass the suite.
 
 ### tests/test_camera_interface.py
 
-- `ContractTests.test_every_camera_writes_the_members_only_it_can`: each of the six cameras defines `set_attributes`, `snap`, `grab`, `configure_acquisition`, `stop_acquisition` and `close`. **cut** (structure), see above.
+- `ContractTests.test_every_camera_writes_the_members_only_it_can`: each of the six cameras defines `set_attributes`, `snap`, `grab`, `configure_acquisition`, `stop_acquisition` and `close`. **keep**, as the guard above.
 - `ContractTests.test_every_camera_in_the_tree_inherits_the_base`: each camera subclasses `TriggerableCameraInterface`. **cut** (structure).
 - `ContractTests.test_every_camera_can_read_its_attributes_as_a_dict`: each camera defines `get_attributes_as_dict` or the two readers it composes from. **cut** (structure).
 - `ContractTests.test_an_unwritten_member_names_the_camera_and_the_member`: an interface stub's error names the class and method. **cut** (message text). Step 2.1, entry 6.
@@ -56,7 +56,7 @@ of the four stays and the other three still go.
 ### tests/test_compile_device_tables.py
 
 - `NI_DAQmxTests.test_a_shot_asking_a_daqmx_board_for_an_acquisition_compiles`: an NI_DAQmx shot with an analog input compiles under numpy 2. **keep**.
-- `NI_DAQmxTests.test_the_acquisitions_table_is_written_as_earlier_versions_wrote_it`: the acquisitions table's strings are fixed-length bytes, as readers expect. **rename** → `test_the_acquisitions_table_stores_its_strings_as_bytes`.
+- `NI_DAQmxTests.test_the_acquisitions_table_stores_its_strings_as_bytes` (was `..._is_written_as_earlier_versions_wrote_it`): the acquisitions table's strings are fixed-length bytes, as readers expect. **rename** → `test_the_acquisitions_table_stores_its_strings_as_bytes`.
 
 ### tests/test_triggerable_camera_tab.py
 
@@ -70,15 +70,15 @@ of the four stays and the other three still go.
 - `AbsorptionImageTests.test_the_frames_of_one_absorption_image_agree_with_each_other`: **cut** (duplicate): M3 failed it together with ten others, and its optical-density check repeats the lyse test's.
 - `CoordinateGridTests.test_the_grid_is_the_object_plane_in_micrometres`: the grid is pixels scaled by `pixel_size/magnification`. **keep**.
 - `DefaultImageTests.test_an_exposure_with_no_function_gets_a_blank_frame`: an exposure with no function stores zeros. **keep**.
-- `RejectedFunctionTests.test_a_function_returning_a_nan_says_so`: a non-finite image stops the compile. **trim**. Step 2.1, entry 1.
-- `SensorSizeTests.test_a_camera_never_told_its_size_says_so_before_it_compiles`: a camera without `Width` and `Height` stops before the shot file is written to. **trim**.
+- `RejectedFunctionTests.test_a_function_returning_a_nan_stops_the_compile` (was `..._says_so`): a non-finite image stops the compile. **trim**. Step 2.1, entry 1.
+- `SensorSizeTests.test_a_camera_never_told_its_size_stops_before_the_shot_file_is_written` (was `..._says_so_before_it_compiles`): a camera without `Width` and `Height` stops before the shot file is written to. **trim**.
 - `SavedImageTests.test_the_images_are_saved_where_a_real_camera_saves_them`: frames land in `images/<camera>/<name>/<frametype>`, uint16, with the save path's attributes. **keep**.
 - `SavedImageTests.test_each_frame_is_saved_under_the_exposure_that_asked_for_it`: each saved frame is the compiled one for its exposure. **keep**.
 - `SavedImageTests.test_the_saved_images_are_marked_as_not_real_data`: the saved group carries `NOT_REAL_DATA`. **keep**.
 - `SavedImageTests.test_the_datasets_declare_themselves_to_be_images`: saved frames carry `CLASS=IMAGE`, as every camera's do. **keep**.
 - `SavedImageTests.test_an_analysis_script_reads_them_as_it_reads_any_camera_s`: lyse's `get_images` reads them back. **keep**.
 - `SaturationTests.test_a_pixel_saturates_at_the_depth_pixelformat_gives`: counts clip to the `PixelFormat` depth. **keep**. Step 2.1, entry 3.
-- `WrongShapeTests.test_a_function_returning_the_wrong_shape_says_which_exposure`: an image of the wrong shape stops the compile. **trim**. Step 2.1, entry 8.
+- `WrongShapeTests.test_a_function_returning_the_wrong_shape_stops_the_compile` (was `..._says_which_exposure`): an image of the wrong shape stops the compile. **trim**. Step 2.1, entry 8.
 - `UnsavedAttributeTests.test_the_marker_survives_a_camera_that_saves_no_attributes`: `NOT_REAL_DATA` is saved even when no attributes are. **keep**. Step 2.1, entry 5.
 - `OldStyleCameraTests.test_a_camera_without_the_interface_still_runs_a_shot`: a lab's plain camera under an `IMAQdxCameraWorker` subclass still saves its images and attributes. **keep**.
 - `PlaybackTests.test_the_camera_returns_the_compiled_frames_one_per_grab`: **keep**.
