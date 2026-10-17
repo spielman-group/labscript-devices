@@ -260,7 +260,6 @@ class PrawnDO(PseudoclockDevice):
     def generate_code(self, hdf5_file):
         PseudoclockDevice.generate_code(self, hdf5_file)
 
-        bits = [0] * 16 # Start with a list of 16 zeros
         # Isolating the Pod child device in order to access the output change 
         # times to store in the array
 
@@ -277,8 +276,9 @@ class PrawnDO(PseudoclockDevice):
         wait_idxs = [i for i,instr in enumerate(instructions) if instr=='WAIT']
 
         # Retrieving the time series of each DigitalOut to be stored
-        # as the output word for the pins
-        for output in outputs:  
+        # as the output word for the pins; an unused pin stays low
+        bits = [np.zeros(len(times), dtype=np.uint16)] * 16
+        for output in outputs:
             output.make_timeseries(times)
             chan = int(output.connection.split('do')[-1])
             bits[chan] = np.asarray(output.timeseries, dtype = np.uint16)
