@@ -164,7 +164,8 @@ class RunviewerClass(object):
             
         return clocklines_and_triggers
 
-from blacs.tab_base_classes import Worker, define_state
+from blacs.tab_base_classes import define_state
+from labscript_devices.pseudoclock_worker import PseudoclockWorker
 from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
 
 from blacs.device_base_class import DeviceTab
@@ -205,7 +206,7 @@ class PineblasterTab(DeviceTab):
      
     @define_state(MODE_BUFFERED,True)  
     def status_monitor(self, notify_queue):
-        status = yield(self.queue_work(self.primary_worker, 'status_monitor'))        
+        status = yield(self.queue_work(self.primary_worker, 'shot_finished'))        
         if status:
             # Experiment is over. Tell the queue manager about it
             notify_queue.put('done')
@@ -219,7 +220,7 @@ class PineblasterTab(DeviceTab):
         yield(self.queue_work(self.primary_worker, 'start_run'))
 
 
-class PineblasterWorker(Worker):
+class PineblasterWorker(PseudoclockWorker):
     def init(self):
         global h5py; import labscript_utils.h5_lock, h5py
         global serial; import serial
@@ -287,7 +288,7 @@ class PineblasterWorker(Worker):
         response = self.pineblaster.readline().decode()
         assert response == 'ok\r\n', 'PineBlaster said \'%s\', expected \'ok\''%repr(response)
     
-    def status_monitor(self):
+    def shot_finished(self):
         # Wait to see if it's done within the timeout:
         response = self.pineblaster.readline().decode()
         if response:
@@ -296,13 +297,9 @@ class PineblasterWorker(Worker):
         return False
         
     def transition_to_manual(self):
-        # Wait until the pineblaster says it's done:
+        # The master's 'done' was read already, by its tab's status monitor:
         if not self.is_master_pseudoclock:
-            # If we're the master pseudoclock then this already happened
-            # in status_monitor, so we don't need to do it again
-            response = self.pineblaster.readline().decode()
-            assert response == 'done\r\n', 'PineBlaster said \'%s\', expected \'ok\''%repr(response)
-            # print 'done!'
+            self.wait_for_end_of_shot()
         return True
     
     def abort_buffered(self):

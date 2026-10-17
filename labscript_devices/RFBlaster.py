@@ -199,7 +199,8 @@ class RFBlasterDirectOutputs(IntermediateDevice):
         
         
         
-from blacs.tab_base_classes import Worker, define_state
+from blacs.tab_base_classes import define_state
+from labscript_devices.pseudoclock_worker import PseudoclockWorker
 from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
 from blacs.device_base_class import DeviceTab
 
@@ -309,7 +310,7 @@ class MultiPartForm(object):
             mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
         self.files.append((fieldname, filename, mimetype, body))
     
-class RFBlasterWorker(Worker):
+class RFBlasterWorker(PseudoclockWorker):
     def init(self):
         exec('from numpy import *', globals())
         global h5py; import labscript_utils.h5_lock, h5py
@@ -394,7 +395,9 @@ class RFBlasterWorker(Worker):
         return True
      
     def transition_to_manual(self):
-        # TODO: check that the RF blaster program is finished?
+        # The RFBlaster cannot say whether its program has finished, so this
+        # takes shot_finished's default:
+        self.wait_for_end_of_shot()
         return True
      
     def http_request(self, form=None): 

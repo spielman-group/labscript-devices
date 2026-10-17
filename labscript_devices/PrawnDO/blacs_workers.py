@@ -10,7 +10,7 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from blacs.tab_base_classes import Worker
+from labscript_devices.pseudoclock_worker import PseudoclockWorker
 import labscript_utils.h5_lock, h5py
 import labscript_utils
 from labscript import LabscriptError
@@ -181,7 +181,7 @@ class PrawnDOInterface(object):
     def close(self):
         self.conn.close()
 
-class PrawnDOWorker(Worker):
+class PrawnDOWorker(PseudoclockWorker):
     def init(self):
         self.intf = PrawnDOInterface(self.com_port, self.pico_board)        
 
@@ -335,25 +335,25 @@ class PrawnDOWorker(Worker):
 
         return final_values
 
+    def shot_finished(self):
+        run_status, _ = self.intf.status()
+        if run_status in [3,4,5]:
+            raise LabscriptError(f'PrawnDO returned status {run_status} in transition to manual')
+        return run_status == 0
+
     def transition_to_manual(self):
         """Transition to manual mode after buffered execution completion.
         
         Returns:
             bool: `True` if transition to manual is successful.
         """
-        i = 0
-        while True:
-            run_status, _ = self.intf.status()
-            i += 1
-            if run_status == 0:
-                return True
-            elif i == 1000:
-                # program hasn't ended, probably bad triggering
-                # abort and raise an error
-                self.abort_buffered()
-                raise LabscriptError(f'PrawnDO did not end with status {run_status:d}. Is triggering working?')
-            elif run_status in [3,4,5]:
-                raise LabscriptError(f'PrawnDO returned status {run_status} in transition to manual')
+        try:
+            self.wait_for_end_of_shot()
+        except TimeoutError:
+            # program hasn't ended, probably bad triggering
+            self.abort_buffered()
+            raise
+        return True
 
     def abort_buffered(self):
         """Aborts a currently running buffered execution.

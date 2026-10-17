@@ -303,7 +303,8 @@ class RunviewerClass(object):
             
         return clocklines_and_triggers
 
-from blacs.tab_base_classes import Worker, define_state, Tab
+from blacs.tab_base_classes import define_state, Tab
+from labscript_devices.pseudoclock_worker import PseudoclockWorker
 from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
 
 from blacs.device_base_class import DeviceTab
@@ -386,7 +387,7 @@ class CiceroOpalKellyXEM3001Tab(DeviceTab):
             self.statemachine_timeout_remove(self.status_monitor)
             return
     
-        status = yield(self.queue_work(self.primary_worker, 'status_monitor'))        
+        status = yield(self.queue_work(self.primary_worker, 'shot_finished'))        
         if status:
             # Experiment is over. Tell the queue manager about it
             notify_queue.put('done')
@@ -415,7 +416,7 @@ class CiceroOpalKellyXEM3001Tab(DeviceTab):
 
 
 @BLACS_worker        
-class CiceroOpalKellyXEM3001Worker(Worker):
+class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
     def init(self):
         global h5py; import labscript_utils.h5_lock, h5py
         # global serial; import serial
@@ -538,7 +539,7 @@ class CiceroOpalKellyXEM3001Worker(Worker):
         # Start in software:
         assert self.dev.ActivateTriggerIn(0x40,0) == self.dev.NoError
     
-    def status_monitor(self):
+    def shot_finished(self):
         def ReadU32(addr):
             lo = self.dev.GetWireOutValue(addr)
             hi = self.dev.GetWireOutValue(addr+1)
@@ -630,6 +631,7 @@ class CiceroOpalKellyXEM3001Worker(Worker):
         #       written
         #       self.wait_durations_analysed.post(self.h5_file)
     
+        self.wait_for_end_of_shot()
         clock_frequency = self.connection_table_properties['clock_frequency']
 
         if self.wait_table is not None:

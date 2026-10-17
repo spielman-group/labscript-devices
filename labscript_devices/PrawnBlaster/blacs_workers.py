@@ -14,13 +14,13 @@ import time
 import labscript_utils.h5_lock
 import h5py
 import numpy as np
-from blacs.tab_base_classes import Worker
+from labscript_devices.pseudoclock_worker import PseudoclockWorker
 from labscript import LabscriptError
 from labscript_utils import ensure_str
 import labscript_utils.properties as properties
 
 
-class PrawnBlasterWorker(Worker):
+class PrawnBlasterWorker(PseudoclockWorker):
     """The primary worker for the PrawnBlaster.
 
     This worker handles configuration and communication
@@ -482,6 +482,14 @@ class PrawnBlasterWorker(Worker):
         # set started = True
         self.started = True
 
+    def shot_finished(self):
+        run_status, clock_status = self.read_status()
+        if run_status in [3, 4, 5]:
+            raise RuntimeError(
+                f"Prawnblaster status returned run-status={run_status} during transition to manual"
+            )
+        return run_status == 0
+
     def transition_to_manual(self):
         """Transition the PrawnBlaster back to manual mode from buffered execution at
         the end of a shot.
@@ -490,6 +498,7 @@ class PrawnBlasterWorker(Worker):
             bool: `True` if transition to manual is successful.
         """
 
+        self.wait_for_end_of_shot()
         if self.wait_table is not None:
             with h5py.File(self.h5_file, "a") as hdf5_file:
                 # Work out how long the waits were, save em, post an event saying so
@@ -515,21 +524,6 @@ class PrawnBlasterWorker(Worker):
                 hdf5_file.create_dataset("/data/waits", data=data)
 
             self.wait_durations_analysed.post(self.h5_file)
-
-        # If PrawnBlaster is master pseudoclock, then it will have it's status checked
-        # in the BLACS tab status check before any transition to manual is called.
-        # However, if it's not the master pseudoclock, we need to check here instead!
-        if not self.is_master_pseudoclock:
-            # Wait until shot completes
-            while True:
-                run_status, clock_status = self.read_status()
-                if run_status == 0:
-                    break
-                if run_status in [3, 4, 5]:
-                    raise RuntimeError(
-                        f"Prawnblaster status returned run-status={run_status} during transition to manual"
-                    )
-                time.sleep(0.01)
 
         return True
 

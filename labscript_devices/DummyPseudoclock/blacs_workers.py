@@ -13,10 +13,10 @@
 import time
 import labscript_utils.h5_lock
 import h5py
-from blacs.tab_base_classes import Worker
+from labscript_devices.pseudoclock_worker import PseudoclockWorker
 import labscript_utils.properties as properties
 
-class DummyPseudoclockWorker(Worker):
+class DummyPseudoclockWorker(PseudoclockWorker):
     def program_manual(self, values):
         return {}
 
@@ -39,6 +39,7 @@ class DummyPseudoclockWorker(Worker):
         return self.start_time + self.stop_time < time.time()
 
     def transition_to_manual(self):
+        self.wait_for_end_of_shot()
         self.start_time = None
         self.stop_time = None
         return True

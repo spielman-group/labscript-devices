@@ -649,7 +649,8 @@ class PulseBlasterDirectOutputs(IntermediateDevice):
                                      'The digital gate is always internal to the Pulseblaster.')
 
 
-from blacs.tab_base_classes import Worker, define_state
+from blacs.tab_base_classes import define_state
+from labscript_devices.pseudoclock_worker import PseudoclockWorker
 from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
 
 from blacs.device_base_class import DeviceTab
@@ -839,7 +840,7 @@ class PulseBlasterTab(DeviceTab):
         self.statemachine_timeout_add(100,self.status_monitor,notify_queue)
 
 
-class PulseblasterWorker(Worker):
+class PulseblasterWorker(PseudoclockWorker):
     def init(self):
         exec('from spinapi import *', globals())
         global h5py; import labscript_utils.h5_lock, h5py
@@ -1091,7 +1092,7 @@ class PulseblasterWorker(Worker):
             time_based_shot_over = None
         return pb_read_status(), self.waits_pending, time_based_shot_over
 
-    def transition_to_manual(self):
+    def shot_finished(self):
         status, waits_pending, time_based_shot_over = self.check_status()
         
         if self.programming_scheme == 'pb_start/BRANCH':
@@ -1101,17 +1102,17 @@ class PulseblasterWorker(Worker):
             
         if time_based_shot_over is not None:
             done_condition = time_based_shot_over
-            
+        return done_condition and not waits_pending
+
+    def transition_to_manual(self):
+        self.wait_for_end_of_shot()
         # This is only set to True on a per-shot basis, so reset it to False
         # for manual mode. Reset associated attributes to None:
         self.time_based_stop_workaround = False
         self.time_based_shot_duration = None
         self.time_based_shot_end_time = None
-        
-        if done_condition and not waits_pending:
-            return True
-        else:
-            return False
+
+        return True
      
     def abort_buffered(self):
         # Stop the execution
