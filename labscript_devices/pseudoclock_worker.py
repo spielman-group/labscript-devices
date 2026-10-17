@@ -23,10 +23,11 @@ class PseudoclockWorker(Worker):
     finished, and a secondary one may still be running then, so
     ``transition_to_manual`` calls :meth:`wait_for_end_of_shot` first. A master
     whose tab has already seen it finish may skip it.
-    """
 
-    # Seconds a board may run on once the transition to manual mode begins:
-    end_of_shot_timeout = 5
+    ``end_of_shot_timeout`` is how many seconds a board may run on once the
+    transition begins. A worker argument or connection table property sets it,
+    and it is 5 s otherwise.
+    """
 
     def shot_finished(self):
         """Return whether the board has finished the shot. A board that cannot
@@ -34,12 +35,14 @@ class PseudoclockWorker(Worker):
         return True
 
     def wait_for_end_of_shot(self):
-        deadline = time.monotonic() + self.end_of_shot_timeout
+        # Not a class attribute, which BLACS would not let a worker argument set:
+        timeout = getattr(self, 'end_of_shot_timeout', 5)
+        deadline = time.monotonic() + timeout
         while not self.shot_finished():
             if time.monotonic() > deadline:
                 raise TimeoutError(
                     f"{self.device_name} had not finished the shot "
-                    f"{self.end_of_shot_timeout} s after the transition to manual "
+                    f"{timeout} s after the transition to manual "
                     "mode began. Is it being triggered?"
                 )
             time.sleep(0.01)
