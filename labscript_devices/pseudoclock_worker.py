@@ -25,8 +25,7 @@ class PseudoclockWorker(Worker):
     whose tab has already seen it finish may skip it.
 
     ``end_of_shot_timeout`` is how many seconds a board may run on once the
-    transition begins. A worker argument or connection table property sets it,
-    and it is 5 s otherwise.
+    transition begins. A worker argument sets it, and it is 5 s otherwise.
     """
 
     def shot_finished(self):

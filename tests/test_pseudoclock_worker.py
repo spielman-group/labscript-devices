@@ -22,15 +22,16 @@ class EndOfShotTests(unittest.TestCase):
 
     def worker(self, run_statuses, **workerargs):
         # The board reports these run statuses in turn. BLACS's Worker.run gives
-        # the worker its arguments; its logging, process tree and job loop are
-        # stood in for, as they need a running BLACS.
+        # the worker its arguments; its once-per-process logging setup and job
+        # loop are stood in for, and so is its naming of this process to zlock.
         worker = PrawnBlasterWorker.__new__(PrawnBlasterWorker)
         worker.read_status = lambda: (next(run_statuses), 0)
         worker.mainloop = lambda: None
         workerargs.update(is_master_pseudoclock=False, wait_table=None)
-        with mock.patch('labscript_utils.setup_logging.setup_logging'):
-            with mock.patch('labscript_utils.ls_zprocess.ProcessTree'):
-                worker.run('main_worker', 'prawnblaster', workerargs)
+        with mock.patch('labscript_utils.setup_logging.setup_logging'), \
+             mock.patch('labscript_utils.excepthook.set_logger'), \
+             mock.patch('labscript_utils.ls_zprocess.ProcessTree'):
+            worker.run('main_worker', 'prawnblaster', workerargs)
         return worker
 
     def test_the_transition_waits_for_the_board_to_finish(self):
