@@ -13,6 +13,8 @@ Each stage's commits on `CodeHealth`, for review:
   `0895d6c..` the commit that records this line. Paired with labscript's
   `73af05d` (is_master_pseudoclock, stop_time and the pseudoclock stop order),
   which must merge with `4534238`.
+- Codex's three findings on the first stage: `4ff99a8..` the commit that records
+  this line.
 
 ## The test contract
 
