@@ -10,4 +10,26 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
-from .labscript_devices import *
+
+from labscript_devices import lazy_attributes
+from .labscript_devices import (
+    CiceroOpalKellyXEM3001Pseudoclock,
+    CiceroOpalKellyXEM3001DummyPseudoclock,
+    CiceroOpalKellyXEM3001DummyClockLine,
+    CiceroOpalKellyXEM3001DummyIntermediateDevice,
+    CiceroOpalKellyXEM3001,
+)
+
+__getattr__ = lazy_attributes(
+    __name__,
+    {
+        'blacs_tabs': ['CiceroOpalKellyXEM3001Tab'],
+        'blacs_workers': [
+            'int_to_bytes',
+            'bits_to_int',
+            'add_instruction_to_bytearray',
+            'CiceroOpalKellyXEM3001Worker',
+        ],
+        'runviewer_parsers': ['RunviewerClass'],
+    },
+)
