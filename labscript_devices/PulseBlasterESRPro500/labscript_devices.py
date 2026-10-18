@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /PulseblasterESRpro500.py                                         #
+# /labscript_devices/PulseBlasterESRPro500/labscript_devices.py     #
 #                                                                   #
 # Copyright 2013, Monash University                                 #
 #                                                                   #
@@ -10,10 +10,8 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from labscript_devices import  BLACS_tab, runviewer_parser
+
 from labscript_devices.PulseBlaster_No_DDS.labscript_devices import PulseBlaster_No_DDS
-from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import Pulseblaster_No_DDS_Tab
-from labscript_devices.PulseBlaster_No_DDS.blacs_workers import PulseblasterNoDDSWorker
 
 
 class PulseBlasterESRPro500(PulseBlaster_No_DDS):
@@ -22,18 +20,3 @@ class PulseBlasterESRPro500(PulseBlaster_No_DDS):
     clock_resolution = 4e-9
     n_flags = 21
     core_clock_freq = 500.0
-
-
-@BLACS_tab    
-class pulseblasteresrpro500(Pulseblaster_No_DDS_Tab):
-    # Capabilities
-    num_DO = 21
-    def __init__(self,*args,**kwargs):
-        self.device_worker_class = PulseblasterESRPro500Worker 
-        Pulseblaster_No_DDS_Tab.__init__(self,*args,**kwargs)
-    
-    
-class PulseblasterESRPro500Worker(PulseblasterNoDDSWorker):
-    core_clock_freq = 500.0
-    
-     
