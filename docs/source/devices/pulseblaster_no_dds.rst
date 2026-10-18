@@ -243,3 +243,9 @@ PulseBlasterESRPro500
    :undoc-members:
    :show-inheritance:
    :private-members:
+
+.. automodule:: labscript_devices.PulseBlasterESRPro500.runviewer_parsers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:

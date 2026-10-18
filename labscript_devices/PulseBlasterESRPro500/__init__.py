@@ -32,5 +32,8 @@ __getattr__ = lazy_attributes(
         'blacs_workers': [
             'PulseblasterNoDDSWorker', 'PulseblasterESRPro500Worker',
         ],
+        'runviewer_parsers': [
+            'PulseblasterESRPro500Parser',
+        ],
     },
 )
