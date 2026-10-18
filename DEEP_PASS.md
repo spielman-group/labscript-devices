@@ -21,6 +21,8 @@ Each stage's commits on `CodeHealth`, for review:
   records this line. Phase A alone is `93cdc48..` the same commit.
 - Codex's findings on Phase A, and Ian's decisions on them: `4a74e3e..` the commit
   that records this line.
+- Step 2.2.1's Phase B: `25c2f22..` the commit that records this line, coupled
+  with labscript `2e47a79`, `608013c`, `f9d64b9`, `1d5ea89` and `58c5445`.
   - **Outcome:** each package gives its old module's own names, and the device
     classes it imported, as the same objects. Its labscript-side names make up
     `__all__`. The incidental imports are dropped, by Ian's decision. The names
@@ -288,9 +290,9 @@ PulseBlaster models and test_device.
 - **The test:** `tests/test_device_packages.py` imports every device package as
   a compile does, and fails if one brings in BLACS. It skips, by name,
   AlazarTechBoard, whose compile loads the vendor's library.
-- **Resource files:** QuickSyn's `.ui` moved into its package. `pulseblaster.ui`
-  stays, shared by two tabs. Cicero's worker still finds its firmware in
-  `labscript_devices/`.
+- **Resource files:** QuickSyn's `.ui` moved into its package, and
+  `pulseblaster.ui` into PulseBlaster's in Phase B. Cicero's worker still finds
+  its firmware in `labscript_devices/`.
 - **What was checked:** per device, identical shot files for its test shots and
   any workspace script using it, the RbChip lab's three sequences included.
   Also the same BLACS tab and runviewer parser by class name, and the same
@@ -299,6 +301,61 @@ PulseBlaster models and test_device.
   for a device with no parser. It raised ValueError and now raises
   AttributeError, from labscript-utils' handling of `runviewer_parser=None`.
   runviewer catches both.
+
+### Phase B, as built
+
+On `CodeHealth` after Phase A (`25c2f22`), in this order:
+
+- **Card 9, device groups** (`5a32ccc`): five devices make their shot-file
+  group with labscript's `init_device_group`.
+- **Step 2.2 item 9** (`1681a27`): ESRPro500 gets a runviewer parser.
+- **Card 4** (`5534444`, `3ca384e`): `pseudoclock_worker.py` becomes
+  `pseudoclock.py`, and `PseudoclockTab` there holds the status monitor that
+  Cicero's and PineBlaster's tabs shared.
+- **Card 6** (`fd22d15`): `rising_edge_times`, in
+  `labscript_devices/runviewer_parsing.py`, for seven parsers.
+- **Card 7, with step 2.2 items 6, 7 and 8** (`cb4eac6`..`f6682a2`, `c406a1d`).
+  PulseBlaster is a DDS mixin on a flags-only `PulseBlasterBase`, on all four
+  sides. The tabs name their worker by `worker_class`, and a lab's tab that sets
+  `device_worker_class` is still honoured.
+- **Card 5** (`54d04dd`): `GuilessTab` and a generic `GuilessWorker` in
+  `labscript_devices/guiless.py`. AlazarTechBoard's are now
+  `AlazarTechBoardTab` and `AlazarTechBoardWorker`; its old names keep their old
+  meaning.
+- **Cards 2 and 1, device side** (`cd51918`, `313f78c`). The one-clockline
+  pseudoclock subclasses and the wait-monitor dummies go, for labscript's
+  `max_clock_lines` argument and `internal_wait_monitor_outputs`.
+- **Step 2.2 item 2** (`10ca3ab`): PrawnDO's private pseudoclock and clockline
+  classes go.
+- **Card 9, ticks and DDS values** (`f6849e6`, `4134c99`). Steps become ticks
+  with `quantise_to_pseudoclock(ticks=True)`; NovaTech, QuickSyn and RFBlaster
+  quantise their DDS values with labscript's `quantise_channel`.
+- **Card 10** (`82c42cc`): `TriggerableCameraInterface` composes
+  `set_attributes` and `snap`, and `DictAttributesMixin` holds dict attributes.
+
+Merge coupling: this range must merge with labscript `2e47a79`, `608013c`,
+`f9d64b9`, `1d5ea89` and `58c5445`.
+
+Intended differences:
+
+- **Connection tables:** the internal pseudoclock, clockline and wait-monitor
+  devices of Cicero, PineBlaster, RFBlaster, DummyPseudoclock, PrawnBlaster and
+  PrawnDO have new classes, so labs recompile their connection table once.
+- **Removed names:** the classes those devices dropped can no longer be imported.
+  No script in the workspace imports them.
+- **isinstance:** PulseBlaster_No_DDS and its models are no longer
+  subclasses of PulseBlaster.
+- **runviewer:** it shows ESRPro500 shots.
+- **PineBlaster's tab monitor:** it stops after an abort, and a worker failure
+  aborts the shot, as Cicero's did.
+- **DDS errors:** an out-of-range value raises labscript's error, which names
+  the value and the limits.
+- **RFBlaster:** a value negative after scaling rounds to nearest, not towards
+  zero.
+- **BLACS:** finds `AlazarTechBoardTab` for an AlazarTechBoard.
+
+Card 9's bit packing is left, by Ian's decision. Every other shot compiles to an
+identical file.
 
 ### The names each package gives (Ian)
 
@@ -313,18 +370,23 @@ qtutils, and labscript_devices' helpers. The package docs pages pass
 `:ignore-module-all:`, so the classes are documented once, under
 `.labscript_devices`.
 
-- `AlazarTechBoard`: `__all__` AlazarTechBoard; by name GuilessTab, tqdm_kwargs, atsRanges, atsSampleRates, atsExternalClockAdvice, find_nearest_internal_clock, find_clock_and_r, ats9462_clock, GuilessWorker; dropped ctypes, np, signal, sys, time, tqdm, ats, Device, AnalogIn, compiler, LabscriptError, set_passed_properties, labscript_utils, h5py, BLACS_tab, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, os, copy.
-- `CiceroOpalKellyXEM3001`: `__all__` CiceroOpalKellyXEM3001Pseudoclock, CiceroOpalKellyXEM3001DummyPseudoclock, CiceroOpalKellyXEM3001DummyClockLine, CiceroOpalKellyXEM3001DummyIntermediateDevice, CiceroOpalKellyXEM3001; by name CiceroOpalKellyXEM3001Tab, int_to_bytes, bits_to_int, add_instruction_to_bytearray, CiceroOpalKellyXEM3001Worker, RunviewerClass; dropped Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, IntermediateDevice, WaitMonitor, DigitalOut, runviewer_parser, BLACS_tab, BLACS_worker, labscript_device, np, labscript_utils, h5py, ensure_str, define_state, Tab, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
+
+Phase B then dropped the internal pseudoclock and wait-monitor classes, which no
+script imports, and added the PulseBlaster bases and mixins, AlazarTechBoard's
+tab and worker, and ESRPro500's parser; the lists below are as they stand.
+
+- `AlazarTechBoard`: `__all__` AlazarTechBoard; by name AlazarTechBoardTab, GuilessTab, tqdm_kwargs, atsRanges, atsSampleRates, atsExternalClockAdvice, find_nearest_internal_clock, find_clock_and_r, ats9462_clock, AlazarTechBoardWorker, GuilessWorker (new: AlazarTechBoardTab, AlazarTechBoardWorker); dropped ctypes, np, signal, sys, time, tqdm, ats, Device, AnalogIn, compiler, LabscriptError, set_passed_properties, labscript_utils, h5py, BLACS_tab, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, os, copy.
+- `CiceroOpalKellyXEM3001`: `__all__` CiceroOpalKellyXEM3001; by name CiceroOpalKellyXEM3001Tab, int_to_bytes, bits_to_int, add_instruction_to_bytearray, CiceroOpalKellyXEM3001Worker, RunviewerClass; dropped Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, IntermediateDevice, WaitMonitor, DigitalOut, runviewer_parser, BLACS_tab, BLACS_worker, labscript_device, np, labscript_utils, h5py, ensure_str, CiceroOpalKellyXEM3001Pseudoclock, CiceroOpalKellyXEM3001DummyPseudoclock, CiceroOpalKellyXEM3001DummyClockLine, CiceroOpalKellyXEM3001DummyIntermediateDevice, define_state, Tab, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
 - `DummyIntermediateDevice`: `__all__` DummyIntermediateDevice; by name DummyIntermediateDeviceTab, DummyIntermediateDeviceWorker; dropped labscript_device, BLACS_tab, BLACS_worker, IntermediateDevice, DigitalOut, AnalogOut, compiler, np, DeviceTab, Worker.
 - `LightCrafterDMD`: `__all__` arr_to_bmp, WIDTH, HEIGHT, BLANK_BMP, ImageSet, LightCrafterDMD; by name LightCrafterTab, LightCrafterWorker; dropped base64, os, struct, time, PIL, BytesIO, labscript_utils, h5py, labscript_device, BLACS_tab, BLACS_worker, runviewer_parser, Device, IntermediateDevice, LabscriptError, Output, compiler, np, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, Signal.
 - `NovaTechDDS9M`: `__all__` bauds, NovaTechDDS9M; by name NovatechDDS9MTab, NovatechDDS9mWorker, RunviewerClass; dropped runviewer_parser, BLACS_tab, IntermediateDevice, DDS, StaticDDS, Device, compiler, LabscriptError, set_passed_properties, NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion, np, labscript_utils, h5py, time, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
 - `PhaseMatrixQuickSyn`: `__all__` QuickSynDDS, PhaseMatrixQuickSyn; by name PhaseMatrixQuickSynTab, QuickSynWorker; dropped np, BLACS_tab, runviewer_parser, Device, StaticDDS, StaticAnalogQuantity, StaticDigitalOut, compiler, LabscriptError, set_passed_properties, labscript_utils, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, os.
-- `PineBlaster`: `__all__` PineBlasterPseudoclock, PineBlaster; by name PineblasterTab, PineblasterWorker, RunviewerClass; dropped PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError, set_passed_properties, runviewer_parser, BLACS_tab, np, labscript_utils, h5py, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
-- `PulseBlaster`: `__all__` PulseBlasterDDS, PulseBlaster, PulseBlasterDirectOutputs; by name PulseBlasterTab, PulseblasterWorker, profiles, profile, start_profile, stop_profile, PulseBlasterParser; dropped BLACS_tab, runviewer_parser, dedent, Device, PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DigitalQuantity, DigitalOut, DDS, DDSQuantity, LabscriptError, set_passed_properties, compiler, np, labscript_utils, h5py, time, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, qtutils, os, QtCore, QtGui.
-- `PulseBlaster_No_DDS`: `__all__` PulseBlaster, PulseBlaster_No_DDS; by name Pulseblaster_No_DDS_Tab, PulseblasterNoDDSWorker, PulseBlasterParser, PulseBlaster_No_DDS_Parser; dropped BLACS_tab, runviewer_parser, PseudoclockDevice, compiler, LabscriptError, np, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, qtutils, os, QtCore, QtGui, QtWidgets.
+- `PineBlaster`: `__all__` PineBlaster; by name PineblasterTab, PineblasterWorker, RunviewerClass; dropped PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError, set_passed_properties, runviewer_parser, BLACS_tab, np, labscript_utils, h5py, PineBlasterPseudoclock, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
+- `PulseBlaster`: `__all__` PulseBlasterDDS, PulseBlasterBase, DDSPulseBlasterMixin, PulseBlaster, PulseBlasterDirectOutputs; by name PulseBlasterBaseTab, DDSPulseBlasterTabMixin, PulseBlasterTab, PulseBlasterBaseWorker, DDSPulseBlasterWorkerMixin, PulseblasterWorker, profiles, profile, start_profile, stop_profile, PulseBlasterBaseParser, PulseBlasterParser (new: PulseBlasterBase, DDSPulseBlasterMixin, PulseBlasterBaseTab, DDSPulseBlasterTabMixin, PulseBlasterBaseWorker, DDSPulseBlasterWorkerMixin, PulseBlasterBaseParser); dropped BLACS_tab, runviewer_parser, dedent, Device, PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DigitalQuantity, DigitalOut, DDS, DDSQuantity, LabscriptError, set_passed_properties, compiler, np, labscript_utils, h5py, time, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, qtutils, os, QtCore, QtGui.
+- `PulseBlaster_No_DDS`: `__all__` PulseBlaster, PulseBlaster_No_DDS; by name Pulseblaster_No_DDS_Tab, PulseblasterNoDDSWorker, PulseBlaster_No_DDS_Parser, PulseBlasterParser; dropped BLACS_tab, runviewer_parser, PseudoclockDevice, compiler, LabscriptError, np, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, qtutils, os, QtCore, QtGui, QtWidgets.
 - `PulseBlasterESRPro200`: `__all__` PulseBlaster_No_DDS, PulseBlasterESRPro200; by name Pulseblaster_No_DDS_Tab, pulseblasteresrpro200, PulseblasterNoDDSWorker, PulseblasterESRPro200Worker, PulseBlaster_No_DDS_Parser, PulseblasterESRPro200Parser; dropped BLACS_tab, runviewer_parser.
-- `PulseBlasterESRPro500`: `__all__` PulseBlaster_No_DDS, PulseBlasterESRPro500; by name Pulseblaster_No_DDS_Tab, pulseblasteresrpro500, PulseblasterNoDDSWorker, PulseblasterESRPro500Worker; dropped BLACS_tab, runviewer_parser.
+- `PulseBlasterESRPro500`: `__all__` PulseBlaster_No_DDS, PulseBlasterESRPro500; by name Pulseblaster_No_DDS_Tab, pulseblasteresrpro500, PulseblasterNoDDSWorker, PulseblasterESRPro500Worker, PulseblasterESRPro500Parser (new: PulseblasterESRPro500Parser); dropped BLACS_tab, runviewer_parser.
 - `PulseBlasterUSB`: `__all__` PulseBlaster_No_DDS, PulseBlasterUSB; by name Pulseblaster_No_DDS_Tab, PulseblasterUSBTab, PulseblasterNoDDSWorker, PulseblasterUSBWorker, PulseBlaster_No_DDS_Parser, PulseBlasterUSBParser; dropped BLACS_tab, runviewer_parser.
-- `PulseBlaster_SP2_24_100_32k`: `__all__` PulseBlaster_No_DDS, PulseBlaster_SP2_24_100_32k; by name Pulseblaster_No_DDS_Tab, PulseBlaster_SP2_24_100_32k_Tab, PulseblasterNoDDSWorker, PulseBlaster_SP2_24_100_32k_Worker, PulseBlasterParser, PulseBlaster_SP2_24_100_32k_Parser; dropped BLACS_tab, runviewer_parser.
-- `RFBlaster`: `__all__` RFBlasterPseudoclock, RFBlaster, RFBlasterDirectOutputs; by name RFBlasterTab, MultiPartForm, RFBlasterWorker; dropped os, PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, compiler, startupinfo, LabscriptError, set_passed_properties, np, BLACS_tab, runviewer_parser, setup_logging, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
+- `PulseBlaster_SP2_24_100_32k`: `__all__` PulseBlaster_No_DDS, PulseBlaster_SP2_24_100_32k; by name Pulseblaster_No_DDS_Tab, PulseBlaster_SP2_24_100_32k_Tab, PulseblasterNoDDSWorker, PulseBlaster_SP2_24_100_32k_Worker, PulseBlaster_SP2_24_100_32k_Parser, PulseBlasterParser; dropped BLACS_tab, runviewer_parser.
+- `RFBlaster`: `__all__` RFBlaster, RFBlasterDirectOutputs; by name RFBlasterTab, MultiPartForm, RFBlasterWorker; dropped os, PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, compiler, startupinfo, LabscriptError, set_passed_properties, np, BLACS_tab, runviewer_parser, setup_logging, RFBlasterPseudoclock, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
 - `test_device`: `__all__` test_device; by name Tab, Worker, Parser; dropped BLACS_tab, runviewer_parser, Device, LabscriptError, set_passed_properties.
