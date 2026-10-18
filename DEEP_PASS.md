@@ -330,6 +330,7 @@ On `CodeHealth` after Phase A (`25c2f22`), in this order:
 - **Card 9, ticks and DDS values** (`f6849e6`, `4134c99`). Steps become ticks
   with `quantise_to_pseudoclock(ticks=True)`; NovaTech, QuickSyn and RFBlaster
   quantise their DDS values with labscript's `quantise_channel`.
+- **The review's fixes** (`f9c09d9`).
 - **Card 10** (`82c42cc`): `TriggerableCameraInterface` composes
   `set_attributes` and `snap`, and `DictAttributesMixin` holds dict attributes.
 
@@ -353,6 +354,20 @@ Intended differences:
 - **RFBlaster:** a value negative after scaling rounds to nearest, not towards
   zero.
 - **BLACS:** finds `AlazarTechBoardTab` for an AlazarTechBoard.
+- **PulseBlaster code:**
+  - `convert_to_pb_inst` takes only the digital outputs, so a lab subclass that
+    calls it with five arguments fails.
+  - The DDS board's tab, like the others, now honours a `device_worker_class` a
+    lab's tab sets.
+- **Parsers:** No_DDS's and SP2's parsers are no longer subclasses of
+  `PulseBlasterParser`.
+- **Error wording:** misconnections to the internal wait-monitor chain (Cicero,
+  PrawnBlaster) and to PrawnDO's internals raise labscript's own messages.
+
+Kept for labs' own subclasses, after the review:
+- **DDS quantisers:** NovaTech's and QuickSyn's `quantise_*` methods are still
+  the hooks `generate_code` calls, now made with `quantise_channel`.
+- **DDS worker:** it takes 12 flags when a tab doesn't pass `num_DO`.
 
 Card 9's bit packing is left, by Ian's decision. Every other shot compiles to an
 identical file.
