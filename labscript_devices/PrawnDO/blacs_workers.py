@@ -10,7 +10,7 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from labscript_devices.pseudoclock_worker import PseudoclockWorker
+from labscript_devices.pseudoclock import PseudoclockWorker
 import labscript_utils.h5_lock, h5py
 import labscript_utils
 from labscript import LabscriptError

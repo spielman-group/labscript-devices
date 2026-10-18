@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/pseudoclock_worker.py                          #
+# /labscript_devices/pseudoclock.py                                 #
 #                                                                   #
 # Copyright 2026, JQI                                               #
 # Author: Ian Spielman                                              #

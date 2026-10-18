@@ -13,7 +13,7 @@
 import time
 import labscript_utils.h5_lock
 import h5py
-from labscript_devices.pseudoclock_worker import PseudoclockWorker
+from labscript_devices.pseudoclock import PseudoclockWorker
 import labscript_utils.properties as properties
 
 class DummyPseudoclockWorker(PseudoclockWorker):

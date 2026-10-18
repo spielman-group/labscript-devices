@@ -14,7 +14,7 @@ import time
 import labscript_utils.h5_lock
 import h5py
 import numpy as np
-from labscript_devices.pseudoclock_worker import PseudoclockWorker
+from labscript_devices.pseudoclock import PseudoclockWorker
 from labscript import LabscriptError
 from labscript_utils import ensure_str
 import labscript_utils.properties as properties

@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 
-from labscript_devices.pseudoclock_worker import PseudoclockWorker
+from labscript_devices.pseudoclock import PseudoclockWorker
 
 
 class PulseblasterWorker(PseudoclockWorker):
