@@ -8,3 +8,11 @@
 - `NI_DAQmx/blacs_workers.py`: the wait monitor thread waits for the start pulse with no timeout, and `transition_to_manual` joins it with none, so a shot whose start pulse never reaches the counter hangs the transition.
 - `LightCrafterDMD/blacs_workers.py`: `receive` retries a "System Busy" reply every 5 s with no limit, so a DMD that stays busy hangs every transition and abort.
 - `PrawnDO/labscript_devices.py` generate_code: `np.asarray(output.timeseries, dtype=np.uint16)` fails on a function instruction, so `repeat_pulse_sequence` (and any future digital ramp) on a PrawnDO output does not compile; use `output.raw_output`.
+- `RFBlaster/blacs_workers.py`: `http_request` calls `requests.get` and `requests.post` with no timeout, so an RFBlaster that stops answering hangs its worker.
+- `CiceroOpalKellyXEM3001/labscript_devices.py`: `trigger_debounce_clock_ticks` is checked only against 65535, so a negative value compiles, though the error message says 0 to 65535.
+- `PhaseMatrixQuickSyn/labscript_devices.py`: `generate_code` raises UnboundLocalError for a QuickSyn with no DDS connected; with two connected, it uses only the last.
+- `LightCrafterDMD/labscript_devices.py`: `generate_code` raises IndexError for a DMD with no ImageSet, and `ImageSet.set_image` raises struct.error, not LabscriptError, for raw bytes that start with BM but are under 30 bytes long.
+- `LightCrafterDMD/blacs_workers.py`: `transition_to_buffered` leaves `table_data` unbound when the shot has no IMAGE_TABLE, and `program_manual` uses only the last region and leaves `data` unbound when given none. Read, not run.
+- `AlazarTechBoard/labscript_devices.py`: `generate_code` calls `init_device_group` inside its loop over acquisitions, so a board with two or more acquisitions does not compile (ValueError, name already exists).
+- `AlazarTechBoard/blacs_workers.py`: the worker keeps `sys.exc_info()` and later raises that tuple, a TypeError, and an unknown `chA_input_range` or `chB_input_range` is printed and then used unbound. Read, not run.
+- `PulseBlaster/runviewer_parsers.py`: `get_traces` raises KeyError for a PulseBlasterDDS on `direct_outputs`, since it handles only device class 'DDS'; and it ignores a LONG_DELAY instruction's repeat count, so runviewer's time axis falls short after any delay longer than about 43 s.
