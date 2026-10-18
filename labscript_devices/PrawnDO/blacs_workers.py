@@ -353,8 +353,8 @@ class PrawnDOWorker(PseudoclockWorker):
             # it stop as abort_buffered does: a stuck board might never report it.
             try:
                 self.intf.send_command_ok('abt')
-            except LabscriptError:
-                self.logger.exception('The PrawnDO did not accept the abort.')
+            except Exception:
+                self.logger.exception('Could not abort the PrawnDO.')
             raise
         return True
 
