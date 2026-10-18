@@ -36,7 +36,7 @@ __getattr__ = lazy_attributes(
         ],
         'runviewer_parsers': [
             'profiles', 'profile', 'start_profile', 'stop_profile',
-            'PulseBlasterParser',
+            'PulseBlasterBaseParser', 'PulseBlasterParser',
         ],
     },
 )

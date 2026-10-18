@@ -16,7 +16,7 @@ import time
 import numpy as np
 import labscript_utils.h5_lock, h5py
 
-from .labscript_devices import PulseBlaster
+from .labscript_devices import PulseBlasterBase
 
 
 profiles = {}
@@ -61,10 +61,11 @@ def stop_profile(name):
     profiles[name]['average_time_per_call'] = profiles[name]['total_time']/profiles[name]['num_calls']
 
 
-class PulseBlasterParser(object):
-    num_dds = 2
-    num_flags = 12
-    
+class PulseBlasterBaseParser:
+    """Runviewer's traces of a PulseBlaster board's program. A board's class sets
+    ``num_flags``, and ``num_dds`` if it has DDS outputs."""
+    num_dds = 0
+
     def __init__(self, path, device):
         self.path = path
         self.name = device.name
@@ -117,7 +118,7 @@ class PulseBlasterParser(object):
                 traces['dds %d_%s'%(i,sub_chnl)] = []   
         
         # now build the traces
-        t = 0. if parent is None else PulseBlaster.trigger_delay # Offset by initial trigger of parent
+        t = 0. if parent is None else PulseBlasterBase.trigger_delay # Offset by initial trigger of parent
         i = 0
         while i < len(pulse_program):
             # ignore the first 2 instructions, they are dummy instructions for BLACS
@@ -175,7 +176,7 @@ class PulseBlasterParser(object):
             
                 if row['inst'] == 8 and parent is not None: #WAIT
                     #TODO: Offset next time by trigger delay is not master pseudoclock
-                    t+= PulseBlaster.trigger_delay
+                    t+= PulseBlasterBase.trigger_delay
                     
             
             i += 1            
@@ -254,3 +255,8 @@ class PulseBlasterParser(object):
             # Note: Using the inline if statement reduces the runtime (of this for loop) by 50%
             amp = current_dds['AMP'][row[current_strings['amp']]] if row[current_strings['dds_en']] else 0
             traces[current_strings['ddsamp']].append(amp)
+
+
+class PulseBlasterParser(PulseBlasterBaseParser):
+    num_dds = 2
+    num_flags = 12

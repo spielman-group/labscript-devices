@@ -33,7 +33,10 @@ __getattr__ = lazy_attributes(
             'PulseblasterNoDDSWorker', 'PulseBlaster_SP2_24_100_32k_Worker',
         ],
         'runviewer_parsers': [
-            'PulseBlasterParser', 'PulseBlaster_SP2_24_100_32k_Parser',
+            'PulseBlaster_SP2_24_100_32k_Parser',
+        ],
+        'labscript_devices.PulseBlaster.runviewer_parsers': [
+            'PulseBlasterParser',
         ],
     },
 )
