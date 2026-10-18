@@ -12,7 +12,8 @@
 #####################################################################
 
 from labscript_devices import BLACS_tab, runviewer_parser
-from labscript_devices.PulseBlaster import PulseBlaster, PulseBlasterParser
+from labscript_devices.PulseBlaster.labscript_devices import PulseBlaster
+from labscript_devices.PulseBlaster.runviewer_parsers import PulseBlasterParser
 from labscript import PseudoclockDevice, compiler, LabscriptError
 
 import numpy as np

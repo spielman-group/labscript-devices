@@ -12,7 +12,7 @@
 #####################################################################
 from labscript_devices import BLACS_tab, runviewer_parser
 from labscript_devices.PulseBlaster_No_DDS import PulseBlaster_No_DDS, Pulseblaster_No_DDS_Tab, PulseblasterNoDDSWorker
-from labscript_devices.PulseBlaster import PulseBlasterParser
+from labscript_devices.PulseBlaster.runviewer_parsers import PulseBlasterParser
 
 
 class PulseBlaster_SP2_24_100_32k(PulseBlaster_No_DDS):
