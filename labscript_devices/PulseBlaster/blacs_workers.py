@@ -296,7 +296,7 @@ class DDSPulseBlasterWorkerMixin:
                 #
                 # Be warned!
         flags = ''
-        for i in range(12):
+        for i in range(self.num_DO):
             if values['flag %d'%i]:
                 flags += '1'
             else:
@@ -407,7 +407,7 @@ class DDSPulseBlasterWorkerMixin:
                 #
                 # Be warned!
                 initial_flags = ''
-                for i in range(12):
+                for i in range(self.num_DO):
                     if initial_values['flag %d'%i]:
                         initial_flags += '1'
                     else:
@@ -457,8 +457,8 @@ class DDSPulseBlasterWorkerMixin:
                              'dds 1':{'freq':finalfreq1, 'amp':finalamp1, 'phase':finalphase1, 'gate':en1},
                             }
             # Since we are converting from an integer to a binary string, we need to reverse the string! (see notes above when we create flags variables)
-            return_flags = str(bin(flags)[2:]).rjust(12,'0')[::-1]
-            for i in range(12):
+            return_flags = str(bin(flags)[2:]).rjust(self.num_DO,'0')[::-1]
+            for i in range(self.num_DO):
                 return_values['flag %d'%i] = return_flags[i]
                 
             return return_values

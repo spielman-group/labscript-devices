@@ -13,11 +13,7 @@
 
 from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import Pulseblaster_No_DDS_Tab
 
-from .blacs_workers import PulseBlaster_SP2_24_100_32k_Worker
-
 
 class PulseBlaster_SP2_24_100_32k_Tab(Pulseblaster_No_DDS_Tab):
     num_DO = 24
-    def __init__(self,*args,**kwargs):
-        self.device_worker_class = PulseBlaster_SP2_24_100_32k_Worker 
-        Pulseblaster_No_DDS_Tab.__init__(self,*args,**kwargs)
+    worker_class = 'labscript_devices.PulseBlaster_SP2_24_100_32k.blacs_workers.PulseBlaster_SP2_24_100_32k_Worker'

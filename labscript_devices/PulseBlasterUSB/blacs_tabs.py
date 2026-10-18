@@ -13,12 +13,8 @@
 
 from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import Pulseblaster_No_DDS_Tab
 
-from .blacs_workers import PulseblasterUSBWorker
-
 
 class PulseblasterUSBTab(Pulseblaster_No_DDS_Tab):
     # Capabilities
     num_DO = 24
-    def __init__(self,*args,**kwargs):
-        self.device_worker_class = PulseblasterUSBWorker 
-        Pulseblaster_No_DDS_Tab.__init__(self,*args,**kwargs)
+    worker_class = 'labscript_devices.PulseBlasterUSB.blacs_workers.PulseblasterUSBWorker'

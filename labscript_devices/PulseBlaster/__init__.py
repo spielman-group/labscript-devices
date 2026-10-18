@@ -29,10 +29,10 @@ __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'PulseBlasterTab',
+            'PulseBlasterBaseTab', 'DDSPulseBlasterTabMixin', 'PulseBlasterTab',
         ],
         'blacs_workers': [
-            'PulseblasterWorker',
+            'PulseBlasterBaseWorker', 'DDSPulseBlasterWorkerMixin', 'PulseblasterWorker',
         ],
         'runviewer_parsers': [
             'profiles', 'profile', 'start_profile', 'stop_profile',

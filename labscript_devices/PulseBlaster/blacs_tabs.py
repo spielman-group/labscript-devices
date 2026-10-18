@@ -25,36 +25,16 @@ from qtutils.qt import QtCore
 from qtutils.qt import QtGui
 
 
-class PulseBlasterTab(DeviceTab):
-    
+class PulseBlasterBaseTab(DeviceTab):
+    """The tab of a PulseBlaster board's flags. A board's class sets ``num_DO``,
+    and ``worker_class``, the full import path of its worker."""
+
     def initialise_GUI(self):
-        # Capabilities
-        self.base_units     = {'freq':'Hz',        'amp':'Vpp', 'phase':'Degrees'}
-        self.base_min       = {'freq':0.3,         'amp':0.0,   'phase':0}
-        self.base_max       = {'freq':150000000.0, 'amp':1.0,   'phase':360}
-        self.base_step      = {'freq':1000000,     'amp':0.01,  'phase':1}
-        self.base_decimals  = {'freq':1,           'amp':3,     'phase':3}
-        self.num_DDS = 2
-        self.num_DO = 12
-        
-        dds_prop = {}
-        for i in range(self.num_DDS): # 2 is the number of DDS outputs on this device
-            dds_prop['dds %d'%i] = {}
-            for subchnl in ['freq', 'amp', 'phase']:
-                dds_prop['dds %d'%i][subchnl] = {'base_unit':self.base_units[subchnl],
-                                                 'min':self.base_min[subchnl],
-                                                 'max':self.base_max[subchnl],
-                                                 'step':self.base_step[subchnl],
-                                                 'decimals':self.base_decimals[subchnl]
-                                                }
-            dds_prop['dds %d'%i]['gate'] = {}
-        
         do_prop = {}
-        for i in range(self.num_DO): # 12 is the maximum number of flags on this device (some only have 4 though)
+        for i in range(self.num_DO):
             do_prop['flag %d'%i] = {}
         
         # Create the output objects    
-        self.create_dds_outputs(dds_prop)        
         self.create_digital_outputs(do_prop)        
         # Create widgets for output objects
         dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
@@ -65,7 +45,8 @@ class PulseBlasterTab(DeviceTab):
             flag = int(flag)
             return '%02d'%(flag)
         
-        # and auto place the widgets in the UI
+        # and auto place the widgets in the UI, after any DDS outputs a
+        # subclass made:
         self.auto_place_widgets(("DDS Outputs",dds_widgets),("Flags",do_widgets,sort))
         
         # Store the board number to be used
@@ -77,8 +58,9 @@ class PulseBlasterTab(DeviceTab):
         self.programming_scheme = connection_object.properties.get('programming_scheme', 'pb_start/BRANCH')
             
         # Create and set the primary worker
-        self.create_worker("main_worker",'labscript_devices.PulseBlaster.blacs_workers.PulseblasterWorker',
+        self.create_worker("main_worker",self.worker_class,
                            {'board_number':self.board_number,
+                            'num_DO': self.num_DO,
                             'programming_scheme': self.programming_scheme})
         self.primary_worker = "main_worker"
         
@@ -198,3 +180,38 @@ class PulseBlasterTab(DeviceTab):
         self.statemachine_timeout_remove(self.status_monitor)
         self.start()
         self.statemachine_timeout_add(100,self.status_monitor,notify_queue)
+
+
+class DDSPulseBlasterTabMixin:
+    """The tab's part for the two DDS outputs of a PulseBlaster board that has
+    them. It comes before :class:`PulseBlasterBaseTab` in a board's bases."""
+
+    def initialise_GUI(self):
+        # Capabilities
+        self.base_units     = {'freq':'Hz',        'amp':'Vpp', 'phase':'Degrees'}
+        self.base_min       = {'freq':0.3,         'amp':0.0,   'phase':0}
+        self.base_max       = {'freq':150000000.0, 'amp':1.0,   'phase':360}
+        self.base_step      = {'freq':1000000,     'amp':0.01,  'phase':1}
+        self.base_decimals  = {'freq':1,           'amp':3,     'phase':3}
+        self.num_DDS = 2
+        
+        dds_prop = {}
+        for i in range(self.num_DDS): # 2 is the number of DDS outputs on this device
+            dds_prop['dds %d'%i] = {}
+            for subchnl in ['freq', 'amp', 'phase']:
+                dds_prop['dds %d'%i][subchnl] = {'base_unit':self.base_units[subchnl],
+                                                 'min':self.base_min[subchnl],
+                                                 'max':self.base_max[subchnl],
+                                                 'step':self.base_step[subchnl],
+                                                 'decimals':self.base_decimals[subchnl]
+                                                }
+            dds_prop['dds %d'%i]['gate'] = {}
+        
+        # Create the output objects, before the base class makes the flags
+        self.create_dds_outputs(dds_prop)
+        super().initialise_GUI()
+
+
+class PulseBlasterTab(DDSPulseBlasterTabMixin, PulseBlasterBaseTab):
+    num_DO = 12
+    worker_class = 'labscript_devices.PulseBlaster.blacs_workers.PulseblasterWorker'
