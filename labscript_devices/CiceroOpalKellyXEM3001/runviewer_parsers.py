@@ -14,6 +14,7 @@
 import numpy as np
 import labscript_utils.h5_lock, h5py
 import labscript_utils.properties
+from labscript_devices.runviewer_parsing import rising_edge_times
 
 
 class RunviewerClass(object):
@@ -25,13 +26,7 @@ class RunviewerClass(object):
             
     def get_traces(self, add_trace, clock=None):
         if clock is not None:
-            times, clock_value = clock[0], clock[1]
-            clock_indices = np.where((clock_value[1:]-clock_value[:-1])==1)[0]+1
-            # If initial clock value is 1, then this counts as a rising edge (clock should be 0 before experiment)
-            # but this is not picked up by the above code. So we insert it!
-            if clock_value[0] == 1:
-                clock_indices = np.insert(clock_indices, 0, 0)
-            clock_ticks = times[clock_indices]
+            clock_ticks = rising_edge_times(clock)
 
         
             

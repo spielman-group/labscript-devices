@@ -15,6 +15,7 @@ import h5py
 import numpy as np
 
 import labscript_utils.properties as properties
+from labscript_devices.runviewer_parsing import rising_edge_times
 
 class PrawnDOParser(object):
     def __init__(self, path, device):
@@ -27,14 +28,7 @@ class PrawnDOParser(object):
 
 
         if clock is not None:
-            times, clock_value = clock[0], clock[1]
-            clock_indices = np.where((clock_value[1:] - clock_value[:-1]) == 1)[0] + 1
-            # If initial clock value is 1, then this counts as a rising edge
-            # (clock should be 0 before experiment) but this is not picked up
-            # by the above code. So we insert it!
-            if clock_value[0] == 1:
-                clock_indices = np.insert(clock_indices, 0, 0)
-            clock_ticks = times[clock_indices]
+            clock_ticks = rising_edge_times(clock)
 
         # Getting pulse_program from the shot file
         with h5py.File(self.path, "r") as f:
