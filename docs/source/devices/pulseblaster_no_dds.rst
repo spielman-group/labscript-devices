@@ -89,6 +89,30 @@ PulseBlaster_No_DDS
    :show-inheritance:
    :private-members:
 
+.. automodule:: labscript_devices.PulseBlaster_No_DDS.labscript_devices
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlaster_No_DDS.blacs_tabs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlaster_No_DDS.blacs_workers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlaster_No_DDS.runviewer_parsers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
 PulseBlasterUSB
 ^^^^^^^^^^^^^^^
 

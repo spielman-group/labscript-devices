@@ -11,7 +11,9 @@
 #                                                                   #
 #####################################################################
 from labscript_devices import  BLACS_tab, runviewer_parser
-from labscript_devices.PulseBlaster_No_DDS import PulseBlaster_No_DDS, Pulseblaster_No_DDS_Tab, PulseblasterNoDDSWorker
+from labscript_devices.PulseBlaster_No_DDS.labscript_devices import PulseBlaster_No_DDS
+from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import Pulseblaster_No_DDS_Tab
+from labscript_devices.PulseBlaster_No_DDS.blacs_workers import PulseblasterNoDDSWorker
 
 
 class PulseBlasterESRPro500(PulseBlaster_No_DDS):

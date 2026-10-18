@@ -10,4 +10,15 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from .labscript_devices import *
+
+from labscript_devices import lazy_attributes
+from .labscript_devices import PulseBlaster_No_DDS
+
+__getattr__ = lazy_attributes(
+    __name__,
+    {
+        'blacs_tabs': ['Pulseblaster_No_DDS_Tab'],
+        'blacs_workers': ['PulseblasterNoDDSWorker'],
+        'runviewer_parsers': ['PulseBlaster_No_DDS_Parser'],
+    },
+)
