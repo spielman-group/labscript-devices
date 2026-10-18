@@ -95,42 +95,6 @@ class NovaTechDDS9M(IntermediateDevice):
         not otherwise specified a calibration class"""
         return NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion, None
         
-    def quantise_freq(self, data, device):
-        if not isinstance(data, np.ndarray):
-            data = np.array(data)
-        # Ensure that frequencies are within bounds:
-        if np.any(data > 171e6 )  or np.any(data < 0.1 ):
-            raise LabscriptError('%s %s '%(device.description, device.name) +
-                              'can only have frequencies between 0.1Hz and 171MHz, ' + 
-                              'the limit imposed by %s.'%self.name)
-        # It's faster to add 0.5 then typecast than to round to integers first:
-        data = np.array((10*data)+0.5,dtype=np.uint32)
-        scale_factor = 10
-        return data, scale_factor
-        
-    def quantise_phase(self, data, device):
-        if not isinstance(data, np.ndarray):
-            data = np.array(data)
-        # ensure that phase wraps around:
-        data %= 360
-        # It's faster to add 0.5 then typecast than to round to integers first:
-        data = np.array((45.511111111111113*data)+0.5,dtype=np.uint16)
-        scale_factor = 45.511111111111113
-        return data, scale_factor
-        
-    def quantise_amp(self,data,device):
-        if not isinstance(data, np.ndarray):
-            data = np.array(data)
-        # ensure that amplitudes are within bounds:
-        if np.any(data > 1 )  or np.any(data < 0):
-            raise LabscriptError('%s %s '%(device.description, device.name) +
-                              'can only have amplitudes between 0 and 1 (Volts peak to peak approx), ' + 
-                              'the limit imposed by %s.'%self.name)
-        # It's faster to add 0.5 then typecast than to round to integers first:
-        data = np.array((1023*data)+0.5,dtype=np.uint16)
-        scale_factor = 1023
-        return data, scale_factor
-        
     def generate_code(self, hdf5_file):
         DDSs = {}
         for output in self.child_devices:
@@ -150,15 +114,13 @@ class NovaTechDDS9M(IntermediateDevice):
             dds = DDSs[connection]
             if connection in range(4):
                 # Dynamic DDS
-                dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.raw_output, dds)
-                dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.raw_output, dds)
-                dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
-            # elif connection in range(2,4):
-                # # StaticDDS:
-                # dds = DDSs[connection]   
-                # dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.static_value, dds)
-                # dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.static_value, dds)
-                # dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.static_value, dds)
+                # In 0.1 Hz, 1/1023 of full amplitude, and 1/45.5111 of a degree:
+                dds.frequency.raw_output, dds.frequency.scale_factor = dds.quantise_channel(
+                    'frequency', 10, limits=(0.1, 171e6), dtype=np.uint32)
+                dds.phase.raw_output, dds.phase.scale_factor = dds.quantise_channel(
+                    'phase', 45.511111111111113, period=360, dtype=np.uint16)
+                dds.amplitude.raw_output, dds.amplitude.scale_factor = dds.quantise_channel(
+                    'amplitude', 1023, limits=(0, 1), dtype=np.uint16)
             else:
                 raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(dds.description,dds.name,str(dds.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 3.')
