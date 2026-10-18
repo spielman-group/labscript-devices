@@ -19,6 +19,13 @@ Each stage's commits on `CodeHealth`, for review:
 - Step 2.2's table and Ian's decisions, the two bugs fixed on his word
   (`719fe26`, `d0c300e`), and step 2.2.1's Phase A: `02b4a52..` the commit that
   records this line. Phase A alone is `93cdc48..` the same commit.
+- Codex's findings on Phase A: `4a74e3e..` the commit that records this line.
+  - **Outcome:** every top-level name an old single-file module bound is
+    importable from its package again, as the same object. The exception is the
+    names of Cicero's and LightCrafter's Qt star imports.
+  - The package check skips only AlazarTechBoard's missing library.
+  - The ValueError for a device with no runviewer parser needs labscript-utils'
+    lookup to treat a `None` registration as none, so it is left to that owner.
   - **Outcome:** Codex's re-check found two points. Fixed in 02b4a52: an error
     from PrawnDO's abort after a timeout, such as a `SerialException`, is logged
     and the `TimeoutError` raised, where it used to replace it. Left as is (Ian):
