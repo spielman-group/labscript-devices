@@ -11,37 +11,35 @@
 #                                                                   #
 #####################################################################
 
-# The names this package gives. The compile side's are imported here; those of
-# BLACS and runviewer load only when asked for, so a compile never imports
-# BLACS.
-from labscript_devices import (
-    BLACS_tab, BLACS_worker, labscript_device, lazy_attributes,
-    runviewer_parser,
-)
+# The labscript-side names are imported here and make up __all__, so a star
+# import of this package never loads BLACS. Its tab, worker and parser names
+# load only when asked for by name.
+from labscript_devices import lazy_attributes
 from .labscript_devices import (
-    Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError,
-    set_passed_properties, compiler, IntermediateDevice, WaitMonitor,
-    DigitalOut, np, CiceroOpalKellyXEM3001Pseudoclock,
-    CiceroOpalKellyXEM3001DummyPseudoclock,
+    CiceroOpalKellyXEM3001Pseudoclock, CiceroOpalKellyXEM3001DummyPseudoclock,
     CiceroOpalKellyXEM3001DummyClockLine,
     CiceroOpalKellyXEM3001DummyIntermediateDevice, CiceroOpalKellyXEM3001,
 )
+
+__all__ = [
+    'CiceroOpalKellyXEM3001Pseudoclock',
+    'CiceroOpalKellyXEM3001DummyPseudoclock',
+    'CiceroOpalKellyXEM3001DummyClockLine',
+    'CiceroOpalKellyXEM3001DummyIntermediateDevice', 'CiceroOpalKellyXEM3001',
+]
 
 __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'define_state', 'Tab', 'MODE_MANUAL',
-            'MODE_TRANSITION_TO_BUFFERED', 'MODE_TRANSITION_TO_MANUAL',
-            'MODE_BUFFERED', 'DeviceTab', 'CiceroOpalKellyXEM3001Tab',
+            'CiceroOpalKellyXEM3001Tab',
         ],
         'blacs_workers': [
-            'labscript_utils', 'ensure_str', 'int_to_bytes', 'bits_to_int',
-            'add_instruction_to_bytearray', 'PseudoclockWorker',
+            'int_to_bytes', 'bits_to_int', 'add_instruction_to_bytearray',
             'CiceroOpalKellyXEM3001Worker',
         ],
         'runviewer_parsers': [
-            'h5py', 'RunviewerClass',
+            'RunviewerClass',
         ],
     },
 )

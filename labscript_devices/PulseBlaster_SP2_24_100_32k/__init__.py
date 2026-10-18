@@ -11,15 +11,17 @@
 #                                                                   #
 #####################################################################
 
-# The names this package gives. The compile side's are imported here; those of
-# BLACS and runviewer load only when asked for, so a compile never imports
-# BLACS.
-from labscript_devices import (
-    BLACS_tab, lazy_attributes, runviewer_parser,
-)
+# The labscript-side names are imported here and make up __all__, so a star
+# import of this package never loads BLACS. Its tab, worker and parser names
+# load only when asked for by name.
+from labscript_devices import lazy_attributes
 from .labscript_devices import (
     PulseBlaster_No_DDS, PulseBlaster_SP2_24_100_32k,
 )
+
+__all__ = [
+    'PulseBlaster_No_DDS', 'PulseBlaster_SP2_24_100_32k',
+]
 
 __getattr__ = lazy_attributes(
     __name__,

@@ -11,30 +11,29 @@
 #                                                                   #
 #####################################################################
 
-# The names this package gives. The compile side's are imported here; those of
-# BLACS and runviewer load only when asked for, so a compile never imports
-# BLACS.
-from labscript_devices import (
-    BLACS_tab, lazy_attributes, runviewer_parser,
-)
+# The labscript-side names are imported here and make up __all__, so a star
+# import of this package never loads BLACS. Its tab, worker and parser names
+# load only when asked for by name.
+from labscript_devices import lazy_attributes
 from .labscript_devices import (
-    PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError,
-    set_passed_properties, np, PineBlasterPseudoclock, PineBlaster,
+    PineBlasterPseudoclock, PineBlaster,
 )
+
+__all__ = [
+    'PineBlasterPseudoclock', 'PineBlaster',
+]
 
 __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'define_state', 'MODE_MANUAL', 'MODE_TRANSITION_TO_BUFFERED',
-            'MODE_TRANSITION_TO_MANUAL', 'MODE_BUFFERED', 'DeviceTab',
             'PineblasterTab',
         ],
         'blacs_workers': [
-            'labscript_utils', 'PseudoclockWorker', 'PineblasterWorker',
+            'PineblasterWorker',
         ],
         'runviewer_parsers': [
-            'h5py', 'RunviewerClass',
+            'RunviewerClass',
         ],
     },
 )

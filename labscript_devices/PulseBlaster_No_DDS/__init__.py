@@ -11,28 +11,26 @@
 #                                                                   #
 #####################################################################
 
-# The names this package gives. The compile side's are imported here; those of
-# BLACS and runviewer load only when asked for, so a compile never imports
-# BLACS.
-from labscript_devices import (
-    BLACS_tab, lazy_attributes, runviewer_parser,
-)
+# The labscript-side names are imported here and make up __all__, so a star
+# import of this package never loads BLACS. Its tab, worker and parser names
+# load only when asked for by name.
+from labscript_devices import lazy_attributes
 from .labscript_devices import (
-    PulseBlaster, PseudoclockDevice, compiler, LabscriptError, np,
-    PulseBlaster_No_DDS,
+    PulseBlaster, PulseBlaster_No_DDS,
 )
+
+__all__ = [
+    'PulseBlaster', 'PulseBlaster_No_DDS',
+]
 
 __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'define_state', 'MODE_MANUAL', 'MODE_TRANSITION_TO_BUFFERED',
-            'MODE_TRANSITION_TO_MANUAL', 'MODE_BUFFERED', 'DeviceTab',
-            'UiLoader', 'qtutils', 'os', 'QtCore', 'QtGui', 'QtWidgets',
             'Pulseblaster_No_DDS_Tab',
         ],
         'blacs_workers': [
-            'PseudoclockWorker', 'PulseblasterNoDDSWorker',
+            'PulseblasterNoDDSWorker',
         ],
         'runviewer_parsers': [
             'PulseBlasterParser', 'PulseBlaster_No_DDS_Parser',

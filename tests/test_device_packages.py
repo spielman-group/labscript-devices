@@ -20,8 +20,8 @@ from pathlib import Path
 import labscript_devices
 
 # Run in a fresh interpreter: it imports each device package as a compile does,
-# and gives for each the BLACS modules it brought in, forgetting them again
-# after each, or the vendor library it could not load.
+# star import included, and gives for each the BLACS modules it brought in,
+# forgetting them again after each, or the vendor library it could not load.
 PROBE = """
 import importlib, json, sys
 results = {}
@@ -29,6 +29,8 @@ for package in sys.argv[1:]:
     for module in (package, package + '.labscript_devices'):
         try:
             importlib.import_module(module)
+            if module == package:
+                exec(f'from {package} import *', {})
         except OSError as e:
             results[module] = f'OSError: {e}'
         blacs = [name for name in sys.modules if name.split('.')[0] == 'blacs']
