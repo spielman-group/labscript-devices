@@ -122,6 +122,30 @@ PulseBlasterUSB
    :show-inheritance:
    :private-members:
 
+.. automodule:: labscript_devices.PulseBlasterUSB.labscript_devices
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlasterUSB.blacs_tabs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlasterUSB.blacs_workers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlasterUSB.runviewer_parsers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
 PulseBlaster_SP2_24_100_32k
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
