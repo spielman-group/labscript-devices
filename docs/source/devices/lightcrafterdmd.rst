@@ -15,3 +15,24 @@ Detailed Documentation
 	:show-inheritance:
 	:member-order: bysource
 	:private-members:
+
+.. automodule:: labscript_devices.LightCrafterDMD.labscript_devices
+	:members:
+	:undoc-members:
+	:show-inheritance:
+	:member-order: bysource
+	:private-members:
+
+.. automodule:: labscript_devices.LightCrafterDMD.blacs_tabs
+	:members:
+	:undoc-members:
+	:show-inheritance:
+	:member-order: bysource
+	:private-members:
+
+.. automodule:: labscript_devices.LightCrafterDMD.blacs_workers
+	:members:
+	:undoc-members:
+	:show-inheritance:
+	:member-order: bysource
+	:private-members:
