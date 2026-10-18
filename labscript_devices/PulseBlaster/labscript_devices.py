@@ -572,7 +572,7 @@ class PulseBlaster(PseudoclockDevice):
 
     def generate_code(self, hdf5_file):
         # Generate the hardware instructions
-        hdf5_file.create_group('/devices/' + self.name)
+        self.init_device_group(hdf5_file)
         PseudoclockDevice.generate_code(self, hdf5_file)
         dig_outputs, dds_outputs = self.get_direct_outputs()
         freqs, amps, phases = self.generate_registers(hdf5_file, dds_outputs)

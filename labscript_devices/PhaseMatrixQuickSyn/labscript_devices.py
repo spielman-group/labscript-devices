@@ -95,6 +95,6 @@ class PhaseMatrixQuickSyn(Device):
         static_table['freq0'].fill(1)
         static_table['freq0'] = dds.frequency.raw_output[0]
         static_table['gate0'] = dds.gate.raw_output[0]
-        grp = hdf5_file.create_group('/devices/'+self.name)
+        grp = self.init_device_group(hdf5_file)
         grp.create_dataset('STATIC_DATA',compression=compiler.compression,data=static_table) 
         self.set_property('frequency_scale_factor', 1000, location='device_properties')

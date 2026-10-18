@@ -78,7 +78,7 @@ class RFBlaster(PseudoclockDevice):
             data['freq%s'%connection] = dds.frequency.raw_output
             data['amp%s'%connection] = dds.amplitude.raw_output
             data['phase%s'%connection] = dds.phase.raw_output
-        group = hdf5_file['devices'].create_group(self.name)
+        group = self.init_device_group(hdf5_file)
         group.create_dataset('TABLE_DATA',compression=compiler.compression, data=data)
         
         # Quantise the data and save it to the h5 file:

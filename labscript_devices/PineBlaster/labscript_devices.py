@@ -61,7 +61,7 @@ class PineBlaster(PseudoclockDevice):
     
     def generate_code(self, hdf5_file):
         PseudoclockDevice.generate_code(self, hdf5_file)
-        group = hdf5_file['devices'].create_group(self.name)   
+        group = self.init_device_group(hdf5_file)   
         
         # compress clock instructions with the same period: This will
         # halve the number of instructions roughly, since the PineBlaster
