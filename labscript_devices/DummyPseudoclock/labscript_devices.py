@@ -18,10 +18,6 @@
 from labscript import PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError
 import numpy as np
 
-class _DummyPseudoclock(Pseudoclock):    
-    max_clock_lines = 1
-
-
 class DummyPseudoclock(PseudoclockDevice):
 
     description = 'Dummy pseudoclock'
@@ -29,7 +25,7 @@ class DummyPseudoclock(PseudoclockDevice):
     clock_resolution = 25e-9
     trigger_delay = 350e-9
     wait_delay = 2.5e-6
-    allowed_children = [_DummyPseudoclock]
+    allowed_children = [Pseudoclock]
     max_pseudoclocks = 1
     max_instructions = 1e5
 
@@ -38,10 +34,11 @@ class DummyPseudoclock(PseudoclockDevice):
     ):
         self.BLACS_connection = BLACS_connection
         PseudoclockDevice.__init__(self, name, None, None, **kwargs)
-        self._pseudoclock = _DummyPseudoclock(
+        self._pseudoclock = Pseudoclock(
             name=f'{name}_pseudoclock',
             pseudoclock_device=self,
             connection='pseudoclock',
+            max_clock_lines=1,
         )
         self._clock_line = ClockLine(
             name=f'{name}_clock_line',

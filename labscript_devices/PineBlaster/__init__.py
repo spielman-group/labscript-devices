@@ -16,11 +16,11 @@
 # load only when asked for by name.
 from labscript_devices import lazy_attributes
 from .labscript_devices import (
-    PineBlasterPseudoclock, PineBlaster,
+    PineBlaster,
 )
 
 __all__ = [
-    'PineBlasterPseudoclock', 'PineBlaster',
+    'PineBlaster',
 ]
 
 __getattr__ = lazy_attributes(

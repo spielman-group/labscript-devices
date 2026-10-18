@@ -14,16 +14,11 @@ import os
 from labscript import PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, compiler, startupinfo, LabscriptError, set_passed_properties
 import numpy as np
 
-# Define a RFBlasterPseudoclock that only accepts one child clockline
-class RFBlasterPseudoclock(Pseudoclock):    
-    max_clock_lines = 1
-
-
 class RFBlaster(PseudoclockDevice):
     description = 'RF Blaster Rev1.1'
     clock_limit = 500e3
     clock_resolution = 13.33333333333333333333e-9
-    allowed_children = [RFBlasterPseudoclock]
+    allowed_children = [Pseudoclock]
     max_pseudoclocks = 1
     
     # TODO: find out what these actually are!
@@ -36,7 +31,7 @@ class RFBlaster(PseudoclockDevice):
         self.BLACS_connection = ip_address
         
         # create Pseudoclock and clockline
-        self._pseudoclock = RFBlasterPseudoclock('%s_pseudoclock'%name, self, 'clock') # possibly a better connection name than 'clock'?
+        self._pseudoclock = Pseudoclock('%s_pseudoclock'%name, self, 'clock', max_clock_lines=1) # possibly a better connection name than 'clock'?
         # Create the internal direct output clock_line
         self._clock_line = ClockLine('%s_clock_line'%name, self.pseudoclock, 'internal')
         # Create the internal intermediate device connected to the above clock line

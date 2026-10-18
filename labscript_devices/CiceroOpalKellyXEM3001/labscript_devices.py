@@ -15,10 +15,6 @@ from labscript import Device, PseudoclockDevice, Pseudoclock, ClockLine, Labscri
 
 import numpy as np
 
-# Define a CiceroOpalKellyXEM3001Clock that only accepts one child clockline
-class CiceroOpalKellyXEM3001Pseudoclock(Pseudoclock):    
-    max_clock_lines = 1
-        
     
 #
 # Define dummy pseudoclock/clockline/intermediatedevice to trick wait monitor
@@ -68,7 +64,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
     # note: most parameters set in __init__ as they depend on reference clock frequency
     description = 'CiceroOpalKellyXEM3001'
     trigger_edge_type = 'rising' 
-    allowed_children = [CiceroOpalKellyXEM3001Pseudoclock, CiceroOpalKellyXEM3001DummyPseudoclock]
+    allowed_children = [Pseudoclock, CiceroOpalKellyXEM3001DummyPseudoclock]
     # Its own pseudoclock, and the internal one its wait monitor hangs from.
     max_pseudoclocks = 2
     
@@ -106,7 +102,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
             raise LabscriptError('The %s %s trigger_debounce_clock_ticks parameter must be between 0 and 65535'%(self.description, self.name))
         
         # create Pseudoclock and clockline
-        self._pseudoclock = CiceroOpalKellyXEM3001Pseudoclock('%s_pseudoclock'%name, self, 'clock') # possibly a better connection name than 'clock'?
+        self._pseudoclock = Pseudoclock('%s_pseudoclock'%name, self, 'clock', max_clock_lines=1) # possibly a better connection name than 'clock'?
         # Create the internal direct output clock_line
         self._clock_line = ClockLine('%s_clock_line'%name, self.pseudoclock, 'Clock Out')
         

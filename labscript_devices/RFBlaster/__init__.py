@@ -16,11 +16,11 @@
 # load only when asked for by name.
 from labscript_devices import lazy_attributes
 from .labscript_devices import (
-    RFBlasterPseudoclock, RFBlaster, RFBlasterDirectOutputs,
+    RFBlaster, RFBlasterDirectOutputs,
 )
 
 __all__ = [
-    'RFBlasterPseudoclock', 'RFBlaster', 'RFBlasterDirectOutputs',
+    'RFBlaster', 'RFBlasterDirectOutputs',
 ]
 
 __getattr__ = lazy_attributes(

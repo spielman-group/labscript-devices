@@ -17,11 +17,6 @@ import numpy as np
 
 
 
-# Define a PineBlasterPseudoClock that only accepts one child clockline
-class PineBlasterPseudoclock(Pseudoclock):    
-    max_clock_lines = 1
-
-
 class PineBlaster(PseudoclockDevice):
     description = 'PineBlaster'
     clock_limit = 10e6
@@ -31,7 +26,7 @@ class PineBlaster(PseudoclockDevice):
     trigger_delay = 350e-9
     # Todo: find out what this actually is:
     wait_delay = 2.5e-6
-    allowed_children = [PineBlasterPseudoclock]
+    allowed_children = [Pseudoclock]
     max_pseudoclocks = 1
     
     max_instructions = 15000
@@ -44,7 +39,7 @@ class PineBlaster(PseudoclockDevice):
         self.BLACS_connection = usbport
         
         # create Pseudoclock and clockline
-        self._pseudoclock = PineBlasterPseudoclock('%s_pseudoclock'%name, self, 'clock') # possibly a better connection name than 'clock'?
+        self._pseudoclock = Pseudoclock('%s_pseudoclock'%name, self, 'clock', max_clock_lines=1) # possibly a better connection name than 'clock'?
         # Create the internal direct output clock_line
         self._clock_line = ClockLine('%s_clock_line'%name, self.pseudoclock, 'internal')
     
