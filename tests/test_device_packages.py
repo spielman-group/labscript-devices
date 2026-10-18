@@ -53,9 +53,10 @@ class CompileImportTests(unittest.TestCase):
         )
         for module, found in json.loads(result.stdout.splitlines()[-1]).items():
             with self.subTest(module=module):
-                # A device whose compile loads its vendor's library, as
-                # AlazarTechBoard's does, cannot be checked without that library.
-                if isinstance(found, str):
+                # AlazarTechBoard's compile loads the AlazarTech library, so it
+                # cannot be checked where that library is not installed.
+                alazar = module.startswith('labscript_devices.AlazarTechBoard')
+                if isinstance(found, str) and alazar and 'ATSApi' in found:
                     self.skipTest(found)
                 self.assertEqual(found, [])
 
