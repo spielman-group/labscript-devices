@@ -10,15 +10,28 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
+from labscript_devices import BLACS_tab, lazy_attributes, runviewer_parser
+from .labscript_devices import (
+    PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError,
+    set_passed_properties, np, PineBlasterPseudoclock, PineBlaster,
+)
 
-from labscript_devices import lazy_attributes
-from .labscript_devices import PineBlaster, PineBlasterPseudoclock
-
+# Each name the old single-file module bound stays importable from here. Those
+# of BLACS and runviewer load only when asked for, so a compile never imports
+# BLACS.
 __getattr__ = lazy_attributes(
     __name__,
     {
-        'blacs_tabs': ['PineblasterTab'],
-        'blacs_workers': ['PineblasterWorker'],
-        'runviewer_parsers': ['RunviewerClass'],
+        'blacs_tabs': [
+            'define_state', 'MODE_MANUAL', 'MODE_TRANSITION_TO_BUFFERED',
+            'MODE_TRANSITION_TO_MANUAL', 'MODE_BUFFERED', 'DeviceTab',
+            'PineblasterTab',
+        ],
+        'blacs_workers': [
+            'labscript_utils', 'PseudoclockWorker', 'PineblasterWorker',
+        ],
+        'runviewer_parsers': [
+            'h5py', 'RunviewerClass',
+        ],
     },
 )

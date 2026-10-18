@@ -3,6 +3,9 @@
 #
 # Copyright (c) Monash University 2017
 import numpy as np
+import signal
+import os
+import copy
 
 # Install atsapi.py into site-packages for this to work
 # or keep in local directory.

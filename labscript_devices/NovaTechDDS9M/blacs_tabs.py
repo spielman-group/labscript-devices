@@ -11,6 +11,8 @@
 #                                                                   #
 #####################################################################
 
+from blacs.tab_base_classes import define_state
+from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED
 from blacs.device_base_class import DeviceTab
 
 class NovatechDDS9MTab(DeviceTab):

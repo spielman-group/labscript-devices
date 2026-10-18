@@ -10,15 +10,25 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from labscript_devices import BLACS_tab, lazy_attributes, runviewer_parser
+from .labscript_devices import (
+    PulseBlaster_No_DDS, PulseBlaster_SP2_24_100_32k,
+)
 
-from labscript_devices import lazy_attributes
-from .labscript_devices import PulseBlaster_SP2_24_100_32k
-
+# Each name the old single-file module bound stays importable from here. Those
+# of BLACS and runviewer load only when asked for, so a compile never imports
+# BLACS.
 __getattr__ = lazy_attributes(
     __name__,
     {
-        'blacs_tabs': ['PulseBlaster_SP2_24_100_32k_Tab'],
-        'blacs_workers': ['PulseBlaster_SP2_24_100_32k_Worker'],
-        'runviewer_parsers': ['PulseBlaster_SP2_24_100_32k_Parser'],
+        'blacs_tabs': [
+            'Pulseblaster_No_DDS_Tab', 'PulseBlaster_SP2_24_100_32k_Tab',
+        ],
+        'blacs_workers': [
+            'PulseblasterNoDDSWorker', 'PulseBlaster_SP2_24_100_32k_Worker',
+        ],
+        'runviewer_parsers': [
+            'PulseBlasterParser', 'PulseBlaster_SP2_24_100_32k_Parser',
+        ],
     },
 )

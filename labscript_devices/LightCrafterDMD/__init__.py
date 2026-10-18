@@ -10,14 +10,27 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from labscript_devices import BLACS_tab, BLACS_worker, labscript_device, lazy_attributes, runviewer_parser
+from .labscript_devices import (
+    os, struct, PIL, BytesIO, Device, IntermediateDevice, LabscriptError,
+    Output, compiler, np, arr_to_bmp, WIDTH, HEIGHT, BLANK_BMP, ImageSet,
+    LightCrafterDMD,
+)
 
-from labscript_devices import lazy_attributes
-from .labscript_devices import ImageSet, LightCrafterDMD, arr_to_bmp, BLANK_BMP, HEIGHT, WIDTH
-
+# Each name the old single-file module bound stays importable from here. Those
+# of BLACS and runviewer load only when asked for, so a compile never imports
+# BLACS.
 __getattr__ = lazy_attributes(
     __name__,
     {
-        'blacs_tabs': ['LightCrafterTab'],
-        'blacs_workers': ['LightCrafterWorker'],
+        'blacs_tabs': [
+            'define_state', 'MODE_MANUAL', 'MODE_TRANSITION_TO_BUFFERED',
+            'MODE_TRANSITION_TO_MANUAL', 'MODE_BUFFERED', 'DeviceTab',
+            'Signal', 'LightCrafterTab',
+        ],
+        'blacs_workers': [
+            'base64', 'time', 'labscript_utils', 'h5py', 'Worker',
+            'LightCrafterWorker',
+        ],
     },
 )
