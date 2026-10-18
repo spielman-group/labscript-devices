@@ -10,4 +10,15 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
-from .labscript_devices import *
+
+from labscript_devices import lazy_attributes
+from .labscript_devices import PineBlaster, PineBlasterPseudoclock
+
+__getattr__ = lazy_attributes(
+    __name__,
+    {
+        'blacs_tabs': ['PineblasterTab'],
+        'blacs_workers': ['PineblasterWorker'],
+        'runviewer_parsers': ['RunviewerClass'],
+    },
+)
