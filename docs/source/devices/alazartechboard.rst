@@ -15,6 +15,7 @@ Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: labscript_devices.AlazarTechBoard
+	:ignore-module-all:
 	:members:
 	:undoc-members:
 	:show-inheritance:

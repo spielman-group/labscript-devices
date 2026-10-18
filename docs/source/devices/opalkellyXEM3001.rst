@@ -14,6 +14,7 @@ Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: labscript_devices.CiceroOpalKellyXEM3001
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:

@@ -7,6 +7,7 @@ Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: labscript_devices.test_device
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:

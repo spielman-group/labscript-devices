@@ -28,6 +28,7 @@ Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: labscript_devices.PhaseMatrixQuickSyn
+	:ignore-module-all:
 	:members:
 	:undoc-members:
 	:show-inheritance:

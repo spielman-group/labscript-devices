@@ -10,6 +10,7 @@ Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: labscript_devices.LightCrafterDMD
+	:ignore-module-all:
 	:members:
 	:undoc-members:
 	:show-inheritance:

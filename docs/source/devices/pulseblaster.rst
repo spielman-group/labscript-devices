@@ -51,6 +51,7 @@ Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: labscript_devices.PulseBlaster
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:

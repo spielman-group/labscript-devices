@@ -110,6 +110,7 @@ Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: labscript_devices.NovaTechDDS9M
+	:ignore-module-all:
 	:members:
 	:undoc-members:
 	:show-inheritance:

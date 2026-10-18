@@ -2,6 +2,7 @@ Dummy Intermediate Device
 =========================
 
 .. automodule:: labscript_devices.DummyIntermediateDevice
+	:ignore-module-all:
 	:members:
 	:undoc-members:
 	:show-inheritance:

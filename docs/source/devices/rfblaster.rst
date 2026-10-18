@@ -7,6 +7,7 @@ Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: labscript_devices.RFBlaster
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:

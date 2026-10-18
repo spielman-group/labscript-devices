@@ -84,6 +84,7 @@ PulseBlaster_No_DDS
 ^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: labscript_devices.PulseBlaster_No_DDS
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:
@@ -117,6 +118,7 @@ PulseBlasterUSB
 ^^^^^^^^^^^^^^^
 
 .. automodule:: labscript_devices.PulseBlasterUSB
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:
@@ -150,6 +152,7 @@ PulseBlaster_SP2_24_100_32k
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: labscript_devices.PulseBlaster_SP2_24_100_32k
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:
@@ -183,6 +186,7 @@ PulseBlasterESRPro200
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: labscript_devices.PulseBlasterESRPro200
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:
@@ -216,6 +220,7 @@ PulseBlasterESRPro500
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: labscript_devices.PulseBlasterESRPro500
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:

@@ -306,9 +306,12 @@ Each package gives the names its old single-file module defined, and the
 device classes it imported from another device package, such as
 `PulseBlaster_No_DDS`'s `PulseBlaster`. The labscript-side ones are imported for
 real and make up `__all__`, so a star import never loads BLACS; the rest load
-when asked for by name. The names an old module only imported from labscript,
-numpy, the standard library, BLACS, Qt or labscript_devices' helpers are
-dropped (Ian: "agree with decisions 1 and 2").
+when asked for by name. The names an old module only imported from elsewhere
+are dropped (Ian: "agree with decisions 1 and 2"). That covers labscript,
+labscript_utils, numpy, h5py, PIL, tqdm, the standard library, BLACS, Qt and
+qtutils, and labscript_devices' helpers. The package docs pages pass
+`:ignore-module-all:`, so the classes are documented once, under
+`.labscript_devices`.
 
 - `AlazarTechBoard`: `__all__` AlazarTechBoard; by name GuilessTab, tqdm_kwargs, atsRanges, atsSampleRates, atsExternalClockAdvice, find_nearest_internal_clock, find_clock_and_r, ats9462_clock, GuilessWorker; dropped ctypes, np, signal, sys, time, tqdm, ats, Device, AnalogIn, compiler, LabscriptError, set_passed_properties, labscript_utils, h5py, BLACS_tab, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, os, copy.
 - `CiceroOpalKellyXEM3001`: `__all__` CiceroOpalKellyXEM3001Pseudoclock, CiceroOpalKellyXEM3001DummyPseudoclock, CiceroOpalKellyXEM3001DummyClockLine, CiceroOpalKellyXEM3001DummyIntermediateDevice, CiceroOpalKellyXEM3001; by name CiceroOpalKellyXEM3001Tab, int_to_bytes, bits_to_int, add_instruction_to_bytearray, CiceroOpalKellyXEM3001Worker, RunviewerClass; dropped Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, IntermediateDevice, WaitMonitor, DigitalOut, runviewer_parser, BLACS_tab, BLACS_worker, labscript_device, np, labscript_utils, h5py, ensure_str, define_state, Tab, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.

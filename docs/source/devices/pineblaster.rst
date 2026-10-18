@@ -10,6 +10,7 @@ Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: labscript_devices.PineBlaster
+   :ignore-module-all:
    :members:
    :undoc-members:
    :show-inheritance:
