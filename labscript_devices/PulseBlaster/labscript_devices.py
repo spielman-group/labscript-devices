@@ -331,7 +331,7 @@ class PulseBlaster(PseudoclockDevice):
             
         return freqdicts, ampdicts, phasedicts
         
-    def convert_to_pb_inst(self, dig_outputs, dds_outputs, freqs, amps, phases):
+    def convert_to_pb_inst(self, dig_outputs):
         pb_inst = []
         
         # index to keep track of where in output.raw_output the
@@ -346,16 +346,13 @@ class PulseBlaster(PseudoclockDevice):
         # can ensure continuity with the state of the front panel. Thus
         # these two instructions don't actually do anything:
         flags = [0]*self.n_flags
-        freqregs = [0]*2
-        ampregs = [0]*2
-        phaseregs = [0]*2
-        dds_enables = [0]*2
-        phase_resets = [0]*2
-        
-        pb_inst.append({'freqs': freqregs, 'amps': ampregs, 'phases': phaseregs, 'enables':dds_enables, 'phase_resets': phase_resets,
+
+        # An instruction's 'output_index' is the i its outputs' values come
+        # from; these two have none:
+        pb_inst.append({'output_index': None,
                         'flags': ''.join([str(flag) for flag in flags]), 'instruction': 'STOP',
                         'data': 0, 'delay': 10.0/self.clock_limit*1e9})
-        pb_inst.append({'freqs': freqregs, 'amps': ampregs, 'phases': phaseregs, 'enables':dds_enables, 'phase_resets': phase_resets,
+        pb_inst.append({'output_index': None,
                         'flags': ''.join([str(flag) for flag in flags]), 'instruction': 'STOP',
                         'data': 0, 'delay': 10.0/self.clock_limit*1e9})    
         j += 2
@@ -373,15 +370,6 @@ class PulseBlaster(PseudoclockDevice):
                 continue
                 
             flags = [0]*self.n_flags
-            # The registers below are ones, not zeros, so that we don't
-            # use the BLACS-inserted initial instructions. Instead
-            # unused DDSs have a 'zero' in register one for freq, amp
-            # and phase.
-            freqregs = [1]*2
-            ampregs = [1]*2
-            phaseregs = [1]*2
-            dds_enables = [0]*2
-            phase_resets = [0]*2
             
             # This flag indicates whether we need a full clock tick, or are just updating an internal output
             only_internal = True
@@ -399,14 +387,6 @@ class PulseBlaster(PseudoclockDevice):
             for output in dig_outputs:
                 flagindex = int(output.connection.split()[1])
                 flags[flagindex] = int(output.raw_output[i])
-            for output in dds_outputs:
-                ddsnumber = int(output.connection.split()[1])
-                freqregs[ddsnumber] = freqs[ddsnumber][output.frequency.raw_output[i]]
-                ampregs[ddsnumber] = amps[ddsnumber][output.amplitude.raw_output[i]]
-                phaseregs[ddsnumber] = phases[ddsnumber][output.phase.raw_output[i]]
-                dds_enables[ddsnumber] = output.gate.raw_output[i]
-                if isinstance(output, PulseBlasterDDS):
-                    phase_resets[ddsnumber] = output.phase_reset.raw_output[i]
                 
             flagstring = ''.join([str(flag) for flag in flags])
             
@@ -444,7 +424,7 @@ class PulseBlaster(PseudoclockDevice):
                     remaining_low_time += self.long_delay
 
                 # The start loop instruction, Clock edges are high:
-                pb_inst.append({'freqs': freqregs, 'amps': ampregs, 'phases': phaseregs, 'enables':dds_enables, 'phase_resets':phase_resets,
+                pb_inst.append({'output_index': i,
                                 'flags': flagstring, 'instruction': 'LOOP',
                                 'data': instruction['reps'], 'delay': high_time*1e9})
                 
@@ -457,12 +437,12 @@ class PulseBlaster(PseudoclockDevice):
             
                 # The long delay instruction, if any. Clock edges are low: 
                 if n_long_delays:
-                    pb_inst.append({'freqs': freqregs, 'amps': ampregs, 'phases': phaseregs, 'enables':dds_enables, 'phase_resets':phase_resets,
+                    pb_inst.append({'output_index': i,
                                 'flags': flagstring, 'instruction': 'LONG_DELAY',
                                 'data': int(n_long_delays), 'delay': self.long_delay*1e9})
                                 
                 # Remaining low time. Clock edges are low:
-                pb_inst.append({'freqs': freqregs, 'amps': ampregs, 'phases': phaseregs, 'enables':dds_enables, 'phase_resets':phase_resets,
+                pb_inst.append({'output_index': i,
                                 'flags': flagstring, 'instruction': 'END_LOOP',
                                 'data': j, 'delay': remaining_low_time*1e9})
                                 
@@ -484,11 +464,11 @@ class PulseBlaster(PseudoclockDevice):
                     remaining_delay += self.long_delay
                 
                 if n_long_delays:
-                    pb_inst.append({'freqs': freqregs, 'amps': ampregs, 'phases': phaseregs, 'enables':dds_enables, 'phase_resets':phase_resets,
+                    pb_inst.append({'output_index': i,
                                 'flags': flagstring, 'instruction': 'LONG_DELAY',
                                 'data': int(n_long_delays), 'delay': self.long_delay*1e9})
 
-                pb_inst.append({'freqs': freqregs, 'amps': ampregs, 'phases': phaseregs, 'enables':dds_enables, 'phase_resets':phase_resets,
+                pb_inst.append({'output_index': i,
                                 'flags': flagstring, 'instruction': 'CONTINUE',
                                 'data': 0, 'delay': remaining_delay*1e9})
                 
@@ -501,7 +481,7 @@ class PulseBlaster(PseudoclockDevice):
             # the same values and a WAIT instruction. The PulseBlaster then
             # waits on instuction zero, which is a state ready for either
             # further static updates or buffered mode.
-            pb_inst.append({'freqs': freqregs, 'amps': ampregs, 'phases': phaseregs, 'enables':dds_enables, 'phase_resets':phase_resets,
+            pb_inst.append({'output_index': pb_inst[-1]['output_index'],
                             'flags': flagstring, 'instruction': 'BRANCH',
                             'data': 0, 'delay': 10.0/self.clock_limit*1e9})
         elif self.programming_scheme == 'pb_stop_programming/STOP':
@@ -511,7 +491,7 @@ class PulseBlaster(PseudoclockDevice):
             # repeated triggers coming to it, such as a 50Hz/60Hz line trigger. We can't have it sit
             # on a WAIT instruction as above, or it will trigger and run repeatedly when that's not what
             # we wanted.
-            pb_inst.append({'freqs': freqregs, 'amps': ampregs, 'phases': phaseregs, 'enables':dds_enables, 'phase_resets':phase_resets,
+            pb_inst.append({'output_index': pb_inst[-1]['output_index'],
                             'flags': flagstring, 'instruction': 'STOP',
                             'data': 0, 'delay': 10.0/self.clock_limit*1e9})
         else:
@@ -576,7 +556,25 @@ class PulseBlaster(PseudoclockDevice):
         PseudoclockDevice.generate_code(self, hdf5_file)
         dig_outputs, dds_outputs = self.get_direct_outputs()
         freqs, amps, phases = self.generate_registers(hdf5_file, dds_outputs)
-        pb_inst = self.convert_to_pb_inst(dig_outputs, dds_outputs, freqs, amps, phases)
+        pb_inst = self.convert_to_pb_inst(dig_outputs)
+        for inst in pb_inst:
+            i = inst['output_index']
+            if i is None:
+                # BLACS fills in these dummy instructions' registers zero with
+                # the front panel's values:
+                inst.update(freqs=[0]*2, amps=[0]*2, phases=[0]*2, enables=[0]*2, phase_resets=[0]*2)
+                continue
+            # Registers one, not zero, so as not to use the dummy instructions'
+            # values: an unused DDS has its zeros in register one.
+            inst.update(freqs=[1]*2, amps=[1]*2, phases=[1]*2, enables=[0]*2, phase_resets=[0]*2)
+            for output in dds_outputs:
+                n = int(output.connection.split()[1])
+                inst['freqs'][n] = freqs[n][output.frequency.raw_output[i]]
+                inst['amps'][n] = amps[n][output.amplitude.raw_output[i]]
+                inst['phases'][n] = phases[n][output.phase.raw_output[i]]
+                inst['enables'][n] = output.gate.raw_output[i]
+                if isinstance(output, PulseBlasterDDS):
+                    inst['phase_resets'][n] = output.phase_reset.raw_output[i]
         self._check_wait_monitor_ok()
         self.write_pb_inst_to_h5(pb_inst, hdf5_file)
         

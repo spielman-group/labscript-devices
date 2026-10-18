@@ -51,6 +51,6 @@ class PulseBlaster_No_DDS(PulseBlaster):
                 f"{self.name} ({self.description}) has no DDS outputs, so {names} "
                 "cannot be connected to it."
             )
-        pb_inst = self.convert_to_pb_inst(dig_outputs, [], {}, {}, {})
+        pb_inst = self.convert_to_pb_inst(dig_outputs)
         self._check_wait_monitor_ok()
         self.write_pb_inst_to_h5(pb_inst, hdf5_file) 
