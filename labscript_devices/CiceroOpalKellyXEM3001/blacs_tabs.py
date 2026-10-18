@@ -15,10 +15,11 @@ from blacs.tab_base_classes import define_state, Tab
 from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
 
 from blacs.device_base_class import DeviceTab
+from labscript_devices.pseudoclock import PseudoclockTab
 
 from qtutils.qt.QtWidgets import QPushButton
 
-class CiceroOpalKellyXEM3001Tab(DeviceTab):
+class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
     
     def initialise_GUI(self):
         # A variable to store whether the flash has filed. This will
@@ -82,38 +83,3 @@ class CiceroOpalKellyXEM3001Tab(DeviceTab):
         if not self.failed_to_flash:
             ret_data['reference_clock'] = self.reference_clock
         return ret_data
-     
-    @define_state(MODE_BUFFERED|MODE_MANUAL,True)  
-    def status_monitor(self, notify_queue):
-        # remove the timeout if we are in manual mode (which happens when 
-        # the abort button is clicked in BLACS)
-        if self.mode == MODE_MANUAL:
-            self.statemachine_timeout_remove(self.status_monitor)
-            return
-    
-        status = yield(self.queue_work(self.primary_worker, 'status_monitor'))        
-        if status:
-            # Experiment is over. Tell the queue manager about it
-            notify_queue.put('done')
-            self.statemachine_timeout_remove(self.status_monitor)
-
-        # handle exception in worker
-        elif status is None:
-            self.statemachine_timeout_remove(self.status_monitor)
-
-            # TODO: This is a bit of a hack.
-            # We fake a restart in order to notify the queue that something went wrong
-            # and that it should abort the shot
-            for f in self._restart_receiver:
-                try:
-                    f(self.device_name)
-                except:
-                    self.logger.exception('Could not notify a connected receiver function')
-        
-    @define_state(MODE_BUFFERED,True)  
-    def start_run(self, notify_queue):
-        """Starts the CiceroOpalKellyXEM3001, notifying the queue manager when
-        the run is over"""
-        # TODO: This 100ms (+ overhead) limits the minimum time you can have between 2 consecutive wait commands in labscript. Anything faster than this will not be detected properly.
-        self.statemachine_timeout_add(100, self.status_monitor, notify_queue)
-        yield(self.queue_work(self.primary_worker, 'start_run'))

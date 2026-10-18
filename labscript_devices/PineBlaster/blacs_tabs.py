@@ -11,12 +11,11 @@
 #                                                                   #
 #####################################################################
 
-from blacs.tab_base_classes import define_state
-from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
 
 from blacs.device_base_class import DeviceTab
+from labscript_devices.pseudoclock import PseudoclockTab
 
-class PineblasterTab(DeviceTab):
+class PineblasterTab(PseudoclockTab):
     
     def initialise_GUI(self):
         # Create a single digital output     
@@ -47,19 +46,3 @@ class PineblasterTab(DeviceTab):
                     return DeviceTab.get_child_from_connection_table(self, pseudoclock.name, port)
             
         return '-'
-        
-     
-    @define_state(MODE_BUFFERED,True)  
-    def status_monitor(self, notify_queue):
-        status = yield(self.queue_work(self.primary_worker, 'status_monitor'))        
-        if status:
-            # Experiment is over. Tell the queue manager about it
-            notify_queue.put('done')
-            self.statemachine_timeout_remove(self.status_monitor)
-        
-    @define_state(MODE_BUFFERED,True)  
-    def start_run(self, notify_queue):
-        """Starts the Pineblaster, notifying the queue manager when
-        the run is over"""
-        self.statemachine_timeout_add(100, self.status_monitor, notify_queue)
-        yield(self.queue_work(self.primary_worker, 'start_run'))

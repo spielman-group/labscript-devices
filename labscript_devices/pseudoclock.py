@@ -13,7 +13,8 @@
 #####################################################################
 import time
 
-from blacs.tab_base_classes import Worker
+from blacs.device_base_class import DeviceTab
+from blacs.tab_base_classes import MODE_BUFFERED, MODE_MANUAL, Worker, define_state
 
 
 class PseudoclockWorker(Worker):
@@ -48,3 +49,38 @@ class PseudoclockWorker(Worker):
                     f"end_of_shot_timeout of {timeout} s."
                 )
             time.sleep(0.01)
+
+
+class PseudoclockTab(DeviceTab):
+    """The tab of a pseudoclock device whose worker says, through its
+    ``status_monitor``, whether the shot it started is over."""
+
+    @define_state(MODE_BUFFERED, True)
+    def start_run(self, notify_queue):
+        """Start the device, and tell BLACS through ``notify_queue`` when the
+        shot is over."""
+        # TODO: This 100ms (+ overhead) limits the minimum time you can have between 2 consecutive wait commands in labscript. Anything faster than this will not be detected properly.
+        self.statemachine_timeout_add(100, self.status_monitor, notify_queue)
+        yield(self.queue_work(self.primary_worker, 'start_run'))
+
+    @define_state(MODE_BUFFERED | MODE_MANUAL, True)
+    def status_monitor(self, notify_queue):
+        # An abort leaves the tab in manual mode, and then there is no shot to watch.
+        if self.mode == MODE_MANUAL:
+            self.statemachine_timeout_remove(self.status_monitor)
+            return
+
+        status = yield(self.queue_work(self.primary_worker, 'status_monitor'))
+        if status:
+            notify_queue.put('done')
+            self.statemachine_timeout_remove(self.status_monitor)
+        elif status is None:
+            # The worker failed. TODO: This is a bit of a hack. We fake a restart
+            # in order to notify the queue that something went wrong and that it
+            # should abort the shot.
+            self.statemachine_timeout_remove(self.status_monitor)
+            for f in self._restart_receiver:
+                try:
+                    f(self.device_name)
+                except Exception:
+                    self.logger.exception('Could not notify a connected receiver function')
