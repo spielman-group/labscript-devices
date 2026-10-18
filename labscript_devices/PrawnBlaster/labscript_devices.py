@@ -311,7 +311,7 @@ class PrawnBlaster(PseudoclockDevice):
                 # Normal instruction
                 reps = instruction["reps"]
                 # half_period is in quantised units:
-                half_period = int(round(instruction["step"] / self.clock_resolution))
+                half_period = self.quantise_to_pseudoclock(instruction["step"], ticks=True)
                 if (
                     # If there is a previous instruction
                     reduced_instructions

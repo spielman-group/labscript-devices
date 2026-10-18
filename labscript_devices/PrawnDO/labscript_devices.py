@@ -254,7 +254,7 @@ class PrawnDO(PseudoclockDevice):
         bit_sets = np.array(bitfield(bits, dtype=np.uint16))
 
         # Now create the reps array (ie times between changes in number of clock cycles)
-        reps = np.rint(np.diff(times)/self.clock_resolution).astype(np.uint32)
+        reps = self.quantise_to_pseudoclock(np.diff(times), ticks=True).astype(np.uint32)
         
         # add stop command sequence
         # final output already in bit_sets

@@ -112,11 +112,11 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
                 # It overcounts by 1 here because the logic on the FPGA is different for the first reference clock cycle 
                 # (you cannot resume until the after second reference clock cycle), so we subtract 1 off the on counts
                 # so that it times-out after the correct number of samples
-                reduced_instructions.append({'on': round(wait_timeout/self.clock_resolution)-1, 'off': ((self.trigger_edge_type=='rising') << 1) + 1, 'reps': 0})
+                reduced_instructions.append({'on': self.quantise_to_pseudoclock(wait_timeout, ticks=True)-1, 'off': ((self.trigger_edge_type=='rising') << 1) + 1, 'reps': 0})
                 continue
             reps = instruction['reps']
             # period is in quantised units:
-            periods = int(round(instruction['step']/self.clock_resolution))
+            periods = self.quantise_to_pseudoclock(instruction['step'], ticks=True)
             # Get the "high" half of the clock period
             on_period = int(periods/2)
             # Use the remainder to calculate the "off period" (allows slightly assymetric clock signals so to minimise timing errors)

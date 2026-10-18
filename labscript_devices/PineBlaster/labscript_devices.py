@@ -69,7 +69,7 @@ class PineBlaster(PseudoclockDevice):
                 continue
             reps = instruction['reps']
             # period is in quantised units:
-            period = int(round(instruction['step']/self.clock_resolution))
+            period = self.quantise_to_pseudoclock(instruction['step'], ticks=True)
             if reduced_instructions and reduced_instructions[-1]['period'] == period:
                 reduced_instructions[-1]['reps'] += reps
             else:
