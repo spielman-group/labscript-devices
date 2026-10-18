@@ -16,6 +16,9 @@ Each stage's commits on `CodeHealth`, for review:
 - Codex's three findings on the first stage, the bounded abort waits Ian asked
   for before its re-check, and the re-check's finding: `4ff99a8..02b4a52`, and the
   commit that records this line.
+- Step 2.2's table and Ian's decisions, the two bugs fixed on his word
+  (`719fe26`, `d0c300e`), and step 2.2.1's Phase A: `02b4a52..` the commit that
+  records this line. Phase A alone is `93cdc48..` the same commit.
   - **Outcome:** Codex's re-check found two points. Fixed in 02b4a52: an error
     from PrawnDO's abort after a timeout, such as a `SerialException`, is logged
     and the `TimeoutError` raised, where it used to replace it. Left as is (Ian):
@@ -186,12 +189,11 @@ Answers to the two questions:
   changed class would make each lab using Cicero or a PrawnBlaster with an
   internal wait monitor recompile its BLACS connection table once. PrawnBlaster's
   names are private. Without the subclasses, the cost is that one recompile.
-- 5: `PineBlaster.py` is an old single-file device: its labscript class, BLACS
-  tab and worker share one module, which imports BLACS at module level, so
-  compiling a PineBlaster shot imports BLACS. It is not a wanted dependency. The
-  package layout (`labscript_devices.py`, `blacs_tabs.py`, `blacs_workers.py`)
-  that DummyPseudoclock and the newer devices use keeps compiles free of BLACS.
-  Cicero, NovaTechDDS9M, PulseBlaster and RFBlaster are single-file devices too.
+- 5: `PineBlaster.py` was an old single-file device: its labscript class, BLACS
+  tab and worker shared one module, which imported BLACS at module level, so
+  compiling a PineBlaster shot imported BLACS. The package layout
+  (`labscript_devices.py`, `blacs_tabs.py`, `blacs_workers.py`) keeps compiles
+  free of BLACS; step 2.2.1's Phase A moves every single-file device to it.
  is upstream's name for the parser in each old
 single-file device (Cicero, NovaTech, PineBlaster), and each is a different
 parser. `TekScope` names both the instrument driver and the labscript device, in
@@ -263,3 +265,28 @@ change in behaviour:
 
 There is one commit per device. Phase B, the class moves and core additions,
 starts only after Codex reviews Phase A.
+
+Phase A, as built: all 15 single-file devices are packages: DummyIntermediateDevice,
+PineBlaster, RFBlaster, CiceroOpalKellyXEM3001, NovaTechDDS9M, PhaseMatrixQuickSyn,
+LightCrafterDMD, AlazarTechBoard, PulseBlaster, PulseBlaster_No_DDS, the four
+PulseBlaster models and test_device.
+
+- **History:** each is two commits, a pure rename into the package, so that
+  `git log --follow` tracks the file, then the split.
+- **Old import paths:** each package's `__init__` imports its compile-side names
+  for real. It re-exports the BLACS- and runviewer-side ones through
+  `lazy_attributes`, new in `labscript_devices/__init__.py`.
+- **The test:** `tests/test_device_packages.py` imports every device package as
+  a compile does, and fails if one brings in BLACS. It skips, by name,
+  AlazarTechBoard, whose compile loads the vendor's library.
+- **Resource files:** QuickSyn's `.ui` moved into its package. `pulseblaster.ui`
+  stays, shared by two tabs. Cicero's worker still finds its firmware in
+  `labscript_devices/`.
+- **What was checked:** per device, identical shot files for its test shots and
+  any workspace script using it, the RbChip lab's three sequences included.
+  Also the same BLACS tab and runviewer parser by class name, and the same
+  parser traces.
+- **What changed:** the one difference anyone can see is `get_runviewer_parser`
+  for a device with no parser. It raised ValueError and now raises
+  AttributeError, from labscript-utils' handling of `runviewer_parser=None`.
+  runviewer catches both.
