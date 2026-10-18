@@ -159,25 +159,39 @@ connection table once.
 | 9 | ESRPro500 has no parser, so runviewer cannot show its shots (`get_runviewer_parser('PulseBlasterESRPro500')` raises ValueError; checked). A gap, not a copy; upstream has it too | Yes | A three-line `PulseblasterESRPro500Parser(PulseBlaster_No_DDS_Parser)`, with `num_flags = 21`, as ESRPro200's | +4 | runviewer, ESRPro500 | do |
 | 10 | Device groups made by hand (`hdf5_file['devices'].create_group(self.name)` and the like) in Cicero, PineBlaster, RFBlaster, PulseBlaster and PhaseMatrixQuickSyn | Yes | labscript's `Device.init_device_group`, which does exactly that | 0 (five one-line swaps) | those five devices' compiles; the shot file is unchanged | do |
 
-Looked at and left, as not one problem solved twice:
+Not duplication: `RunviewerClass` is upstream's name for the parser in each old
+single-file device (Cicero, NovaTech, PineBlaster), and each is a different
+parser. `TekScope` names both the instrument driver and the labscript device, in
+two modules. The "return coerced values" TODO repeated in three
+`program_manual`s goes to step 5.
 
-- `RunviewerClass` is upstream's name for the parser in each old single-file
-  device (Cicero, NovaTech, PineBlaster); each is a different parser. `TekScope`
-  names both the instrument driver and the labscript device, in two modules.
-- The DDS value quantisers (scale, add 0.5, cast) in NovaTechDDS9M,
-  PhaseMatrixQuickSyn and RFBlaster: one line each, with each device's own
-  bounds and scale.
-- Steps converted to hardware ticks, `int(round(step / clock_resolution))`, in
-  five `generate_code`s: a unit conversion, not labscript's
+Deferred (Ian): near-duplicates left for now, not rejected. Step 5 carries each
+to the docs' "Possible improvements", so they outlive this file.
+
+- DDS value quantisers (scale, add 0.5, cast): 10 lines across NovaTechDDS9M
+  (frequency, phase, amplitude), PhaseMatrixQuickSyn (frequency) and RFBlaster
+  (inline, with its trigger times), each with its own bounds and scale. A shared
+  helper would save about 5 lines.
+- Steps converted to hardware ticks, `round(step / clock_resolution)`: one line
+  in each of five `generate_code`s (DummyPseudoclock, PineBlaster, Cicero,
+  PrawnBlaster, PrawnDO). It is a unit conversion, not labscript's
   `quantise_to_pseudoclock`, which rounds times in seconds.
-- Front-panel bit packing in NI_DAQmx's and PrawnDO's workers and NI_DAQmx's
-  parser: scalar packing of one dict, which `labscript.utils.bitfield` (arrays
-  per bit) does not cover.
-- Camera `set_attributes`, `get_attribute` and `snap` bodies shared by two or
-  three cameras, two to five lines each. A shared default in
-  `TriggerableCameraInterface` would defeat the contract's guard that each
-  camera writes these itself, which Ian kept.
+- Front-panel bit packing, about 20 lines: NI_DAQmx's worker packs and unpacks
+  port values and its parser unpacks them, and PrawnDO's worker has
+  `_dict_to_int` and `_int_to_dict`. `labscript.utils.bitfield` packs arrays per
+  bit and does not cover packing one dict.
 - Cicero's and PineBlaster's tab status monitors share six lines; Cicero's adds
   its own branches.
-- The same "return coerced values" TODO in three `program_manual`s goes to
-  step 5.
+- Short camera methods, open on their merits. `TriggerableCameraInterface`
+  could supply three defaults, saving about 15 lines:
+  - `set_attributes` composed from `set_attribute`: IMAQdx's and Spinnaker's are
+    that three-line loop.
+  - `snap` as configure for one frame, `grab`, `stop_acquisition`:
+    FlyCapture2's is exactly that, and Spinnaker's is, if its
+    `stop_acquisition` can stand in for the bare `EndAcquisition` it calls.
+  - Attributes held in a dict, for AndorSolis's and DummyCamera's two-line
+    `set_attributes`, `set_attribute` and `get_attribute`.
+
+  The vendor-camera guard test would change with them: `snap` leaves its list
+  (a default `snap` needs only members the list already holds), and
+  `set_attributes` becomes "`set_attributes` or `set_attribute`".
