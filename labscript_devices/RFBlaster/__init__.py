@@ -10,4 +10,14 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from .labscript_devices import *
+
+from labscript_devices import lazy_attributes
+from .labscript_devices import RFBlasterPseudoclock, RFBlaster, RFBlasterDirectOutputs
+
+__getattr__ = lazy_attributes(
+    __name__,
+    {
+        'blacs_tabs': ['RFBlasterTab'],
+        'blacs_workers': ['MultiPartForm', 'RFBlasterWorker'],
+    },
+)
