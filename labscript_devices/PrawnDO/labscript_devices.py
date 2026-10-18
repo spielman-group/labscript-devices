@@ -23,37 +23,6 @@ from labscript import (
 )
 import numpy as np
 
-class _PrawnDOPseudoclock(Pseudoclock):
-    """Dummy pseudoclock for use with PrawnDO.
-    
-    This pseudoclock ensures only one clockline is attached.
-    """
-
-    def add_device(self, device):
-
-        if not isinstance(device, _PrawnDOClockline) or self.child_devices:
-            # only allow one child dummy clockline
-            raise LabscriptError("You are trying to access the special, dummy, Pseudoclock of the PrawnDO "
-                                    f"{self.parent_device.name}. This is for internal use only.")
-        else:
-            Pseudoclock.add_device(self, device)
-
-
-class _PrawnDOClockline(ClockLine):
-    """Dummy clockline for use with PrawnDO
-    
-    Ensures only a single _PrawnDODirectOutputs is connected to the PrawnDO
-    """
-
-    def add_device(self, device):
-
-        if not isinstance(device, _PrawnDigitalOutputs) or self.child_devices:
-            # only allow one child device
-            raise LabscriptError("You are trying to access the special, dummy, Clockline of the PrawnDO "
-                                    f"{self.pseudoclock_device.name}. This is for internal use only.")
-        else:
-            ClockLine.add_device(self, device)
-
 
 class _PrawnDigitalOutputs(IntermediateDevice):
     allowed_children = [DigitalOut]
@@ -113,7 +82,7 @@ class PrawnDO(PseudoclockDevice):
     trigger_minimum_duration = 160e-9
     "Minimum required duration of hardware trigger. A fairly large over-estimate."
 
-    allowed_children = [_PrawnDOPseudoclock]
+    allowed_children = [Pseudoclock]
     allowed_boards = ['pico1', 'pico2']
     
     max_instructions_map = {'pico1' : 30000, 'pico2' : 60000}
@@ -220,9 +189,8 @@ class PrawnDO(PseudoclockDevice):
             PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
 
         # set up internal connections to allow digital outputs
-        self.__pseudoclock = _PrawnDOPseudoclock(f'{name:s}__pseudoclock', self, '_')
-        self.__clockline = _PrawnDOClockline(f'{name:s}__clockline',
-                                             self.__pseudoclock, '_')
+        self.__pseudoclock = Pseudoclock(f'{name:s}__pseudoclock', self, '_', max_clock_lines=1)
+        self.__clockline = ClockLine(f'{name:s}__clockline', self.__pseudoclock, '_')
         self.outputs = _PrawnDigitalOutputs(f'{name:s}__pod', self.__clockline)
 
         self.BLACS_connection = com_port
@@ -248,7 +216,7 @@ class PrawnDO(PseudoclockDevice):
 
     def add_device(self, device):
 
-        if isinstance(device, _PrawnDOPseudoclock):
+        if isinstance(device, Pseudoclock):
             super().add_device(device)
         elif isinstance(device, DigitalOut):
             raise LabscriptError(f"Digital outputs must be connected to {self.name:s}.outputs")
