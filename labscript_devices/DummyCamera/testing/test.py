@@ -16,7 +16,7 @@ import numpy as np
 from labscript import *
 from labscript.remote import RemoteBLACS
 from labscript_devices.DummyPseudoclock.labscript_devices import DummyPseudoclock
-from labscript_devices.DummyIntermediateDevice import DummyIntermediateDevice
+from labscript_devices.DummyIntermediateDevice.labscript_devices import DummyIntermediateDevice
 from labscript_devices.DummyCamera.labscript_devices import DummyCamera
 
 # labscript_init('test.h5', new=True, overwrite=True)

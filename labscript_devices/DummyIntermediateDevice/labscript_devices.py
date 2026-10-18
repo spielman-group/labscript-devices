@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /DummyIntermediateDevice.py                                       #
+# /labscript_devices/DummyIntermediateDevice/labscript_devices.py   #
 #                                                                   #
 # Copyright 2013, Monash University                                 #
 #                                                                   #
@@ -49,7 +49,6 @@ Detailed Documentation
 
 """
 
-from labscript_devices import labscript_device, BLACS_tab, BLACS_worker
 from labscript import IntermediateDevice, DigitalOut, AnalogOut, compiler
 import numpy as np
 
@@ -89,35 +88,3 @@ class DummyIntermediateDevice(IntermediateDevice):
             out_table[device.name][:] = device.raw_output
 
         group.create_dataset('OUTPUTS', compression=compiler.compression, data=out_table)
-
-
-from blacs.device_base_class import DeviceTab
-from blacs.tab_base_classes import Worker
-
-@BLACS_tab
-class DummyIntermediateDeviceTab(DeviceTab):
-    def initialise_GUI(self):
-        self.create_worker("main_worker",DummyIntermediateDeviceWorker,{})
-        self.primary_worker = "main_worker"
-
-class DummyIntermediateDeviceWorker(Worker):
-    def init(self):
-        pass
-
-    def program_manual(self, front_panel_values):
-        return front_panel_values 
-
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
-        return initial_values
-
-    def transition_to_manual(self,abort = False):
-        return True
-
-    def abort_transition_to_buffered(self):
-        return self.transition_to_manual(True)
-        
-    def abort_buffered(self):
-        return self.transition_to_manual(True)
-
-    def shutdown(self):
-        pass

@@ -49,7 +49,7 @@ PREAMBLE = textwrap.dedent(
     from labscript_devices.DummyPseudoclock.labscript_devices import (
         DummyPseudoclock,
     )
-    from labscript_devices.DummyIntermediateDevice import (
+    from labscript_devices.DummyIntermediateDevice.labscript_devices import (
         DummyIntermediateDevice,
     )
     from labscript_devices.DummyCamera.labscript_devices import DummyCamera
