@@ -16,6 +16,12 @@ Each stage's commits on `CodeHealth`, for review:
 - Codex's three findings on the first stage, the bounded abort waits Ian asked
   for before its re-check, and the re-check's finding: `4ff99a8..02b4a52`, and the
   commit that records this line.
+  - **Outcome:** Codex's re-check found two points. Fixed in 02b4a52: an error
+    from PrawnDO's abort after a timeout, such as a `SerialException`, is logged
+    and the `TimeoutError` raised, where it used to replace it. Left as is (Ian):
+    a board that confirms its abort or end of shot after the deadline counts as
+    done, since the hardware did finish and each poll is bounded by the serial
+    read timeout.
 
 ## The test contract
 
