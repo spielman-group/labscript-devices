@@ -78,10 +78,6 @@ class IMAQdx_Camera(TriggerableCameraInterface):
         # Keep an img attribute so we don't have to create it every time
         self.img = nv.imaqCreateImage(nv.IMAQ_IMAGE_U16)
 
-    def set_attributes(self, attr_dict):
-        for k, v in attr_dict.items():
-            self.set_attribute(k, v)
-
     def set_attribute(self, name, value):
         """Set the value of the attribute of the given name to the given value"""
         _value = value  # Keep the original for the sake of the error message

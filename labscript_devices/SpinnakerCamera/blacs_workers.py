@@ -100,10 +100,6 @@ class Spinnaker_Camera(TriggerableCameraInterface):
             else:
                 return PySpin.CValuePtr(node).ToString()
 
-    def set_attributes(self, attr_dict):
-        for k, v in attr_dict.items():
-            self.set_attribute(k, v)
-
     def set_stream_attribute(self, name, value):
         self.set_attribute(name, value, stream_map=True)
 

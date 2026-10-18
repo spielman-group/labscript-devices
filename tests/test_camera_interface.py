@@ -29,10 +29,9 @@ from labscript_devices.DummyCamera.blacs_workers import Dummy_Camera
 
 
 # What TriggerableCameraWorker calls on self.camera that no base can supply,
-# because there is nothing generic to say: it is all one vendor's API.
+# because there is nothing generic to say: it is all one vendor's API. A camera
+# also writes set_attribute or set_attributes; the interface composes the other.
 VENDOR_MUST_WRITE = [
-    'set_attributes',
-    'snap',
     'grab',
     'configure_acquisition',
     'stop_acquisition',
@@ -72,6 +71,13 @@ class ContractTests(unittest.TestCase):
                         f'{camera.__name__} does not implement {name}(); it '
                         f'would inherit the stub, which raises mid-shot',
                     )
+            with self.subTest(camera=camera.__name__, member='set_attribute'):
+                self.assertTrue(
+                    written_by_the_camera(camera, 'set_attribute')
+                    or written_by_the_camera(camera, 'set_attributes'),
+                    f'{camera.__name__} implements neither set_attribute() nor '
+                    f'set_attributes()',
+                )
 
 
 class AWaitingForTrigger(Exception):

@@ -72,13 +72,19 @@ class TriggerableCameraInterface(object):
 
     # The members a camera writes for itself. Each raises rather than doing
     # nothing, because a camera that silently fails to program an attribute or
-    # stop an acquisition is worse than one that does not start. All but the
-    # two attribute readers are owed by every camera; those two are owed only
+    # stop an acquisition is worse than one that does not start. A camera owes
+    # set_attribute or set_attributes; the two attribute readers are owed only
     # by a camera that inherits the composing `get_attributes_as_dict` below.
 
     def set_attributes(self, attributes):
-        """Program a dict of attribute names and values into the camera."""
-        raise NotImplementedError(_unwritten(self, 'set_attributes'))
+        """Program a dict of attribute names and values into the camera, one at
+        a time unless the camera writes its own."""
+        for name, value in attributes.items():
+            self.set_attribute(name, value)
+
+    def set_attribute(self, name, value):
+        """Program one attribute into the camera."""
+        raise NotImplementedError(_unwritten(self, 'set_attribute'))
 
     def get_attribute(self, name):
         """Return the current value of the named attribute."""
@@ -90,7 +96,10 @@ class TriggerableCameraInterface(object):
 
     def snap(self):
         """Acquire and return one image, configuring acquisition as needed."""
-        raise NotImplementedError(_unwritten(self, 'snap'))
+        self.configure_acquisition(continuous=False, bufferCount=1)
+        image = self.grab()
+        self.stop_acquisition()
+        return image
 
     def grab(self):
         """Return the next image of an acquisition already configured."""
@@ -199,6 +208,20 @@ class TriggerableCameraInterface(object):
                 print(f"Got image {i+1} of {n_images}.")
                 break
         print(f"Got {len(images)} of {n_images} images.")
+
+
+class DictAttributesMixin:
+    """For a camera interface class whose attributes are held in a dict,
+    ``self.attributes``, rather than in the camera."""
+
+    def set_attribute(self, name, value):
+        self.attributes[name] = value
+
+    def get_attribute(self, name):
+        return self.attributes[name]
+
+    def get_attribute_names(self, visibility_level=None, writeable_only=True):
+        return list(self.attributes.keys())
 
 
 class TriggerableCameraWorker(Worker):

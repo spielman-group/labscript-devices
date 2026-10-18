@@ -12,29 +12,18 @@
 #####################################################################
 from zprocess import rich_print
 from labscript_devices.TriggerableCamera.blacs_workers import (
+    DictAttributesMixin,
     TriggerableCameraInterface,
     TriggerableCameraWorker,
 )
 
-class AndorCamera(TriggerableCameraInterface):
+class AndorCamera(DictAttributesMixin, TriggerableCameraInterface):
 
     def __init__(self):
         global AndorCam
         from .andor_sdk.andor_utils import AndorCam
         self.camera = AndorCam()
         self.attributes = self.camera.default_acquisition_attrs
-
-    def set_attributes(self, attr_dict):
-        self.attributes.update(attr_dict)
-        
-    def set_attribute(self, name, value):
-        self.attributes[name] = value
-
-    def get_attribute_names(self, visibility_level, writeable_only=True):
-        return list(self.attributes.keys())
-
-    def get_attribute(self, name):
-        return self.attributes[name]
 
     def snap(self):
         """Acquire a single image and return it"""

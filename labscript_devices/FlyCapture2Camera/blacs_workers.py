@@ -324,18 +324,6 @@ class FlyCapture2_Camera(TriggerableCameraInterface):
             # Add some info to the exception:
             raise Exception(f"Failed to get attribute {name}") from e
 
-    def snap(self):
-        """Acquire a single image and return it
-        
-        Returns:
-            numpy.array: Acquired image
-        """
-        
-        self.configure_acquisition(continuous=False,bufferCount=1)
-        image = self.grab()
-        self.stop_acquisition()
-        return image
-
     def configure_acquisition(self, continuous=True, bufferCount=10):
         """Configure acquisition buffer count and grab mode.
         

@@ -14,12 +14,13 @@
 
 from labscript_devices.DummyCamera.sensor import blank_image, sensor_size
 from labscript_devices.TriggerableCamera.blacs_workers import (
+    DictAttributesMixin,
     TriggerableCameraInterface,
     TriggerableCameraWorker,
 )
 
 
-class Dummy_Camera(TriggerableCameraInterface):
+class Dummy_Camera(DictAttributesMixin, TriggerableCameraInterface):
     """A camera whose frames were computed when the shot was compiled.
 
     It presents the interface every camera interface class presents, and
@@ -41,15 +42,6 @@ class Dummy_Camera(TriggerableCameraInterface):
         self.attributes = dict(self.identifying_attributes)
         self.images = None
         self.index = 0
-
-    def set_attributes(self, attributes):
-        self.attributes.update(attributes)
-
-    def get_attribute(self, name):
-        return self.attributes[name]
-
-    def get_attribute_names(self, visibility_level=None):
-        return list(self.attributes.keys())
 
     def configure_acquisition(self, continuous=True, bufferCount=5):
         # A continuous acquisition is manual mode, where there is no shot and
