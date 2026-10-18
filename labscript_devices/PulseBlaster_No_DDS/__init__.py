@@ -15,9 +15,8 @@
 # import of this package never loads BLACS. Its tab, worker and parser names
 # load only when asked for by name.
 from labscript_devices import lazy_attributes
-from .labscript_devices import (
-    PulseBlaster, PulseBlaster_No_DDS,
-)
+from labscript_devices.PulseBlaster.labscript_devices import PulseBlaster
+from .labscript_devices import PulseBlaster_No_DDS
 
 __all__ = [
     'PulseBlaster', 'PulseBlaster_No_DDS',

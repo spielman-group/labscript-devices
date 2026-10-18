@@ -16,11 +16,13 @@
 # load only when asked for by name.
 from labscript_devices import lazy_attributes
 from .labscript_devices import (
-    PulseBlasterDDS, PulseBlaster, PulseBlasterDirectOutputs,
+    PulseBlasterDDS, PulseBlasterBase, DDSPulseBlasterMixin, PulseBlaster,
+    PulseBlasterDirectOutputs,
 )
 
 __all__ = [
-    'PulseBlasterDDS', 'PulseBlaster', 'PulseBlasterDirectOutputs',
+    'PulseBlasterDDS', 'PulseBlasterBase', 'DDSPulseBlasterMixin', 'PulseBlaster',
+    'PulseBlasterDirectOutputs',
 ]
 
 __getattr__ = lazy_attributes(

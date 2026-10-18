@@ -54,8 +54,11 @@ class PulseBlasterDDS(DDSQuantity):
         self.phase_reset.go_low(t)
 
 
-class PulseBlaster(PseudoclockDevice):
-    
+class PulseBlasterBase(PseudoclockDevice):
+    """The pseudoclock and flags of a SpinCore PulseBlaster board. A board's class
+    sets its ``description``, ``clock_limit``, ``clock_resolution``, ``n_flags``
+    and ``core_clock_freq``."""
+
     pb_instructions = {'CONTINUE':   0,
                        'STOP':       1, 
                        'LOOP':       2, 
@@ -64,13 +67,6 @@ class PulseBlaster(PseudoclockDevice):
                        'LONG_DELAY': 7,
                        'WAIT':       8}
                        
-    description = 'PB-DDSII-300'
-    clock_limit = 8.3e6 # Slight underestimate I think.
-    clock_resolution = 26.6666666666666666e-9
-    # TODO: Add n_dds and generalise code
-    n_flags = 12
-    
-    core_clock_freq = 75 # MHz
     # This value is coupled to a value in the PulseBlaster worker process of BLACS
     # This number was found experimentally but is determined theoretically by the
     # instruction lengths in BLACS, and a finite delay in the PulseBlaster
@@ -262,75 +258,6 @@ class PulseBlaster(PseudoclockDevice):
                 
         return dig_outputs, dds_outputs
 
-    def generate_registers(self, hdf5_file, dds_outputs):
-        ampdicts = {}
-        phasedicts = {}
-        freqdicts = {}
-        group = hdf5_file['/devices/'+self.name]
-        dds_dict = {}
-        for output in dds_outputs:
-            num = int(output.connection.split()[1])
-            dds_dict[num] = output
-        for num in [0,1]:
-            
-            if num in dds_dict:
-                output = dds_dict[num]
-            
-                # Ensure that amplitudes are within bounds:
-                if any(output.amplitude.raw_output > 1)  or any(output.amplitude.raw_output < 0):
-                    raise LabscriptError('%s %s '%(output.amplitude.description, output.amplitude.name) +
-                                      'can only have values between 0 and 1, ' + 
-                                      'the limit imposed by %s.'%output.name)
-                                      
-                # Ensure that frequencies are within bounds:
-                if any(output.frequency.raw_output > 150e6 )  or any(output.frequency.raw_output < 0):
-                    raise LabscriptError('%s %s '%(output.frequency.description, output.frequency.name) +
-                                      'can only have values between 0Hz and and 150MHz, ' + 
-                                      'the limit imposed by %s.'%output.name)
-                                      
-                # Ensure that phase wraps around:
-                output.phase.raw_output %= 360
-                
-                amps = set(output.amplitude.raw_output)
-                phases = set(output.phase.raw_output)
-                freqs = set(output.frequency.raw_output)
-            else:
-                # If the DDS is unused, it will use the following values
-                # for the whole experimental run:
-                amps = set([0])
-                phases = set([0])
-                freqs = set([0])
-                                  
-            if len(amps) > 1024:
-                raise LabscriptError('%s dds%d can only support 1024 amplitude registers, and %s have been requested.'%(self.name, num, str(len(amps))))
-            if len(phases) > 128:
-                raise LabscriptError('%s dds%d can only support 128 phase registers, and %s have been requested.'%(self.name, num, str(len(phases))))
-            if len(freqs) > 1024:
-                raise LabscriptError('%s dds%d can only support 1024 frequency registers, and %s have been requested.'%(self.name, num, str(len(freqs))))
-                                
-            # start counting at 1 to leave room for the dummy instruction,
-            # which BLACS will fill in with the state of the front
-            # panel:
-            ampregs = range(1,len(amps)+1)
-            freqregs = range(1,len(freqs)+1)
-            phaseregs = range(1,len(phases)+1)
-            
-            ampdicts[num] = dict(zip(amps,ampregs))
-            freqdicts[num] = dict(zip(freqs,freqregs))
-            phasedicts[num] = dict(zip(phases,phaseregs))
-            
-            # The zeros are the dummy instructions:
-            freq_table = np.array([0] + list(freqs), dtype = np.float64) / 1e6 # convert to MHz
-            amp_table = np.array([0] + list(amps), dtype = np.float32)
-            phase_table = np.array([0] + list(phases), dtype = np.float64)
-            
-            subgroup = group.create_group('DDS%d'%num)
-            subgroup.create_dataset('FREQ_REGS', compression=compiler.compression, data = freq_table)
-            subgroup.create_dataset('AMP_REGS', compression=compiler.compression, data = amp_table)
-            subgroup.create_dataset('PHASE_REGS', compression=compiler.compression, data = phase_table)
-            
-        return freqdicts, ampdicts, phasedicts
-        
     def convert_to_pb_inst(self, dig_outputs):
         pb_inst = []
         
@@ -504,6 +431,125 @@ class PulseBlaster(PseudoclockDevice):
         
     def write_pb_inst_to_h5(self, pb_inst, hdf5_file):
         # OK now we squeeze the instructions into a numpy array ready for writing to hdf5:
+        pb_dtype= [('flags',np.int32), ('inst',np.int32), ('inst_data',np.int32), ('length',np.float64)]
+        pb_inst_table = np.empty(len(pb_inst),dtype = pb_dtype)
+        for i,inst in enumerate(pb_inst):
+            flagint = int(inst['flags'][::-1],2)
+            instructionint = self.pb_instructions[inst['instruction']]
+            dataint = inst['data']
+            delaydouble = inst['delay']
+            pb_inst_table[i] = (flagint, instructionint, dataint, delaydouble)
+
+        # Okay now write it to the file:
+        group = hdf5_file['/devices/'+self.name]
+        group.create_dataset('PULSE_PROGRAM', compression=compiler.compression,data = pb_inst_table)
+
+    def _check_wait_monitor_ok(self):
+        if (
+            compiler.master_pseudoclock is self
+            and compiler.wait_table
+            and compiler.wait_monitor is None
+            and self.programming_scheme != 'pb_stop_programming/STOP'
+        ):
+            msg = """If using waits without a wait monitor, the PulseBlaster used as a
+                master pseudoclock must have
+                programming_scheme='pb_stop_programming/STOP'. Otherwise there is no way
+                for BLACS to distinguish between a wait, and the end of a shot. Either
+                use a wait monitor (see labscript.WaitMonitor for details) or set
+                programming_scheme='pb_stop_programming/STOP for %s."""
+            raise LabscriptError(dedent(msg) % self.name)
+
+    def generate_code(self, hdf5_file):
+        # Generate the hardware instructions
+        self.init_device_group(hdf5_file)
+        PseudoclockDevice.generate_code(self, hdf5_file)
+        dig_outputs, dds_outputs = self.get_direct_outputs()
+        if dds_outputs:
+            names = ', '.join(dds.name for dds in dds_outputs)
+            raise LabscriptError(
+                f"{self.name} ({self.description}) has no DDS outputs, so {names} "
+                "cannot be connected to it."
+            )
+        pb_inst = self.convert_to_pb_inst(dig_outputs)
+        self._check_wait_monitor_ok()
+        self.write_pb_inst_to_h5(pb_inst, hdf5_file)
+
+
+class DDSPulseBlasterMixin:
+    """The two DDS outputs, ``'dds 0'`` and ``'dds 1'``, of a PulseBlaster board
+    that has them. It comes before :class:`PulseBlasterBase` in a board's bases."""
+
+    def generate_registers(self, hdf5_file, dds_outputs):
+        ampdicts = {}
+        phasedicts = {}
+        freqdicts = {}
+        group = hdf5_file['/devices/'+self.name]
+        dds_dict = {}
+        for output in dds_outputs:
+            num = int(output.connection.split()[1])
+            dds_dict[num] = output
+        for num in [0,1]:
+            
+            if num in dds_dict:
+                output = dds_dict[num]
+            
+                # Ensure that amplitudes are within bounds:
+                if any(output.amplitude.raw_output > 1)  or any(output.amplitude.raw_output < 0):
+                    raise LabscriptError('%s %s '%(output.amplitude.description, output.amplitude.name) +
+                                      'can only have values between 0 and 1, ' + 
+                                      'the limit imposed by %s.'%output.name)
+                                      
+                # Ensure that frequencies are within bounds:
+                if any(output.frequency.raw_output > 150e6 )  or any(output.frequency.raw_output < 0):
+                    raise LabscriptError('%s %s '%(output.frequency.description, output.frequency.name) +
+                                      'can only have values between 0Hz and and 150MHz, ' + 
+                                      'the limit imposed by %s.'%output.name)
+                                      
+                # Ensure that phase wraps around:
+                output.phase.raw_output %= 360
+                
+                amps = set(output.amplitude.raw_output)
+                phases = set(output.phase.raw_output)
+                freqs = set(output.frequency.raw_output)
+            else:
+                # If the DDS is unused, it will use the following values
+                # for the whole experimental run:
+                amps = set([0])
+                phases = set([0])
+                freqs = set([0])
+                                  
+            if len(amps) > 1024:
+                raise LabscriptError('%s dds%d can only support 1024 amplitude registers, and %s have been requested.'%(self.name, num, str(len(amps))))
+            if len(phases) > 128:
+                raise LabscriptError('%s dds%d can only support 128 phase registers, and %s have been requested.'%(self.name, num, str(len(phases))))
+            if len(freqs) > 1024:
+                raise LabscriptError('%s dds%d can only support 1024 frequency registers, and %s have been requested.'%(self.name, num, str(len(freqs))))
+                                
+            # start counting at 1 to leave room for the dummy instruction,
+            # which BLACS will fill in with the state of the front
+            # panel:
+            ampregs = range(1,len(amps)+1)
+            freqregs = range(1,len(freqs)+1)
+            phaseregs = range(1,len(phases)+1)
+            
+            ampdicts[num] = dict(zip(amps,ampregs))
+            freqdicts[num] = dict(zip(freqs,freqregs))
+            phasedicts[num] = dict(zip(phases,phaseregs))
+            
+            # The zeros are the dummy instructions:
+            freq_table = np.array([0] + list(freqs), dtype = np.float64) / 1e6 # convert to MHz
+            amp_table = np.array([0] + list(amps), dtype = np.float32)
+            phase_table = np.array([0] + list(phases), dtype = np.float64)
+            
+            subgroup = group.create_group('DDS%d'%num)
+            subgroup.create_dataset('FREQ_REGS', compression=compiler.compression, data = freq_table)
+            subgroup.create_dataset('AMP_REGS', compression=compiler.compression, data = amp_table)
+            subgroup.create_dataset('PHASE_REGS', compression=compiler.compression, data = phase_table)
+            
+        return freqdicts, ampdicts, phasedicts
+        
+    def write_pb_inst_to_h5(self, pb_inst, hdf5_file):
+        # OK now we squeeze the instructions into a numpy array ready for writing to hdf5:
         pb_dtype = [('freq0', np.int32), ('phase0', np.int32), ('amp0', np.int32), 
                     ('dds_en0', np.int32), ('phase_reset0', np.int32),
                     ('freq1', np.int32), ('phase1', np.int32), ('amp1', np.int32),
@@ -532,23 +578,7 @@ class PulseBlaster(PseudoclockDevice):
                                 
         # Okay now write it to the file: 
         group = hdf5_file['/devices/'+self.name]  
-        group.create_dataset('PULSE_PROGRAM', compression=compiler.compression,data = pb_inst_table)   
-
-
-    def _check_wait_monitor_ok(self):
-        if (
-            compiler.master_pseudoclock is self
-            and compiler.wait_table
-            and compiler.wait_monitor is None
-            and self.programming_scheme != 'pb_stop_programming/STOP'
-        ):
-            msg = """If using waits without a wait monitor, the PulseBlaster used as a
-                master pseudoclock must have
-                programming_scheme='pb_stop_programming/STOP'. Otherwise there is no way
-                for BLACS to distinguish between a wait, and the end of a shot. Either
-                use a wait monitor (see labscript.WaitMonitor for details) or set
-                programming_scheme='pb_stop_programming/STOP for %s."""
-            raise LabscriptError(dedent(msg) % self.name)
+        group.create_dataset('PULSE_PROGRAM', compression=compiler.compression,data = pb_inst_table)
 
     def generate_code(self, hdf5_file):
         # Generate the hardware instructions
@@ -577,8 +607,15 @@ class PulseBlaster(PseudoclockDevice):
                     inst['phase_resets'][n] = output.phase_reset.raw_output[i]
         self._check_wait_monitor_ok()
         self.write_pb_inst_to_h5(pb_inst, hdf5_file)
-        
 
+
+class PulseBlaster(DDSPulseBlasterMixin, PulseBlasterBase):
+    description = 'PB-DDSII-300'
+    clock_limit = 8.3e6 # Slight underestimate I think.
+    clock_resolution = 26.6666666666666666e-9
+    # TODO: Add n_dds and generalise code
+    n_flags = 12
+    core_clock_freq = 75 # MHz
 
 
 class PulseBlasterDirectOutputs(IntermediateDevice):
