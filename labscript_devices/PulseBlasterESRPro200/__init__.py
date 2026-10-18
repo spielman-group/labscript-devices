@@ -10,4 +10,15 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from .labscript_devices import *
+
+from labscript_devices import lazy_attributes
+from .labscript_devices import PulseBlasterESRPro200
+
+__getattr__ = lazy_attributes(
+    __name__,
+    {
+        'blacs_tabs': ['pulseblasteresrpro200'],
+        'blacs_workers': ['PulseblasterESRPro200Worker'],
+        'runviewer_parsers': ['PulseblasterESRPro200Parser'],
+    },
+)

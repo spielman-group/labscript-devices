@@ -140,6 +140,30 @@ PulseBlasterESRPro200
    :show-inheritance:
    :private-members:
 
+.. automodule:: labscript_devices.PulseBlasterESRPro200.labscript_devices
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlasterESRPro200.blacs_tabs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlasterESRPro200.blacs_workers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlasterESRPro200.runviewer_parsers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
 PulseBlasterESRPro500
 ^^^^^^^^^^^^^^^^^^^^^
 
