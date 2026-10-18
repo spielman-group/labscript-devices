@@ -137,3 +137,47 @@ a review while building what Ian asked for.
 | 8 | An image of the wrong shape stops the compile, naming the exposure | a6df924 | yes | one wrong-shaped image compiles and is stored at the wrong size, silently (checked); several of differing shapes hit numpy's inhomogeneous-shape error | ~8 | keep |
 | 9 | The coordinate grid is centred on the sensor | a6df924 | yes | the grid starts at 0 at a corner | ~2 | keep |
 | 10 | The sensor size is checked when the camera is created, before the shot file is written | b64d579 (review) | yes | the shot file is left half-written | ~3 | keep |
+
+## Step 2.2: duplication
+
+Sources: `issues/seen_while_mapping.md` and the librarian's map, at `CodeHealth`
+`2e8de3b`. Every class named below is public and keeps its name. A class
+recorded in connection tables also keeps its class, since BLACS compares class
+names, and a change would make every lab using the device recompile its
+connection table once.
+
+| # | Copies | Should it exist? | Where the one copy lives | Lines | Users each change touches | Recommend |
+|---|---|---|---|---|---|---|
+| 1 | The "one clockline only" pseudoclock in Cicero, DummyPseudoclock, PineBlaster, RFBlaster and PrawnBlaster | Yes: these boards have one clock output | Done in `e806548`: labscript's `Pseudoclock.max_clock_lines`. Each subclass is now two lines, and it names the pseudoclock's class in connection tables | 0 | none | leave |
+| 2 | PrawnDO's pseudoclock and clockline still rewrite `add_device` to allow one child of one type | Yes | The same labscript checks: `max_clock_lines = 1`, and `allowed_children` on both. The clockline then limits its child's type but not the count; only PrawnDO itself creates that child | −14 | PrawnDO compiles; a misconnection error becomes labscript's own wording | do |
+| 3 | The wait-monitor dummy pseudoclock, clockline and intermediate device, in Cicero (34 lines) and PrawnBlaster (55) | Yes: labscript's `WaitMonitor` must hang from an intermediate device on a clockline, and these boards time their own waits | One set of three classes, about 15 lines, with `allowed_children` and `max_clock_lines` doing the checks. Cicero's and PrawnBlaster's six names stay as empty subclasses, so imports and connection tables are unchanged. Where: a labscript-devices module, since only these two devices use it (recommended); or labscript core beside `WaitMonitor`, as the librarian suggests, which needs labscript's owner | about −60 | Cicero and PrawnBlaster compiles with an internal wait monitor | do |
+| 4 | The rising-edge times of a parent clock, a six-line copy in seven runviewer parsers: Cicero, DummyPseudoclock, NI_DAQmx, NovaTechDDS9M, PineBlaster, PrawnBlaster, PrawnDO | Yes | One function, `(times, values) -> edge times`, about 8 lines, in a small new module `labscript_devices/runviewer_parsing.py` (librarian: runviewer has no such helper, and no parser imports runviewer); each parser calls it | about −35 | runviewer, for those seven devices | do |
+| 5 | DummyPseudoclock's `generate_code` (32 lines) and parser (45) copy PineBlaster's, pulse-program format included | Yes: labscript's tests and labs' test setups use the dummy | DummyPseudoclock's package, whose imports are light. `PineBlaster` and its `RunviewerClass` subclass the dummy's classes, keeping their names, their own `__init__`, `max_instructions` and the parser's `trigger_delay`. Not the reverse: `PineBlaster.py` imports BLACS at module level, so the dummy would pull BLACS into every compile | about −75 | PineBlaster compiles and runviewer; no change to the dummy | do |
+| 6 | PulseBlaster_No_DDS's worker and tab copy PulseBlaster's: 7 worker methods (60 lines) and 6 tab methods (79) are identical | Yes | PulseBlaster's classes. `PulseblasterNoDDSWorker` and `Pulseblaster_No_DDS_Tab` subclass them and keep only what differs for a board without DDS: `init`, `program_manual`, `transition_to_buffered` and `initialise_GUI` | −139 | BLACS, for every DDS-free PulseBlaster: No_DDS, ESRPro200, ESRPro500, USB, SP2 | do |
+| 7 | Each PulseBlaster model's tab has a four-line `__init__` that only sets `device_worker_class` | Yes | A class attribute: `Pulseblaster_No_DDS_Tab.__init__` already uses one if set | −12 | the four model tabs | do |
+| 8 | The PulseBlaster parsers. SP2's restates `num_dds = 0` and `num_flags = 24`, which `PulseBlaster_No_DDS_Parser` already sets | Yes | `PulseBlaster_No_DDS_Parser`; SP2's subclasses it, as USB's does | −2 | runviewer, SP2 | do |
+| 9 | ESRPro500 has no parser, so runviewer cannot show its shots (`get_runviewer_parser('PulseBlasterESRPro500')` raises ValueError; checked). A gap, not a copy; upstream has it too | Yes | A three-line `PulseblasterESRPro500Parser(PulseBlaster_No_DDS_Parser)`, with `num_flags = 21`, as ESRPro200's | +4 | runviewer, ESRPro500 | do |
+| 10 | Device groups made by hand (`hdf5_file['devices'].create_group(self.name)` and the like) in Cicero, PineBlaster, RFBlaster, PulseBlaster and PhaseMatrixQuickSyn | Yes | labscript's `Device.init_device_group`, which does exactly that | 0 (five one-line swaps) | those five devices' compiles; the shot file is unchanged | do |
+
+Looked at and left, as not one problem solved twice:
+
+- `RunviewerClass` is upstream's name for the parser in each old single-file
+  device (Cicero, NovaTech, PineBlaster); each is a different parser. `TekScope`
+  names both the instrument driver and the labscript device, in two modules.
+- The DDS value quantisers (scale, add 0.5, cast) in NovaTechDDS9M,
+  PhaseMatrixQuickSyn and RFBlaster: one line each, with each device's own
+  bounds and scale.
+- Steps converted to hardware ticks, `int(round(step / clock_resolution))`, in
+  five `generate_code`s: a unit conversion, not labscript's
+  `quantise_to_pseudoclock`, which rounds times in seconds.
+- Front-panel bit packing in NI_DAQmx's and PrawnDO's workers and NI_DAQmx's
+  parser: scalar packing of one dict, which `labscript.utils.bitfield` (arrays
+  per bit) does not cover.
+- Camera `set_attributes`, `get_attribute` and `snap` bodies shared by two or
+  three cameras, two to five lines each. A shared default in
+  `TriggerableCameraInterface` would defeat the contract's guard that each
+  camera writes these itself, which Ian kept.
+- Cicero's and PineBlaster's tab status monitors share six lines; Cicero's adds
+  its own branches.
+- The same "return coerced values" TODO in three `program_manual`s goes to
+  step 5.
