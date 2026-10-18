@@ -228,3 +228,38 @@ to the docs' "Possible improvements", so they outlive this file.
   The vendor-camera guard test would change with them: `snap` leaves its list
   (a default `snap` needs only members the list already holds), and
   `set_attributes` becomes "`set_attributes` or `set_attribute`".
+
+## Step 2.2.1: class structure
+
+The plan is the class-structure page in the meta repo,
+`issues/campaign_progress/class_structure.html` (`3379f7b`). Ian approved it:
+"move forward with the work. I strongly suggest having each movement of a
+single-file based device into a directory performed by seperate independent
+subagents sequentally, perhaps as the first task. This is a big code change
+that leads to no/little behavior change. So it is very easily testable."
+
+Decided:
+
+- Build cards 1, 2, 6, 7, 8, 9 and 10. Drop D1 and D2.
+- Cards 3, 4 and 5, by Ian's rule that blacs keeps only the generic `Worker`
+  and `DeviceTab`. `PseudoclockWorker` stays in labscript-devices, and
+  `PseudoclockTab` joins it there. `GuilessTab` and `GuilessWorker` move to a
+  shared labscript-devices module, and card 6's helper also lives in
+  labscript-devices.
+- Private class names go in the same round as the packages, so labs recompile
+  their connection tables once.
+- The approved step 2.2 items fold in: 2, 4, 6, 8, 9 and 10, and 7's single
+  pattern.
+
+Phase A comes first and alone: each single-file device becomes a package, one
+Sonnet subagent per device, run one after another. Each conversion must show no
+change in behaviour:
+
+- identical shot files for its test shots, and for any connection table that
+  uses the device, before and after;
+- the same BLACS tab and runviewer parser looked up by class name;
+- the labscript class imported with nothing from blacs in `sys.modules`;
+- the suite passing.
+
+There is one commit per device. Phase B, the class moves and core additions,
+starts only after Codex reviews Phase A.
