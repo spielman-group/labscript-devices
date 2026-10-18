@@ -19,10 +19,12 @@ Each stage's commits on `CodeHealth`, for review:
 - Step 2.2's table and Ian's decisions, the two bugs fixed on his word
   (`719fe26`, `d0c300e`), and step 2.2.1's Phase A: `02b4a52..` the commit that
   records this line. Phase A alone is `93cdc48..` the same commit.
-- Codex's findings on Phase A: `4a74e3e..` the commit that records this line.
-  - **Outcome:** every top-level name an old single-file module bound is
-    importable from its package again, as the same object. The exception is the
-    names of Cicero's and LightCrafter's Qt star imports.
+- Codex's findings on Phase A, and Ian's decisions on them: `4a74e3e..` the commit
+  that records this line.
+  - **Outcome:** each package gives its old module's own names, and the device
+    classes it imported, as the same objects. Its labscript-side names make up
+    `__all__`. The incidental imports are dropped, by Ian's decision. The names
+    are listed under step 2.2.1.
   - The package check skips only AlazarTechBoard's missing library.
   - The ValueError for a device with no runviewer parser needs labscript-utils'
     lookup to treat a `None` registration as none, so it is left to that owner.
@@ -297,3 +299,29 @@ PulseBlaster models and test_device.
   for a device with no parser. It raised ValueError and now raises
   AttributeError, from labscript-utils' handling of `runviewer_parser=None`.
   runviewer catches both.
+
+### The names each package gives (Ian)
+
+Each package gives the names its old single-file module defined, and the
+device classes it imported from another device package, such as
+`PulseBlaster_No_DDS`'s `PulseBlaster`. The labscript-side ones are imported for
+real and make up `__all__`, so a star import never loads BLACS; the rest load
+when asked for by name. The names an old module only imported from labscript,
+numpy, the standard library, BLACS, Qt or labscript_devices' helpers are
+dropped (Ian: "agree with decisions 1 and 2").
+
+- `AlazarTechBoard`: `__all__` AlazarTechBoard; by name GuilessTab, tqdm_kwargs, atsRanges, atsSampleRates, atsExternalClockAdvice, find_nearest_internal_clock, find_clock_and_r, ats9462_clock, GuilessWorker; dropped ctypes, np, signal, sys, time, tqdm, ats, Device, AnalogIn, compiler, LabscriptError, set_passed_properties, labscript_utils, h5py, BLACS_tab, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, os, copy.
+- `CiceroOpalKellyXEM3001`: `__all__` CiceroOpalKellyXEM3001Pseudoclock, CiceroOpalKellyXEM3001DummyPseudoclock, CiceroOpalKellyXEM3001DummyClockLine, CiceroOpalKellyXEM3001DummyIntermediateDevice, CiceroOpalKellyXEM3001; by name CiceroOpalKellyXEM3001Tab, int_to_bytes, bits_to_int, add_instruction_to_bytearray, CiceroOpalKellyXEM3001Worker, RunviewerClass; dropped Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, IntermediateDevice, WaitMonitor, DigitalOut, runviewer_parser, BLACS_tab, BLACS_worker, labscript_device, np, labscript_utils, h5py, ensure_str, define_state, Tab, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
+- `DummyIntermediateDevice`: `__all__` DummyIntermediateDevice; by name DummyIntermediateDeviceTab, DummyIntermediateDeviceWorker; dropped labscript_device, BLACS_tab, BLACS_worker, IntermediateDevice, DigitalOut, AnalogOut, compiler, np, DeviceTab, Worker.
+- `LightCrafterDMD`: `__all__` arr_to_bmp, WIDTH, HEIGHT, BLANK_BMP, ImageSet, LightCrafterDMD; by name LightCrafterTab, LightCrafterWorker; dropped base64, os, struct, time, PIL, BytesIO, labscript_utils, h5py, labscript_device, BLACS_tab, BLACS_worker, runviewer_parser, Device, IntermediateDevice, LabscriptError, Output, compiler, np, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, Signal.
+- `NovaTechDDS9M`: `__all__` bauds, NovaTechDDS9M; by name NovatechDDS9MTab, NovatechDDS9mWorker, RunviewerClass; dropped runviewer_parser, BLACS_tab, IntermediateDevice, DDS, StaticDDS, Device, compiler, LabscriptError, set_passed_properties, NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion, np, labscript_utils, h5py, time, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
+- `PhaseMatrixQuickSyn`: `__all__` QuickSynDDS, PhaseMatrixQuickSyn; by name PhaseMatrixQuickSynTab, QuickSynWorker; dropped np, BLACS_tab, runviewer_parser, Device, StaticDDS, StaticAnalogQuantity, StaticDigitalOut, compiler, LabscriptError, set_passed_properties, labscript_utils, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, os.
+- `PineBlaster`: `__all__` PineBlasterPseudoclock, PineBlaster; by name PineblasterTab, PineblasterWorker, RunviewerClass; dropped PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError, set_passed_properties, runviewer_parser, BLACS_tab, np, labscript_utils, h5py, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
+- `PulseBlaster`: `__all__` PulseBlasterDDS, PulseBlaster, PulseBlasterDirectOutputs; by name PulseBlasterTab, PulseblasterWorker, profiles, profile, start_profile, stop_profile, PulseBlasterParser; dropped BLACS_tab, runviewer_parser, dedent, Device, PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DigitalQuantity, DigitalOut, DDS, DDSQuantity, LabscriptError, set_passed_properties, compiler, np, labscript_utils, h5py, time, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, qtutils, os, QtCore, QtGui.
+- `PulseBlaster_No_DDS`: `__all__` PulseBlaster, PulseBlaster_No_DDS; by name Pulseblaster_No_DDS_Tab, PulseblasterNoDDSWorker, PulseBlasterParser, PulseBlaster_No_DDS_Parser; dropped BLACS_tab, runviewer_parser, PseudoclockDevice, compiler, LabscriptError, np, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, qtutils, os, QtCore, QtGui, QtWidgets.
+- `PulseBlasterESRPro200`: `__all__` PulseBlaster_No_DDS, PulseBlasterESRPro200; by name Pulseblaster_No_DDS_Tab, pulseblasteresrpro200, PulseblasterNoDDSWorker, PulseblasterESRPro200Worker, PulseBlaster_No_DDS_Parser, PulseblasterESRPro200Parser; dropped BLACS_tab, runviewer_parser.
+- `PulseBlasterESRPro500`: `__all__` PulseBlaster_No_DDS, PulseBlasterESRPro500; by name Pulseblaster_No_DDS_Tab, pulseblasteresrpro500, PulseblasterNoDDSWorker, PulseblasterESRPro500Worker; dropped BLACS_tab, runviewer_parser.
+- `PulseBlasterUSB`: `__all__` PulseBlaster_No_DDS, PulseBlasterUSB; by name Pulseblaster_No_DDS_Tab, PulseblasterUSBTab, PulseblasterNoDDSWorker, PulseblasterUSBWorker, PulseBlaster_No_DDS_Parser, PulseBlasterUSBParser; dropped BLACS_tab, runviewer_parser.
+- `PulseBlaster_SP2_24_100_32k`: `__all__` PulseBlaster_No_DDS, PulseBlaster_SP2_24_100_32k; by name Pulseblaster_No_DDS_Tab, PulseBlaster_SP2_24_100_32k_Tab, PulseblasterNoDDSWorker, PulseBlaster_SP2_24_100_32k_Worker, PulseBlasterParser, PulseBlaster_SP2_24_100_32k_Parser; dropped BLACS_tab, runviewer_parser.
+- `RFBlaster`: `__all__` RFBlasterPseudoclock, RFBlaster, RFBlasterDirectOutputs; by name RFBlasterTab, MultiPartForm, RFBlasterWorker; dropped os, PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, compiler, startupinfo, LabscriptError, set_passed_properties, np, BLACS_tab, runviewer_parser, setup_logging, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
+- `test_device`: `__all__` test_device; by name Tab, Worker, Parser; dropped BLACS_tab, runviewer_parser, Device, LabscriptError, set_passed_properties.
