@@ -155,6 +155,30 @@ PulseBlaster_SP2_24_100_32k
    :show-inheritance:
    :private-members:
 
+.. automodule:: labscript_devices.PulseBlaster_SP2_24_100_32k.labscript_devices
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlaster_SP2_24_100_32k.blacs_tabs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlaster_SP2_24_100_32k.blacs_workers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+.. automodule:: labscript_devices.PulseBlaster_SP2_24_100_32k.runviewer_parsers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
 PulseBlasterESRPro200
 ^^^^^^^^^^^^^^^^^^^^^
 
