@@ -16,3 +16,4 @@
 - `AlazarTechBoard/labscript_devices.py`: `generate_code` calls `init_device_group` inside its loop over acquisitions, so a board with two or more acquisitions does not compile (ValueError, name already exists).
 - `AlazarTechBoard/blacs_workers.py`: the worker keeps `sys.exc_info()` and later raises that tuple, a TypeError, and an unknown `chA_input_range` or `chB_input_range` is printed and then used unbound. Read, not run.
 - `PulseBlaster/runviewer_parsers.py`: `get_traces` raises KeyError for a PulseBlasterDDS on `direct_outputs`, since it handles only device class 'DDS'; and it ignores a LONG_DELAY instruction's repeat count, so runviewer's time axis falls short after any delay longer than about 43 s.
+- `docs/source/devices/pulseblaster_no_dds.rst`: the Usage example makes a `PulseBlaster`, the DDS board, rather than a `PulseBlaster_No_DDS`, and calls `Clockline`, which labscript does not define (it is `ClockLine`).

@@ -3,8 +3,8 @@ Pulseblaster
 
 This labscript device controls the Spincore PulseblaserDDS-II-300-AWG.
 The Pulseblaster is a programmable pulse generator that is the typical timing backbone of an experiment (ie it generates the pseudoclock timing pulses that control execution of other devices in the experiment).
-This labscript device is the master implementation of the various Pulseblaster devices.
-Other Pulseblaster labscript devices subclass this device and make the relevant changes to hard-coded values.
+The code every Pulseblaster board shares is in `PulseBlasterBase`, and this device adds its DDS outputs to it with `DDSPulseBlasterMixin`; its BLACS tab, worker and runviewer parser are built the same way.
+The boards without DDS subclass `PulseBlasterBase` alone, each with its own hard-coded values.
 Most importantly, the `core_clock_freq` must be manually set to match that of the Pulseblaster being used in order for the timing of the programmed pulses to be correct (in the `labscript_device` and the `BLACS_worker`).
 
 This particular version of Pulseblaster has a 75 MHz core clock frequency and also has DDS synthesizer outputs.

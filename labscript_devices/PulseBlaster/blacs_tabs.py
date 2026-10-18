@@ -68,7 +68,7 @@ class PulseBlasterBaseTab(DeviceTab):
         self.supports_smart_programming(True) 
         
         # Load status monitor (and start/stop/reset buttons) UI
-        ui = UiLoader().load(os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),'pulseblaster.ui'))        
+        ui = UiLoader().load(os.path.join(os.path.dirname(os.path.realpath(__file__)),'pulseblaster.ui'))
         self.get_tab_layout().addWidget(ui)
         # Connect signals for buttons
         ui.start_button.clicked.connect(self.start)

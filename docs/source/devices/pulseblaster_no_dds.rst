@@ -6,8 +6,7 @@ Overview
 
 This labscript device controls the Spincore Pulseblasers that do not have DDS outputs.
 The Pulseblaster is a programmable pulse generator that is the typical timing backbone of an experiment (ie it generates the pseudoclock timing pulses that control execution of other devices in the experiment).
-This labscript device inherits from the :doc:`Pulseblaster <pulseblaster>` device.
-The primary difference is the removal of code handling DDS outputs.
+This labscript device subclasses `PulseBlasterBase`, the code it shares with the :doc:`Pulseblaster <pulseblaster>` device, without the DDS outputs that device adds.
 
 The labscript-suite currently supports a number of no-dds variants of the Pulseblaster device, each with different numbers of outputs and clock frequencies:
 
