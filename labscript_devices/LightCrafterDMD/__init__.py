@@ -10,16 +10,20 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from labscript_devices import BLACS_tab, BLACS_worker, labscript_device, lazy_attributes, runviewer_parser
+
+# The names this package gives. The compile side's are imported here; those of
+# BLACS and runviewer load only when asked for, so a compile never imports
+# BLACS.
+from labscript_devices import (
+    BLACS_tab, BLACS_worker, labscript_device, lazy_attributes,
+    runviewer_parser,
+)
 from .labscript_devices import (
     os, struct, PIL, BytesIO, Device, IntermediateDevice, LabscriptError,
     Output, compiler, np, arr_to_bmp, WIDTH, HEIGHT, BLANK_BMP, ImageSet,
     LightCrafterDMD,
 )
 
-# Each name the old single-file module bound stays importable from here. Those
-# of BLACS and runviewer load only when asked for, so a compile never imports
-# BLACS.
 __getattr__ = lazy_attributes(
     __name__,
     {

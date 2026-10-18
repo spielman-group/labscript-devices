@@ -3,6 +3,7 @@
 #
 # Copyright (c) Monash University 2017
 import numpy as np
+# Unused here, but imported so that the package still gives these names:
 import signal
 import os
 import copy

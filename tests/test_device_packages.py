@@ -31,11 +31,12 @@ for package in sys.argv[1:]:
             importlib.import_module(module)
         except OSError as e:
             results[module] = f'OSError: {e}'
-            break
         blacs = [name for name in sys.modules if name.split('.')[0] == 'blacs']
-        results[module] = sorted(blacs)[:3]
+        results.setdefault(module, sorted(blacs)[:3])
         for name in blacs:
             del sys.modules[name]
+        if isinstance(results[module], str):
+            break
 print(json.dumps(results))
 """
 

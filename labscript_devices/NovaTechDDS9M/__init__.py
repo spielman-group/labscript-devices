@@ -10,16 +10,19 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
-from labscript_devices import BLACS_tab, lazy_attributes, runviewer_parser
+
+# The names this package gives. The compile side's are imported here; those of
+# BLACS and runviewer load only when asked for, so a compile never imports
+# BLACS.
+from labscript_devices import (
+    BLACS_tab, lazy_attributes, runviewer_parser,
+)
 from .labscript_devices import (
     IntermediateDevice, DDS, StaticDDS, Device, compiler, LabscriptError,
     set_passed_properties, NovaTechDDS9mFreqConversion,
     NovaTechDDS9mAmpConversion, np, bauds, NovaTechDDS9M,
 )
 
-# Each name the old single-file module bound stays importable from here. Those
-# of BLACS and runviewer load only when asked for, so a compile never imports
-# BLACS.
 __getattr__ = lazy_attributes(
     __name__,
     {
