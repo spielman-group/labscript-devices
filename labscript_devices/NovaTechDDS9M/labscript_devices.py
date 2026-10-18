@@ -95,6 +95,19 @@ class NovaTechDDS9M(IntermediateDevice):
         not otherwise specified a calibration class"""
         return NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion, None
         
+    # Each takes a DDS and its output, which the DDS also holds, and returns them
+    # in the device's units, with the scale: 0.1 Hz, 1/45.5111 of a degree and
+    # 1/1023 of full amplitude.
+
+    def quantise_freq(self, data, device):
+        return device.quantise_channel('frequency', 10, limits=(0.1, 171e6), dtype=np.uint32)
+
+    def quantise_phase(self, data, device):
+        return device.quantise_channel('phase', 45.511111111111113, period=360, dtype=np.uint16)
+
+    def quantise_amp(self, data, device):
+        return device.quantise_channel('amplitude', 1023, limits=(0, 1), dtype=np.uint16)
+
     def generate_code(self, hdf5_file):
         DDSs = {}
         for output in self.child_devices:
@@ -114,13 +127,9 @@ class NovaTechDDS9M(IntermediateDevice):
             dds = DDSs[connection]
             if connection in range(4):
                 # Dynamic DDS
-                # In 0.1 Hz, 1/1023 of full amplitude, and 1/45.5111 of a degree:
-                dds.frequency.raw_output, dds.frequency.scale_factor = dds.quantise_channel(
-                    'frequency', 10, limits=(0.1, 171e6), dtype=np.uint32)
-                dds.phase.raw_output, dds.phase.scale_factor = dds.quantise_channel(
-                    'phase', 45.511111111111113, period=360, dtype=np.uint16)
-                dds.amplitude.raw_output, dds.amplitude.scale_factor = dds.quantise_channel(
-                    'amplitude', 1023, limits=(0, 1), dtype=np.uint16)
+                dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.raw_output, dds)
+                dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.raw_output, dds)
+                dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
             else:
                 raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(dds.description,dds.name,str(dds.connection)) + 
                                      'Format must be \'channel n\' with n from 0 to 3.')

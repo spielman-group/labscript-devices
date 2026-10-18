@@ -56,6 +56,11 @@ class PhaseMatrixQuickSyn(Device):
         Device.__init__(self, name, None, None)
         self.BLACS_connection = com_port
         
+    def quantise_freq(self, data, device):
+        """Return a DDS's frequencies, which it also holds as `data`, in the
+        device's mHz, with the scale."""
+        return device.quantise_channel('frequency', 1000, limits=(0.5e9, 10e9), dtype=np.uint64)
+
     def generate_code(self, hdf5_file):
         for output in self.child_devices:
             try:
@@ -77,9 +82,7 @@ class PhaseMatrixQuickSyn(Device):
         dds.gate.make_timeseries([])
         dds.gate.expand_timeseries()
         
-        # The device is programmed in mHz:
-        dds.frequency.raw_output, dds.frequency.scale_factor = dds.quantise_channel(
-            'frequency', 1000, limits=(0.5e9, 10e9), dtype=np.uint64)
+        dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.raw_output, dds)
         static_dtypes = [('freq0', np.uint64)] + \
                         [('gate0', np.uint16)]
         static_table = np.zeros(1, dtype=static_dtypes)
