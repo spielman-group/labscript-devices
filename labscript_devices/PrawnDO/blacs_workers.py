@@ -16,7 +16,6 @@ import labscript_utils
 from labscript import LabscriptError
 import numpy as np
 import re
-import time
 
 class PrawnDOInterface(object):
 
@@ -366,9 +365,7 @@ class PrawnDOWorker(PseudoclockWorker):
             bool: `True` is abort was successful.
         """
         self.intf.send_command_ok('abt')
-        # loop until abort complete
-        while self.intf.status()[0] != 5:
-            time.sleep(0.5)
+        self.wait_for_end_of_shot(lambda: self.intf.status()[0] == 5)
         return True
 
     def abort_transition_to_buffered(self):

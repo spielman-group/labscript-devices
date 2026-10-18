@@ -546,9 +546,7 @@ class PrawnBlasterWorker(PseudoclockWorker):
             # instructions and there is nothing we need to do to abort.
             self.conn.write(b"abort\r\n")
             assert self.conn.readline().decode() == "ok\r\n"
-            # loop until abort complete
-            while self.read_status()[0] != 5:
-                time.sleep(0.5)
+            self.wait_for_end_of_shot(lambda: self.read_status()[0] == 5)
         return True
 
     def abort_transition_to_buffered(self):
