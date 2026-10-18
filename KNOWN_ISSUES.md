@@ -7,3 +7,4 @@
 - `PrawnBlaster/blacs_workers.py`, `PrawnDO/blacs_workers.py`: `abort_buffered` counts only run status 5 as aborted, so if the firmware leaves a board that never ran at status 0, `abort_transition_to_buffered` fails after `end_of_shot_timeout`. Unverified: settle it from the firmware.
 - `NI_DAQmx/blacs_workers.py`: the wait monitor thread waits for the start pulse with no timeout, and `transition_to_manual` joins it with none, so a shot whose start pulse never reaches the counter hangs the transition.
 - `LightCrafterDMD.py`: `receive` retries a "System Busy" reply every 5 s with no limit, so a DMD that stays busy hangs every transition and abort.
+- `PrawnDO/labscript_devices.py` generate_code: `np.asarray(output.timeseries, dtype=np.uint16)` fails on a function instruction, so `repeat_pulse_sequence` (and any future digital ramp) on a PrawnDO output does not compile; use `output.raw_output`.
