@@ -10,4 +10,14 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from .labscript_devices import *
+
+from labscript_devices import lazy_attributes
+from .labscript_devices import PhaseMatrixQuickSyn, QuickSynDDS
+
+__getattr__ = lazy_attributes(
+    __name__,
+    {
+        'blacs_tabs': ['PhaseMatrixQuickSynTab'],
+        'blacs_workers': ['QuickSynWorker'],
+    },
+)
