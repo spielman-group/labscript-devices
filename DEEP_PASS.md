@@ -22,7 +22,7 @@ Each stage's commits on `CodeHealth`, for review:
 - Codex's findings on Phase A, and Ian's decisions on them: `4a74e3e..` the commit
   that records this line.
 - Step 2.2.1's Phase B: `25c2f22..` the commit that records this line, coupled
-  with labscript `2e47a79`, `608013c`, `f9d64b9`, `1d5ea89` and `58c5445`.
+  with labscript `2e47a79`, `608013c`, `f9d64b9`, `1d5ea89`, `58c5445` and `1988218`.
   - **Outcome:** each package gives its old module's own names, and the device
     classes it imported, as the same objects. Its labscript-side names make up
     `__all__`. The incidental imports are dropped, by Ian's decision. The names
@@ -335,7 +335,7 @@ On `CodeHealth` after Phase A (`25c2f22`), in this order:
   `set_attributes` and `snap`, and `DictAttributesMixin` holds dict attributes.
 
 Merge coupling: this range must merge with labscript `2e47a79`, `608013c`,
-`f9d64b9`, `1d5ea89` and `58c5445`.
+`f9d64b9`, `1d5ea89`, `58c5445` and `1988218`.
 
 Intended differences:
 
