@@ -44,7 +44,7 @@ class PseudoclockWorker(Worker):
         while not ended():
             if time.monotonic() > deadline:
                 raise TimeoutError(
-                    f"{self.device_name} had not ended the shot {timeout} s after "
-                    "BLACS began to stop it."
+                    f"{self.device_name} had not ended the shot within its "
+                    f"end_of_shot_timeout of {timeout} s."
                 )
             time.sleep(0.01)
