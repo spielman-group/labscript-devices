@@ -20,19 +20,23 @@ from pathlib import Path
 import labscript_devices
 
 # Run in a fresh interpreter: it imports each device package as a compile does,
-# and names those that brought in BLACS, forgetting BLACS again after each.
+# and gives for each the BLACS modules it brought in, forgetting them again
+# after each, or the vendor library it could not load.
 PROBE = """
 import importlib, json, sys
-found = {}
+results = {}
 for package in sys.argv[1:]:
     for module in (package, package + '.labscript_devices'):
-        importlib.import_module(module)
+        try:
+            importlib.import_module(module)
+        except OSError as e:
+            results[module] = f'OSError: {e}'
+            break
         blacs = [name for name in sys.modules if name.split('.')[0] == 'blacs']
-        if blacs:
-            found[module] = sorted(blacs)[:3]
-            for name in blacs:
-                del sys.modules[name]
-print(json.dumps(found))
+        results[module] = sorted(blacs)[:3]
+        for name in blacs:
+            del sys.modules[name]
+print(json.dumps(results))
 """
 
 
@@ -47,7 +51,13 @@ class CompileImportTests(unittest.TestCase):
             [sys.executable, '-c', PROBE, *packages],
             capture_output=True, text=True, check=True,
         )
-        self.assertEqual(json.loads(result.stdout.splitlines()[-1]), {})
+        for module, found in json.loads(result.stdout.splitlines()[-1]).items():
+            with self.subTest(module=module):
+                # A device whose compile loads its vendor's library, as
+                # AlazarTechBoard's does, cannot be checked without that library.
+                if isinstance(found, str):
+                    self.skipTest(found)
+                self.assertEqual(found, [])
 
 
 if __name__ == '__main__':
