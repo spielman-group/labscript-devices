@@ -20,12 +20,12 @@ __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'GuilessTab',
+            'AlazarTechBoardTab', 'GuilessTab',
         ],
         'blacs_workers': [
             'tqdm_kwargs', 'atsRanges', 'atsSampleRates',
             'atsExternalClockAdvice', 'find_nearest_internal_clock',
-            'find_clock_and_r', 'ats9462_clock', 'GuilessWorker',
+            'find_clock_and_r', 'ats9462_clock', 'AlazarTechBoardWorker', 'GuilessWorker',
         ],
     },
 )

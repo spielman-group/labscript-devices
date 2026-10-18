@@ -4,22 +4,12 @@
 #
 # Copyright (c) Monash University 2017
 
-from blacs.device_base_class import DeviceTab
+import labscript_devices.guiless as guiless
 
 
-# A BLACS tab for a purely remote device which does not need configuration of parameters in BLACS
+class AlazarTechBoardTab(guiless.GuilessTab):
+    worker_class = 'labscript_devices.AlazarTechBoard.blacs_workers.AlazarTechBoardWorker'
 
-class GuilessTab(DeviceTab):
-    def initialise_GUI(self):
-        pass
 
-    def get_save_data(self):
-        return {}
-
-    def restore_save_data(self, save_data):
-        pass
-
-    def initialise_workers(self):
-        # Create and set the primary worker
-        self.create_worker("main_worker", 'labscript_devices.AlazarTechBoard.blacs_workers.GuilessWorker', {})
-        self.primary_worker = "main_worker"
+# labscript_devices.AlazarTechBoard.GuilessTab is this board's tab.
+GuilessTab = AlazarTechBoardTab

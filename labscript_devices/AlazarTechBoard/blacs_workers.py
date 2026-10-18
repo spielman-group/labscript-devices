@@ -11,7 +11,7 @@ import time
 from tqdm import tqdm
 
 import labscript_devices.atsapi as ats
-from blacs.tab_base_classes import Worker
+import labscript_devices.guiless as guiless
 from labscript import LabscriptError
 import labscript_utils.h5_lock
 import h5py
@@ -145,7 +145,7 @@ def ats9462_clock(f):
 # to aborts never seeming to raise exceptions and the acquisition thread continuing on.
 
 
-class GuilessWorker(Worker):
+class AlazarTechBoardWorker(guiless.GuilessWorker):
     def init(self):
         global h5py
         import labscript_utils.h5_lock
@@ -433,9 +433,6 @@ class GuilessWorker(Worker):
                 print("acquisition thread: capture aborted.")
                 continue
 
-    def program_manual(self, values):
-        return values
-
     def to_volts(self, zeroToFullScale, buf):
         offset = float(2**(self.bitsPerSample-1))
         return (np.asarray(buf, np.float32)-offset)/offset * zeroToFullScale * 0.001
@@ -530,3 +527,7 @@ class GuilessWorker(Worker):
         if self.aborting:
             print('Proceeding in lieu of complete abort.')
         return
+
+
+# labscript_devices.AlazarTechBoard.GuilessWorker is this board's worker.
+GuilessWorker = AlazarTechBoardWorker

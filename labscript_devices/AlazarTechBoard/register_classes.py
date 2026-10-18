@@ -7,7 +7,7 @@
 import labscript_devices
 
 labscript_device_name = 'AlazarTechBoard'
-blacs_tab = 'labscript_devices.AlazarTechBoard.blacs_tabs.GuilessTab'
+blacs_tab = 'labscript_devices.AlazarTechBoard.blacs_tabs.AlazarTechBoardTab'
 
 labscript_devices.register_classes(
     labscript_device_name=labscript_device_name,
