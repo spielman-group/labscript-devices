@@ -115,3 +115,31 @@ Detailed Documentation
 	:show-inheritance:
 	:member-order: bysource
 	:private-members:
+
+.. automodule:: labscript_devices.NovaTechDDS9M.labscript_devices
+	:members:
+	:undoc-members:
+	:show-inheritance:
+	:member-order: bysource
+	:private-members:
+
+.. automodule:: labscript_devices.NovaTechDDS9M.blacs_tabs
+	:members:
+	:undoc-members:
+	:show-inheritance:
+	:member-order: bysource
+	:private-members:
+
+.. automodule:: labscript_devices.NovaTechDDS9M.blacs_workers
+	:members:
+	:undoc-members:
+	:show-inheritance:
+	:member-order: bysource
+	:private-members:
+
+.. automodule:: labscript_devices.NovaTechDDS9M.runviewer_parsers
+	:members:
+	:undoc-members:
+	:show-inheritance:
+	:member-order: bysource
+	:private-members:
