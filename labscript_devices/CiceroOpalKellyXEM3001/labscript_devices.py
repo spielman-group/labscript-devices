@@ -11,52 +11,11 @@
 #                                                                   #
 #####################################################################
 
-from labscript import Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, IntermediateDevice, WaitMonitor, DigitalOut
+from labscript import Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, WaitMonitor, DigitalOut, internal_wait_monitor_outputs
 
 import numpy as np
 
-    
-#
-# Define dummy pseudoclock/clockline/intermediatedevice to trick wait monitor
-# since everything is handled internally in this device
-#
-class CiceroOpalKellyXEM3001DummyPseudoclock(Pseudoclock):
-    def add_device(self, device):
-        if isinstance(device, CiceroOpalKellyXEM3001DummyClockLine):
-            if self.child_devices:
-                raise LabscriptError('You are trying to access the special, dummy, PseudoClock of the CiceroOpalKellyXEM3001 %s. This is for internal use only.'%(self.pseudoclock_device.name))
-            Pseudoclock.add_device(self, device)
-        else:
-            raise LabscriptError('You are trying to access the special, dummy, PseudoClock of the CiceroOpalKellyXEM3001 %s. This is for internal use only.'%(self.pseudoclock_device.name))
-            
-    # do nothing, this is a dummy class!
-    def generate_code(self, *args, **kwargs):
-        pass
-        
 
-class CiceroOpalKellyXEM3001DummyClockLine(ClockLine):
-    def add_device(self, device):
-        if isinstance(device, CiceroOpalKellyXEM3001DummyIntermediateDevice):
-            if self.child_devices:
-                raise LabscriptError('You are trying to access the special, dummy, ClockLine of the CiceroOpalKellyXEM3001 %s. This is for internal use only.'%(self.pseudoclock_device.name))
-            ClockLine.add_device(self, device)
-        else:
-            raise LabscriptError('You are trying to access the special, dummy, ClockLine of the CiceroOpalKellyXEM3001 %s. This is for internal use only.'%(self.pseudoclock_device.name))
-    
-    # do nothing, this is a dummy class!
-    def generate_code(self, *args, **kwargs):
-        pass
- 
-class CiceroOpalKellyXEM3001DummyIntermediateDevice(IntermediateDevice):
-    def add_device(self, device):
-        if isinstance(device, WaitMonitor):
-            IntermediateDevice.add_device(self, device)
-        else:
-            raise LabscriptError('You can only connect an instance of WaitMonitor to the device %s.internal_wait_monitor_outputs'%(self.pseudoclock_device.name))
-            
-    # do nothing, this is a dummy class!
-    def generate_code(self, *args, **kwargs):
-        pass
 #
 # The labscript device class
 #
@@ -64,7 +23,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
     # note: most parameters set in __init__ as they depend on reference clock frequency
     description = 'CiceroOpalKellyXEM3001'
     trigger_edge_type = 'rising' 
-    allowed_children = [Pseudoclock, CiceroOpalKellyXEM3001DummyPseudoclock]
+    allowed_children = [Pseudoclock]
     # Its own pseudoclock, and the internal one its wait monitor hangs from.
     max_pseudoclocks = 2
     
@@ -107,9 +66,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
         self._clock_line = ClockLine('%s_clock_line'%name, self.pseudoclock, 'Clock Out')
         
         # Create internal devices for connecting to a wait monitor
-        self.__wait_monitor_dummy_pseudoclock = CiceroOpalKellyXEM3001DummyPseudoclock('%s__dummy_wait_pseudoclock'%name, self, '_')
-        self.__wait_monitor_dummy_clock_line = CiceroOpalKellyXEM3001DummyClockLine('%s__dummy_wait_clock_line'%name, self.__wait_monitor_dummy_pseudoclock, '_')
-        self.__wait_monitor_intermediate_device = CiceroOpalKellyXEM3001DummyIntermediateDevice('%s_internal_wait_monitor_outputs'%name, self.__wait_monitor_dummy_clock_line)
+        self.__wait_monitor_intermediate_device = internal_wait_monitor_outputs(self)
         
         if use_wait_monitor:
             WaitMonitor('%s__wait_monitor'%name, self.internal_wait_monitor_outputs, 'internal', self.internal_wait_monitor_outputs, 'internal', self.internal_wait_monitor_outputs, 'internal')

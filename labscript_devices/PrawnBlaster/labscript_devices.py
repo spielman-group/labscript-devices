@@ -15,12 +15,12 @@ import copy
 
 from labscript import (
     ClockLine,
-    IntermediateDevice,
     LabscriptError,
     PseudoclockDevice,
     Pseudoclock,
     WaitMonitor,
     compiler,
+    internal_wait_monitor_outputs,
     set_passed_properties,
 )
 import numpy as np
@@ -45,68 +45,6 @@ class _PrawnBlasterPseudoclock(Pseudoclock):
     max_clock_lines = 1
 
 
-#
-# Define dummy pseudoclock/clockline/intermediatedevice to trick wait monitor
-# since everything is handled internally in this device
-#
-class _PrawnBlasterDummyPseudoclock(Pseudoclock):
-    """Dummy Pseudoclock labscript device used internally to allow 
-    :class:`~labscript.WaitMonitor` to work internally to the PrawnBlaster."""
-    def add_device(self, device):
-        if isinstance(device, _PrawnBlasterDummyClockLine):
-            if self.child_devices:
-                raise LabscriptError(
-                    f"You are trying to access the special, dummy, PseudoClock of the PrawnBlaster {self.pseudoclock_device.name}. This is for internal use only."
-                )
-            Pseudoclock.add_device(self, device)
-        else:
-            raise LabscriptError(
-                f"You are trying to access the special, dummy, PseudoClock of the PrawnBlaster {self.pseudoclock_device.name}. This is for internal use only."
-            )
-
-    # do nothing, this is a dummy class!
-    def generate_code(self, *args, **kwargs):
-        pass
-
-
-class _PrawnBlasterDummyClockLine(ClockLine):
-    """Dummy Clockline labscript device used internally to allow 
-    :class:`~labscript.WaitMonitor` to work internally to the PrawnBlaster."""
-    def add_device(self, device):
-        if isinstance(device, _PrawnBlasterDummyIntermediateDevice):
-            if self.child_devices:
-                raise LabscriptError(
-                    f"You are trying to access the special, dummy, ClockLine of the PrawnBlaster {self.pseudoclock_device.name}. This is for internal use only."
-                )
-            ClockLine.add_device(self, device)
-        else:
-            raise LabscriptError(
-                f"You are trying to access the special, dummy, ClockLine of the PrawnBlaster {self.pseudoclock_device.name}. This is for internal use only."
-            )
-
-    # do nothing, this is a dummy class!
-    def generate_code(self, *args, **kwargs):
-        pass
-
-
-class _PrawnBlasterDummyIntermediateDevice(IntermediateDevice):
-    """Dummy intermediate labscript device used internally to attach 
-    :class:`~labscript.WaitMonitor` objects to the PrawnBlaster."""
-
-    def add_device(self, device):
-        if isinstance(device, WaitMonitor):
-            IntermediateDevice.add_device(self, device)
-        else:
-            raise LabscriptError(
-                "You can only connect an instance of WaitMonitor to the device %s.internal_wait_monitor_outputs"
-                % (self.pseudoclock_device.name)
-            )
-
-    # do nothing, this is a dummy class!
-    def generate_code(self, *args, **kwargs):
-        pass
-
-
 class PrawnBlaster(PseudoclockDevice):
     description = "PrawnBlaster"
     clock_limit = 1 / 100e-9
@@ -126,7 +64,7 @@ class PrawnBlaster(PseudoclockDevice):
     wait_delay = 40e-9
     """Minimum required length of a wait before retrigger can be detected.
     Corresponds to 4 instructions."""
-    allowed_children = [_PrawnBlasterPseudoclock, _PrawnBlasterDummyPseudoclock]
+    allowed_children = [Pseudoclock]
     allowed_boards = ['pico1', 'pico2']
     max_instructions_map = {'pico1' : 30000, 'pico2' : 60000}
     """Maximum number of instructions per pseudoclock for each pico board. """
@@ -281,20 +219,7 @@ class PrawnBlaster(PseudoclockDevice):
 
         if self.use_wait_monitor:
             # Create internal devices for connecting to a wait monitor
-            self.__wait_monitor_dummy_pseudoclock = _PrawnBlasterDummyPseudoclock(
-                "%s__dummy_wait_pseudoclock" % name, self, "_"
-            )
-            self.__wait_monitor_dummy_clock_line = _PrawnBlasterDummyClockLine(
-                "%s__dummy_wait_clock_line" % name,
-                self.__wait_monitor_dummy_pseudoclock,
-                "_",
-            )
-            self.__wait_monitor_intermediate_device = (
-                _PrawnBlasterDummyIntermediateDevice(
-                    "%s_internal_wait_monitor_outputs" % name,
-                    self.__wait_monitor_dummy_clock_line,
-                )
-            )
+            self.__wait_monitor_intermediate_device = internal_wait_monitor_outputs(self)
 
             # Create the wait monitor
             WaitMonitor(

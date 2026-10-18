@@ -16,15 +16,11 @@
 # load only when asked for by name.
 from labscript_devices import lazy_attributes
 from .labscript_devices import (
-    CiceroOpalKellyXEM3001DummyPseudoclock,
-    CiceroOpalKellyXEM3001DummyClockLine,
-    CiceroOpalKellyXEM3001DummyIntermediateDevice, CiceroOpalKellyXEM3001,
+    CiceroOpalKellyXEM3001,
 )
 
 __all__ = [
-    'CiceroOpalKellyXEM3001DummyPseudoclock',
-    'CiceroOpalKellyXEM3001DummyClockLine',
-    'CiceroOpalKellyXEM3001DummyIntermediateDevice', 'CiceroOpalKellyXEM3001',
+    'CiceroOpalKellyXEM3001',
 ]
 
 __getattr__ = lazy_attributes(
