@@ -28,7 +28,7 @@ class GuilessTab(DeviceTab):
     def get_save_data(self):
         return {}
 
-    def restore_save_data(self, save_data):
+    def restore_save_data(self, data):
         pass
 
     def initialise_workers(self):

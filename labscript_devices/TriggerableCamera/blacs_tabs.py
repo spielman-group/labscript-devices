@@ -175,17 +175,17 @@ class TriggerableCameraTab(DeviceTab):
             'colormap': repr(self.image.ui.histogram.gradient.saveState())
         }
 
-    def restore_save_data(self, save_data):
+    def restore_save_data(self, data):
         self.attributes_dialog.comboBox.setCurrentText(
-            save_data.get('attribute_visibility', 'simple')
+            data.get('attribute_visibility', 'simple')
         )
-        self.ui.doubleSpinBox_maxrate.setValue(save_data.get('max_rate', 0))
-        if save_data.get('acquiring', False):
+        self.ui.doubleSpinBox_maxrate.setValue(data.get('max_rate', 0))
+        if data.get('acquiring', False):
             # Begin acquisition
             self.on_continuous_clicked(None)
-        if 'colormap' in save_data:
+        if 'colormap' in data:
             self.image.ui.histogram.gradient.restoreState(
-                ast.literal_eval(save_data['colormap'])
+                ast.literal_eval(data['colormap'])
             )
 
 
