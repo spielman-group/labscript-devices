@@ -1,2 +1,2 @@
-class Parser(object):
+class test_deviceParser(object):
     pass

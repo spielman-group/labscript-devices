@@ -11,8 +11,8 @@
 #                                                                   #
 #####################################################################
 
-from labscript_devices.PulseBlaster_No_DDS.runviewer_parsers import PulseBlaster_No_DDS_Parser
+from labscript_devices.PulseBlaster_No_DDS.runviewer_parsers import PulseBlaster_No_DDSParser
 
 
-class PulseBlasterUSBParser(PulseBlaster_No_DDS_Parser):
+class PulseBlasterUSBParser(PulseBlaster_No_DDSParser):
     pass

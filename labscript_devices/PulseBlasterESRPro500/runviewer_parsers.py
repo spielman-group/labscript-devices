@@ -11,8 +11,8 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from labscript_devices.PulseBlaster_No_DDS.runviewer_parsers import PulseBlaster_No_DDS_Parser
+from labscript_devices.PulseBlaster_No_DDS.runviewer_parsers import PulseBlaster_No_DDSParser
 
 
-class PulseBlasterESRPro500Parser(PulseBlaster_No_DDS_Parser):
+class PulseBlasterESRPro500Parser(PulseBlaster_No_DDSParser):
     num_flags = 21

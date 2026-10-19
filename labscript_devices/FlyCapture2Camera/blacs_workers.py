@@ -235,16 +235,16 @@ class FlyCapture2_Camera(TriggerableCameraInterface):
             configuration. This driver is therefore not compatible, as written."""
             raise RuntimeError(dedent(msg))
             
-    def set_attribute(self, name, values):
+    def set_attribute(self, name, value):
         """Set the values of the attribute of the given name using the provided
-        dictionary values. 
+        dictionary `value`. 
         
         Generally, absControl should be used to configure settings. Note that
         invalid settings tend to coerce instead of presenting an error.
         
         Args:
             name (str): 
-            values (dict): Dictionary of settings for the property. Allowed keys are:
+            value (dict): Dictionary of settings for the property. Allowed keys are:
                 
                 * 'onOff': bool
                 * 'autoManualMode': bool
@@ -257,12 +257,12 @@ class FlyCapture2_Camera(TriggerableCameraInterface):
         try:
             prop = self.camera.getProperty(getattr(PyCapture2.PROPERTY_TYPE,name))
             
-            for key, val in values.items():
+            for key, val in value.items():
                 setattr(prop,key,val)
             self.camera.setProperty(prop)
         except Exception as e:
             # Add some info to the exception:
-            msg = f"failed to set attribute {name} to {values}"
+            msg = f"failed to set attribute {name} to {value}"
             raise Exception(msg) from e
         
     def get_attributes_as_dict(self, visibility_level, writeable_only=True):

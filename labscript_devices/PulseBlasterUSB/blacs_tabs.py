@@ -11,10 +11,10 @@
 #                                                                   #
 #####################################################################
 
-from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import PulseBlaster_No_DDS_Tab
+from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import PulseBlaster_No_DDSTab
 
 
-class PulseBlasterUSBTab(PulseBlaster_No_DDS_Tab):
+class PulseBlasterUSBTab(PulseBlaster_No_DDSTab):
     # Capabilities
     num_DO = 24
     worker_class = 'labscript_devices.PulseBlasterUSB.blacs_workers.PulseBlasterUSBWorker'

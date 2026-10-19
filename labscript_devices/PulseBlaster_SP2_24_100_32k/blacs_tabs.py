@@ -11,9 +11,9 @@
 #                                                                   #
 #####################################################################
 
-from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import PulseBlaster_No_DDS_Tab
+from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import PulseBlaster_No_DDSTab
 
 
-class PulseBlaster_SP2_24_100_32k_Tab(PulseBlaster_No_DDS_Tab):
+class PulseBlaster_SP2_24_100_32kTab(PulseBlaster_No_DDSTab):
     num_DO = 24
-    worker_class = 'labscript_devices.PulseBlaster_SP2_24_100_32k.blacs_workers.PulseBlaster_SP2_24_100_32k_Worker'
+    worker_class = 'labscript_devices.PulseBlaster_SP2_24_100_32k.blacs_workers.PulseBlaster_SP2_24_100_32kWorker'

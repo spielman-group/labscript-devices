@@ -14,5 +14,5 @@
 from labscript_devices.PulseBlaster.runviewer_parsers import PulseBlasterBaseParser
 
 
-class PulseBlaster_No_DDS_Parser(PulseBlasterBaseParser):
+class PulseBlaster_No_DDSParser(PulseBlasterBaseParser):
     num_flags = 24

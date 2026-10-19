@@ -14,5 +14,5 @@
 from labscript_devices.PulseBlaster.blacs_workers import PulseBlasterBaseWorker
 
 
-class PulseBlaster_No_DDS_Worker(PulseBlasterBaseWorker):
+class PulseBlaster_No_DDSWorker(PulseBlasterBaseWorker):
     core_clock_freq = 100

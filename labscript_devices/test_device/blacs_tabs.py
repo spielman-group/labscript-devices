@@ -1,2 +1,2 @@
-class Tab(object):
+class test_deviceTab(object):
     pass

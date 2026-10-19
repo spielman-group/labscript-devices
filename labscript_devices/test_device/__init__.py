@@ -14,13 +14,13 @@ __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'Tab',
+            'test_deviceTab',
         ],
         'blacs_workers': [
-            'Worker',
+            'test_deviceWorker',
         ],
         'runviewer_parsers': [
-            'Parser',
+            'test_deviceParser',
         ],
     },
 )

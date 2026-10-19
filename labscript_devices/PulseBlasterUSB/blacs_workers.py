@@ -11,8 +11,8 @@
 #                                                                   #
 #####################################################################
 
-from labscript_devices.PulseBlaster_No_DDS.blacs_workers import PulseBlaster_No_DDS_Worker
+from labscript_devices.PulseBlaster_No_DDS.blacs_workers import PulseBlaster_No_DDSWorker
 
 
-class PulseBlasterUSBWorker(PulseBlaster_No_DDS_Worker):
+class PulseBlasterUSBWorker(PulseBlaster_No_DDSWorker):
     core_clock_freq = 100.0

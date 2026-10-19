@@ -14,8 +14,8 @@
 import labscript_devices
 
 labscript_device_name = 'PulseBlaster_No_DDS'
-blacs_tab = 'labscript_devices.PulseBlaster_No_DDS.blacs_tabs.PulseBlaster_No_DDS_Tab'
-parser = 'labscript_devices.PulseBlaster_No_DDS.runviewer_parsers.PulseBlaster_No_DDS_Parser'
+blacs_tab = 'labscript_devices.PulseBlaster_No_DDS.blacs_tabs.PulseBlaster_No_DDSTab'
+parser = 'labscript_devices.PulseBlaster_No_DDS.runviewer_parsers.PulseBlaster_No_DDSParser'
 
 labscript_devices.register_classes(
     labscript_device_name=labscript_device_name,
