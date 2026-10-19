@@ -28,6 +28,8 @@ Each stage's commits on `CodeHealth`, for review:
     `__all__`. The incidental imports are dropped, by Ian's decision. The names
     are listed under step 2.2.1.
   - The package check skips only AlazarTechBoard's missing library.
+- Codex's findings on Phase B: `e0243fa..` the commit that records this line,
+  coupled with labscript `ab2ffae`.
   - The ValueError for a device with no runviewer parser needs labscript-utils'
     lookup to treat a `None` registration as none, so it is left to that owner.
   - **Outcome:** Codex's re-check found two points. Fixed in 02b4a52: an error
@@ -330,12 +332,13 @@ On `CodeHealth` after Phase A (`25c2f22`), in this order:
 - **Card 9, ticks and DDS values** (`f6849e6`, `4134c99`). Steps become ticks
   with `quantise_to_pseudoclock(ticks=True)`; NovaTech, QuickSyn and RFBlaster
   quantise their DDS values with labscript's `quantise_channel`.
-- **The review's fixes** (`f9c09d9`).
+- **The reviews' fixes** (`f9c09d9`, `a1afd1f`, `b58f9ed`).
 - **Card 10** (`82c42cc`): `TriggerableCameraInterface` composes
-  `set_attributes` and `snap`, and `DictAttributesMixin` holds dict attributes.
+  `set_attributes`, which keeps the `attr_dict` keyword, and `snap`, and
+  `DictAttributesMixin` holds dict attributes.
 
 Merge coupling: this range must merge with labscript `2e47a79`, `608013c`,
-`f9d64b9`, `1d5ea89`, `58c5445` and `1988218`.
+`f9d64b9`, `1d5ea89`, `58c5445`, `1988218` and `ab2ffae`.
 
 Intended differences:
 
@@ -366,7 +369,8 @@ Intended differences:
 
 Kept for labs' own subclasses, after the review:
 - **DDS quantisers:** NovaTech's and QuickSyn's `quantise_*` methods are still
-  the hooks `generate_code` calls, now made with `quantise_channel`.
+  the hooks `generate_code` calls, now made with `quantise_channel`. Each
+  quantises the data it is given, so a subclass can transform it first.
 - **DDS worker:** it takes 12 flags when a tab doesn't pass `num_DO`.
 
 Card 9's bit packing is left, by Ian's decision. Every other shot compiles to an
