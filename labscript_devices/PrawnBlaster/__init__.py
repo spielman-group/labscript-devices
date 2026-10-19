@@ -10,10 +10,30 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from labscript_devices import deprecated_import_alias
 
+# The labscript-side names are imported here and make up __all__, so a star
+# import of this package never loads BLACS. Its tab, worker and parser names
+# load only when asked for by name.
+from labscript_devices import lazy_attributes
+from .labscript_devices import (
+    PrawnBlaster,
+)
 
-# For backwards compatibility with old experiment scripts:
-PrawnBlaster = deprecated_import_alias(
-    "labscript_devices.PrawnBlaster.labscript_devices.PrawnBlaster"
+__all__ = [
+    'PrawnBlaster',
+]
+
+__getattr__ = lazy_attributes(
+    __name__,
+    {
+        'blacs_tabs': [
+            'PrawnBlasterTab',
+        ],
+        'blacs_workers': [
+            'PrawnBlasterWorker',
+        ],
+        'runviewer_parsers': [
+            'PrawnBlasterParser',
+        ],
+    },
 )
