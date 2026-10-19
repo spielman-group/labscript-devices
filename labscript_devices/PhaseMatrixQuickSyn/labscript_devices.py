@@ -57,9 +57,9 @@ class PhaseMatrixQuickSyn(Device):
         self.BLACS_connection = com_port
         
     def quantise_freq(self, data, device):
-        """Return a DDS's frequencies, which it also holds as `data`, in the
-        device's mHz, with the scale."""
-        return device.quantise_channel('frequency', 1000, limits=(0.5e9, 10e9), dtype=np.uint64)
+        """Return a DDS's frequencies, `data`, in the device's mHz, with the
+        scale."""
+        return device.quantise_channel('frequency', 1000, values=data, limits=(0.5e9, 10e9), dtype=np.uint64)
 
     def generate_code(self, hdf5_file):
         for output in self.child_devices:
