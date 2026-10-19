@@ -374,13 +374,13 @@ class TriggerableCameraWorker(Worker):
             self.n_images = len(self.exposures)
 
             # Get the camera_attributes from the device_properties
-            properties = labscript_utils.properties.get(
+            device_properties = labscript_utils.properties.get(
                 f, self.device_name, 'device_properties'
             )
-            camera_attributes = properties['camera_attributes']
-            self.stop_acquisition_timeout = properties['stop_acquisition_timeout']
-            self.exception_on_failed_shot = properties['exception_on_failed_shot']
-            saved_attr_level = properties['saved_attribute_visibility_level']
+            camera_attributes = device_properties['camera_attributes']
+            self.stop_acquisition_timeout = device_properties['stop_acquisition_timeout']
+            self.exception_on_failed_shot = device_properties['exception_on_failed_shot']
+            saved_attr_level = device_properties['saved_attribute_visibility_level']
             self.camera.exception_on_failed_shot = self.exception_on_failed_shot
             self.load_shot_data(f)
         # Only reprogram attributes that differ from those last programmed in, or all of

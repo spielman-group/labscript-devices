@@ -23,8 +23,8 @@ class DummyPseudoclockWorker(PseudoclockWorker):
     def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
         # get stop time:
         with h5py.File(h5file, 'r') as f:
-            props = properties.get(f, self.device_name, 'device_properties')
-            self.stop_time = props['stop_time']
+            device_properties = properties.get(f, self.device_name, 'device_properties')
+            self.stop_time = device_properties['stop_time']
         return {}
     
     def check_if_done(self):

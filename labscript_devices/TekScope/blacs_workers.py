@@ -25,11 +25,11 @@ class TekScopeWorker(Worker):
         self.device_name = device_name
         with h5py.File(h5file, 'r') as hdf5_file:
             print('\n' + h5file)
-            self.scope_params = labscript_utils.properties.get(
+            self.device_properties = labscript_utils.properties.get(
                 hdf5_file, device_name, 'device_properties'
             )
 
-        self.scope.dev.timeout = 1000 * self.scope_params.get('timeout', 5)
+        self.scope.dev.timeout = 1000 * self.device_properties.get('timeout', 5)
 
         self.scope.unlock()
         self.scope.set_acquire_state(True)
@@ -49,7 +49,7 @@ class TekScopeWorker(Worker):
             if enabled:
                 wfmp[ch], t, vals[ch] = self.scope.waveform(
                     ch,
-                    int16=self.scope_params.get('int16', False),
+                    int16=self.device_properties.get('int16', False),
                     preamble_string=self.preamble_string,
                 )
                 wtype.append((ch, 'float'))

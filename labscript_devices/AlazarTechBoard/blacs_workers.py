@@ -198,13 +198,12 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         self.device_name = device_name
         with h5py.File(h5file, 'r') as hdf5_file:
             print("\nUsing "+h5file)
-            self.atsparam = atsparam = labscript_utils.properties.get(
+            self.device_properties = device_properties = labscript_utils.properties.get(
                 hdf5_file, device_name, 'device_properties')
-            #print("atsparam: " + repr(self.atsparam))
 
-        clock_source_id = atsparam['clock_source_id']
-        requested_acquisition_rate = atsparam['requested_acquisition_rate']
-        clock_edge_id = atsparam['clock_edge_id']
+        clock_source_id = device_properties['clock_source_id']
+        requested_acquisition_rate = device_properties['requested_acquisition_rate']
+        clock_edge_id = device_properties['clock_edge_id']
         if clock_source_id == ats.INTERNAL_CLOCK:
             # Actually we should find smallest internal clock faster than the one asked for. Next time.
             actual_acquisition_rate = find_nearest_internal_clock(
@@ -240,11 +239,11 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
                 "Requested capture clock type EXTERNAL_CLOCK_DC is not implemented")
         else:
             raise LabscriptError("Requested capture clock type with code {:d} is not recognised".format(
-                atsparam['clock_source_id']))
+                device_properties['clock_source_id']))
         # The clock_edge_id parameter is not needed for INTERNAL_CLOCK and EXTERNAL_CLOCK_10MHz_REF modes but is here for future extension
         try:
             self.board.setCaptureClock(
-                atsparam['clock_source_id'], atsSamplesPerSec_or_id, clock_edge_id, decimation)
+                device_properties['clock_source_id'], atsSamplesPerSec_or_id, clock_edge_id, decimation)
         except ats.AlazarException as e:
             errstring, funcname, arguments, retCode, retText = e.args
             if retText == 'ApiPllNotLocked':
@@ -266,20 +265,20 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         # ETR_5V means +/-5V, and is 8bit
         # So code 150 means (150-128)/128 * 5V = 860mV.
         self.board.setExternalTrigger(
-            atsparam['exttrig_coupling_id'], atsparam['exttrig_range_id'])
+            device_properties['exttrig_coupling_id'], device_properties['exttrig_range_id'])
         print("Trigger coupling_id: {:d}, range_id: {:d}.".format(
-            atsparam['exttrig_coupling_id'], atsparam['exttrig_range_id']))
+            device_properties['exttrig_coupling_id'], device_properties['exttrig_range_id']))
 
-        self.board.setTriggerOperation(atsparam['trig_operation'],
-                                       atsparam['trig_engine_id1'], atsparam['trig_source_id1'], atsparam[
-                                           'trig_slope_id1'], atsparam['trig_level_id1'],
-                                       atsparam['trig_engine_id2'], atsparam['trig_source_id2'], atsparam['trig_slope_id2'], atsparam['trig_level_id2'])
+        self.board.setTriggerOperation(device_properties['trig_operation'],
+                                       device_properties['trig_engine_id1'], device_properties['trig_source_id1'], device_properties[
+                                           'trig_slope_id1'], device_properties['trig_level_id1'],
+                                       device_properties['trig_engine_id2'], device_properties['trig_source_id2'], device_properties['trig_slope_id2'], device_properties['trig_level_id2'])
         print("Trigger operation set to operation: {:d}".format(
-            atsparam['trig_operation']))
+            device_properties['trig_operation']))
         print("Trigger engine 1 set to {:d}, source: {:d}, slope: {:d}, level: {:d}.".format(
-            atsparam['trig_engine_id1'], atsparam['trig_source_id1'], atsparam['trig_slope_id1'], atsparam['trig_level_id1']))
+            device_properties['trig_engine_id1'], device_properties['trig_source_id1'], device_properties['trig_slope_id1'], device_properties['trig_level_id1']))
         print("Trigger engine 2 set to {:d}, source: {:d}, slope: {:d}, level: {:d}.".format(
-            atsparam['trig_engine_id2'], atsparam['trig_source_id2'], atsparam['trig_slope_id2'], atsparam['trig_level_id2']))
+            device_properties['trig_engine_id2'], device_properties['trig_source_id2'], device_properties['trig_slope_id2'], device_properties['trig_level_id2']))
 
         # We will deal with trigger delays in labscript!
         triggerDelay_sec = 0
@@ -301,26 +300,26 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         #print("Aux output set to sample clock.")
 
         try:
-            chA_range_id = atsRanges[atsparam['chA_input_range']]
+            chA_range_id = atsRanges[device_properties['chA_input_range']]
         except KeyError:
             print("Voltage setting {:d}mV for Channel A is not recognised in atsapi. Make sure you use millivolts.".format(
-                atsparam['chA_input_range']))
+                device_properties['chA_input_range']))
         self.board.inputControl(
-            ats.CHANNEL_A, atsparam['chA_coupling_id'], chA_range_id, atsparam['chA_impedance_id'])
-        self.board.setBWLimit(ats.CHANNEL_A, atsparam['chA_bw_limit'])
+            ats.CHANNEL_A, device_properties['chA_coupling_id'], chA_range_id, device_properties['chA_impedance_id'])
+        self.board.setBWLimit(ats.CHANNEL_A, device_properties['chA_bw_limit'])
         print("Channel A input full scale: {:d}, coupling: {:d}, impedance: {:d}, bandwidth limit: {:d}.".format(
-            atsparam['chA_input_range'], atsparam['chA_coupling_id'], atsparam['chA_impedance_id'], atsparam['chA_bw_limit']))
+            device_properties['chA_input_range'], device_properties['chA_coupling_id'], device_properties['chA_impedance_id'], device_properties['chA_bw_limit']))
 
         try:
-            chB_range_id = atsRanges[atsparam['chB_input_range']]
+            chB_range_id = atsRanges[device_properties['chB_input_range']]
         except KeyError:
             print("Voltage setting {:d}mV for Channel B is not recognised in atsapi. Make sure you use millivolts.".format(
-                atsparam['chB_input_range']))
+                device_properties['chB_input_range']))
         self.board.inputControl(
-            ats.CHANNEL_B, atsparam['chB_coupling_id'], chB_range_id, atsparam['chB_impedance_id'])
-        self.board.setBWLimit(ats.CHANNEL_B, atsparam['chB_bw_limit'])
+            ats.CHANNEL_B, device_properties['chB_coupling_id'], chB_range_id, device_properties['chB_impedance_id'])
+        self.board.setBWLimit(ats.CHANNEL_B, device_properties['chB_bw_limit'])
         print("Channel B input full scale: {:d}, coupling: {:d}, impedance: {:d}, bandwidth limit: {:d}.".format(
-            atsparam['chB_input_range'], atsparam['chB_coupling_id'], atsparam['chB_impedance_id'], atsparam['chB_bw_limit']))
+            device_properties['chB_input_range'], device_properties['chB_coupling_id'], device_properties['chB_impedance_id'], device_properties['chB_bw_limit']))
 
         # ====== Acquisition code starts here =====
         # This is a magic number and should at the very least move up
@@ -331,7 +330,7 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
 
         # Check which channels we are acquiring
         #channels = ats.CHANNEL_A | ats.CHANNEL_B
-        self.channels = atsparam['channels']
+        self.channels = device_properties['channels']
         if not (self.channels & ats.CHANNEL_A or self.channels & ats.CHANNEL_B):
             raise LabscriptError(
                 "You must select either Channel-A or Channel-B, or both. Zero or >2 channels not supported.")
@@ -351,13 +350,13 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
 
         # Calculate the number of buffers in the acquisition
         self.samplesPerAcquisition = int(
-            actual_acquisition_rate * atsparam['acquisition_duration'] + 0.5)
+            actual_acquisition_rate * device_properties['acquisition_duration'] + 0.5)
         memoryPerAcquisition = self.bytesPerDatum * \
             self.samplesPerAcquisition * self.channelCount
         self.buffersPerAcquisition = ((self.samplesPerAcquisition + self.samplesPerBuffer - 1) //
                                       self.samplesPerBuffer)
         print('Acquiring for {:5.3f}s generates {:5.3f} MS ({:5.3f} MB total)'.format(
-            atsparam['acquisition_duration'], self.samplesPerAcquisition/1e6, memoryPerAcquisition/self.oneM))
+            device_properties['acquisition_duration'], self.samplesPerAcquisition/1e6, memoryPerAcquisition/self.oneM))
         print('Buffers are {:5.3f} MS and {:d} bytes. Allocating {:d} buffers... '.format(
             self.samplesPerBuffer/1e6, self.bytesPerBuffer, self.buffersPerAcquisition), end='')
         self.board.setRecordSize(0, self.samplesPerBuffer)
@@ -488,11 +487,11 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
                 if self.channels & ats.CHANNEL_A:
                     dsetAraw[start: end] = bufferData[0: lastI: self.channelCount]
                     dsetA[start: end] = self.to_volts(
-                        self.atsparam['chA_input_range'], bufferData[0: lastI: self.channelCount])
+                        self.device_properties['chA_input_range'], bufferData[0: lastI: self.channelCount])
                 if self.channels & ats.CHANNEL_B:
                     dsetBraw[start: end] = bufferData[1: lastI: self.channelCount]
                     dsetB[start: end] = self.to_volts(
-                        self.atsparam['chB_input_range'], bufferData[1: lastI: self.channelCount])
+                        self.device_properties['chB_input_range'], bufferData[1: lastI: self.channelCount])
                 samplesToProcess -= self.samplesPerBuffer
                 start += self.samplesPerBuffer
         print("Freeing buffers... ", end="")
