@@ -4,11 +4,13 @@
 from labscript_devices import lazy_attributes
 from .labscript_devices import (
     TestDevice,
+    # LEGACY TEST_DEVICE CLASS NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
     test_device,
 )
 
 __all__ = [
     'TestDevice',
+    # LEGACY TEST_DEVICE CLASS NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
     'test_device',
 ]
 
