@@ -532,7 +532,8 @@ Public:
    workspace.
 7. PrawnDO's dataset is `PULSE_PROGRAM`, as on the other pseudoclocks
    (`01a5da5`); its worker and parser still read `pulse_program`, warning once
-   for each such file that it may not be readable in future (`4eca405`, Ian).
+   for each such file that it may not be readable in future (`4eca405`,
+   `510428c`, Ian).
    NovaTech's parser warns the same for a file connected as `'channel n'`.
 8. The test device's class is `TestDevice`; `test_device` still works
    (`7d278ce`). Its package keeps its name.
