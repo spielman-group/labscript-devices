@@ -16,28 +16,28 @@ Each stage's commits on `CodeHealth`, for review:
 - Codex's three findings on the first stage, the bounded abort waits Ian asked
   for before its re-check, and the re-check's finding: `4ff99a8..02b4a52`, and the
   commit that records this line.
-- Step 2.2's table and Ian's decisions, the two bugs fixed on his word
-  (`719fe26`, `d0c300e`), and step 2.2.1's Phase A: `02b4a52..` the commit that
-  records this line. Phase A alone is `93cdc48..` the same commit.
-- Codex's findings on Phase A, and Ian's decisions on them: `4a74e3e..` the commit
-  that records this line.
-- Step 2.2.1's Phase B: `25c2f22..` the commit that records this line, coupled
-  with labscript `2e47a79`, `608013c`, `f9d64b9`, `1d5ea89`, `58c5445` and `1988218`.
-  - **Outcome:** each package gives its old module's own names, and the device
-    classes it imported, as the same objects. Its labscript-side names make up
-    `__all__`. The incidental imports are dropped, by Ian's decision. The names
-    are listed under step 2.2.1.
-  - The package check skips only AlazarTechBoard's missing library.
-- Codex's findings on Phase B: `e0243fa..` the commit that records this line,
-  coupled with labscript `ab2ffae`.
-  - The ValueError for a device with no runviewer parser needs labscript-utils'
-    lookup to treat a `None` registration as none, so it is left to that owner.
   - **Outcome:** Codex's re-check found two points. Fixed in 02b4a52: an error
     from PrawnDO's abort after a timeout, such as a `SerialException`, is logged
     and the `TimeoutError` raised, where it used to replace it. Left as is (Ian):
     a board that confirms its abort or end of shot after the deadline counts as
     done, since the hardware did finish and each poll is bounded by the serial
     read timeout.
+- Step 2.2's table and Ian's decisions, the two bugs fixed on his word
+  (`719fe26`, `d0c300e`), and step 2.2.1's Phase A: `02b4a52..` the commit that
+  records this line. Phase A alone is `93cdc48..` the same commit.
+- Codex's findings on Phase A, and Ian's decisions on them: `4a74e3e..` the commit
+  that records this line.
+  - The ValueError for a device with no runviewer parser needs labscript-utils'
+    lookup to treat a `None` registration as none, so it is left to that owner.
+  - **Outcome:** each package gives its old module's own names, and the device
+    classes it imported, as the same objects. Its labscript-side names make up
+    `__all__`. The incidental imports are dropped, by Ian's decision. The names
+    are listed under step 2.2.1.
+  - The package check skips only AlazarTechBoard's missing library.
+- Step 2.2.1's Phase B: `25c2f22..` the commit that records this line, coupled
+  with labscript `2e47a79`, `608013c`, `f9d64b9`, `1d5ea89`, `58c5445` and `1988218`.
+- Codex's findings on Phase B: `e0243fa..` the commit that records this line,
+  coupled with labscript `ab2ffae`.
 
 ## The test contract
 
