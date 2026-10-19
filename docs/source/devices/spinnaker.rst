@@ -70,10 +70,10 @@ Below is a generic configuration.
                serial_number=1234567, # set to the camera serial number
                minimum_recovery_time=36e-6, # the minimum exposure time depends on the camera model & configuration
                trigger_edge_type='falling',
-               camera_attributs={**CCT_global_camera_attributes,
-                                 **CCT_buffered_mode_attributes},
-               manual_camera_attributes={**CCT_global_camera_attributes,
-                                         **CCT_manual_mode_attributes})
+               camera_attributes={**CCT_global_camera_attributes,
+                                  **CCT_buffered_mode_attributes},
+               manual_mode_camera_attributes={**CCT_global_camera_attributes,
+                                              **CCT_manual_mode_attributes})
 
    start()
 

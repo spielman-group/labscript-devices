@@ -51,7 +51,7 @@ Below is a generic configuration for a Point Grey Blackfly PGE-23S6M-C device.
    FlyCapture2Camera('gigeCamera',parent_device=parent,connection=conn,
                serial_number=1234567, # set to the camera serial number
                minimum_recovery_time=36e-6, # the minimum exposure time depends on the camera model & configuration
-               camera_attributs={
+               camera_attributes={
                                  'GAMMA':{
                                           'onOff':False,
                                           'absControl':True,
@@ -87,7 +87,7 @@ Below is a generic configuration for a Point Grey Blackfly PGE-23S6M-C device.
                                           'offsetY':0,
                                           'pixelFormat':'MONO16'}
                },
-               manual_camera_attributes={'TriggerMode':{'onOff':False}})
+               manual_mode_camera_attributes={'TriggerMode':{'onOff':False}})
 
    start()
 

@@ -56,7 +56,7 @@ Below are generic configurations for GigE and USB3 based cameras.
    PylonCamera('gigeCamera',parent_device=parent,connection=conn,
                serial_number=1234567, # set to the camera serial number
                minimum_recovery_time=20e-3, # the minimum exposure time depends on the camera model & configuration
-               camera_attributs={
+               camera_attributes={
                   'ExposureTimeAbs':1000, #in us
                   'ExposureMode':'Timed',
                   'ExposureAuto':'Off',
@@ -67,7 +67,7 @@ Below are generic configurations for GigE and USB3 based cameras.
                   'TriggerSource':'Line 1',
                   'TriggerMode':'On'
                },
-               manual_camera_attributes={
+               manual_mode_camera_attributes={
                   'TriggerSource':'Software',
                   'TriggerMode':'Off'
                })
@@ -75,7 +75,7 @@ Below are generic configurations for GigE and USB3 based cameras.
    PylonCamera('usb3Camera',parent_device=parent,connection=conn,
                serial_number=12345678, 
                minimum_recovery_time=36e-3, 
-               camera_attributs={
+               camera_attributes={
                   'ExposureTime':1000, #in us
                   'ExposureMode':'Timed',
                   'ExposureAuto':'Off',
@@ -87,7 +87,7 @@ Below are generic configurations for GigE and USB3 based cameras.
                   'TriggerMode':'On',
                   'ShutterMode':'Global'
                },
-               manual_camera_attributes={
+               manual_mode_camera_attributes={
                   'TriggerSource':'Software',
                   'TriggerMode':'Off'
                })
