@@ -42,22 +42,25 @@ class NovaTechDDS9MParser(object):
                     table_data = table_data[1:]
                 for i in range(2):
                     for sub_chnl in ['freq', 'amp', 'phase']:
-                        data['channel %d_%s'%(i,sub_chnl)] = table_data['%s%d'%(sub_chnl,i)][:]
+                        data['dds %d_%s'%(i,sub_chnl)] = table_data['%s%d'%(sub_chnl,i)][:]
                                 
             if 'STATIC_DATA' in hdf5_file['devices/%s'%self.name]:
                 static_data = hdf5_file['devices/%s/STATIC_DATA'%self.name][:]
                 for i in range(2,4):
                     for sub_chnl in ['freq', 'amp', 'phase']:
-                        data['channel %d_%s'%(i,sub_chnl)] = np.empty((len(clock_ticks),))
-                        data['channel %d_%s'%(i,sub_chnl)].fill(static_data['%s%d'%(sub_chnl,i)][0])
+                        data['dds %d_%s'%(i,sub_chnl)] = np.empty((len(clock_ticks),))
+                        data['dds %d_%s'%(i,sub_chnl)].fill(static_data['%s%d'%(sub_chnl,i)][0])
             
         
         for channel, channel_data in data.items():
             data[channel] = (clock_ticks, channel_data)
         
         for channel_name, channel in self.device.child_list.items():
+            # LEGACY 'channel n' CONNECTION COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+            # Shot files compiled before the DDSs were connected as 'dds n'.
+            port = 'dds ' + channel.parent_port.split()[-1]
             for subchnl_name, subchnl in channel.child_list.items():
-                connection = '%s_%s'%(channel.parent_port, subchnl.parent_port)
+                connection = '%s_%s'%(port, subchnl.parent_port)
                 if connection in data:
                     add_trace(subchnl.name, data[connection], self.name, connection)
         

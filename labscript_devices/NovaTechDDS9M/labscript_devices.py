@@ -14,6 +14,8 @@
 from labscript import IntermediateDevice, DDS, StaticDDS, Device, compiler, LabscriptError, set_passed_properties
 from labscript_utils.unitconversions import NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion
 
+import warnings
+
 import numpy as np
 
 bauds = {9600: b'Kb 78', 
@@ -84,6 +86,14 @@ class NovaTechDDS9M(IntermediateDevice):
         self.synchronous_first_line_repeat = synchronous_first_line_repeat
         
     def add_device(self, device):
+        # LEGACY 'channel n' CONNECTION COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        if device.connection.startswith('channel '):
+            connection = 'dds ' + device.connection.split()[-1]
+            warnings.warn(
+                f"{device.name}'s connection {device.connection!r} will be removed; "
+                f"use {connection!r}.", FutureWarning, stacklevel=4
+            )
+            device.connection = connection
         Device.add_device(self, device)
         # The Novatech doesn't support 0Hz output; set the default frequency of the DDS to 0.1 Hz:
         device.frequency.default_value = 0.1
@@ -121,7 +131,7 @@ class NovaTechDDS9M(IntermediateDevice):
                 channel = int(channel)
             except:
                 raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
-                                     'Format must be \'channel n\' with n from 0 to 3.')
+                                     'Format must be \'dds n\' with n from 0 to 3.')
             DDSs[channel] = output
         for connection in DDSs:
             dds = DDSs[connection]
@@ -132,7 +142,7 @@ class NovaTechDDS9M(IntermediateDevice):
                 dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
             else:
                 raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(dds.description,dds.name,str(dds.connection)) + 
-                                     'Format must be \'channel n\' with n from 0 to 3.')
+                                     'Format must be \'dds n\' with n from 0 to 3.')
                                 
         dtypes = [('freq%d'%i,np.uint32) for i in range(2)] + \
                  [('phase%d'%i,np.uint16) for i in range(2)] + \

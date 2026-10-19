@@ -23,12 +23,19 @@ class NovaTechDDS9MTab(DeviceTab):
         self.base_decimals = {'freq':1,             'amp':4,       'phase':3} # TODO: find out what the phase precision is!
         self.num_DDS = 4
         
+        # LEGACY 'channel n' NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        # Front panels saved before the channels were named 'dds n'.
+        saved = self.settings.setdefault('front_panel_settings', {})
+        for name in list(saved):
+            if name.startswith('channel '):
+                saved.setdefault('dds ' + name[len('channel '):], saved.pop(name))
+
         # Create DDS Output objects
         dds_prop = {}
         for i in range(self.num_DDS): # 4 is the number of DDS outputs on this device
-            dds_prop['channel %d'%i] = {}
+            dds_prop['dds %d'%i] = {}
             for subchnl in ['freq', 'amp', 'phase']:
-                dds_prop['channel %d'%i][subchnl] = {'base_unit':self.base_units[subchnl],
+                dds_prop['dds %d'%i][subchnl] = {'base_unit':self.base_units[subchnl],
                                                      'min':self.base_min[subchnl],
                                                      'max':self.base_max[subchnl],
                                                      'step':self.base_step[subchnl],

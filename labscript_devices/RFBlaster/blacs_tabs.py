@@ -19,13 +19,22 @@ from blacs.device_base_class import DeviceTab
 class RFBlasterTab(DeviceTab):
     def initialise_GUI(self):
         # Capabilities 
-        self.base_units =     {'freq':'Hz',        'amp':'%',         'phase':'Degrees'}
+        self.base_units =     {'freq':'Hz',        'amp':'Arb',       'phase':'Degrees'}
         self.base_min =       {'freq':500000,      'amp':0.0,         'phase':0}
-        self.base_max =       {'freq':350000000.0, 'amp':99.99389648, 'phase':360}
-        self.base_step =      {'freq':1000000,     'amp':1.0,         'phase':1}
+        self.base_max =       {'freq':350000000.0, 'amp':0.9999389648, 'phase':360}
+        self.base_step =      {'freq':1000000,     'amp':0.01,        'phase':1}
         #TODO: Find out what the amp and phase precision is
-        self.base_decimals =  {'freq':1,           'amp':3,           'phase':3}
+        self.base_decimals =  {'freq':1,           'amp':5,           'phase':3}
         self.num_DDS = 2  
+
+        # LEGACY PERCENT AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        # Front panels saved when the amplitude was shown in %.
+        for i in range(self.num_DDS):
+            saved = self.settings.get('front_panel_settings', {}).get('dds %d_amp' % i)
+            if saved and saved.get('current_units') == '%':
+                saved['base_value'] /= 100
+                saved['base_step_size'] /= 100
+                saved['current_units'] = 'Arb'
 
         # Create DDS Output objects
         dds_prop = {}

@@ -118,14 +118,14 @@ class NovaTechDDS9MWorker(Worker):
             raise Exception('Failed to execute command "QUE". Cannot connect to device.')
         results = {}
         for i, line in enumerate(response[:4]):
-            results['channel %d'%i] = {}
+            results['dds %d'%i] = {}
             freq, phase, amp, ignore, ignore, ignore, ignore = line.split()
             # Convert hex multiple of 0.1 Hz to MHz:
-            results['channel %d'%i]['freq'] = float(int(freq,16))/10.0
+            results['dds %d'%i]['freq'] = float(int(freq,16))/10.0
             # Convert hex to int:
-            results['channel %d'%i]['amp'] = int(amp,16)/1023.0
+            results['dds %d'%i]['amp'] = int(amp,16)/1023.0
             # Convert hex fraction of 16384 to degrees:
-            results['channel %d'%i]['phase'] = int(phase,16)*360/16384.0
+            results['dds %d'%i]['phase'] = int(phase,16)*360/16384.0
         return results
         
     def program_manual(self,front_panel_values):
@@ -135,7 +135,7 @@ class NovaTechDDS9MWorker(Worker):
             # and for each subchnl in the DDS,
             for subchnl in ['freq','amp','phase']:     
                 # Program the sub channel
-                self.program_static(i,subchnl,front_panel_values['channel %d'%i][subchnl])
+                self.program_static(i,subchnl,front_panel_values['dds %d'%i][subchnl])
         return self.check_remote_values()
 
     def program_static(self,channel,type,value):
@@ -205,14 +205,14 @@ class NovaTechDDS9MWorker(Worker):
                 
                 # Save these values into final_values so the GUI can
                 # be updated at the end of the run to reflect them:
-                self.final_values['channel 2'] = {}
-                self.final_values['channel 3'] = {}
-                self.final_values['channel 2']['freq'] = data['freq2']/10.0
-                self.final_values['channel 3']['freq'] = data['freq3']/10.0
-                self.final_values['channel 2']['amp'] = data['amp2']/1023.0
-                self.final_values['channel 3']['amp'] = data['amp3']/1023.0
-                self.final_values['channel 2']['phase'] = data['phase2']*360/16384.0
-                self.final_values['channel 3']['phase'] = data['phase3']*360/16384.0
+                self.final_values['dds 2'] = {}
+                self.final_values['dds 3'] = {}
+                self.final_values['dds 2']['freq'] = data['freq2']/10.0
+                self.final_values['dds 3']['freq'] = data['freq3']/10.0
+                self.final_values['dds 2']['amp'] = data['amp2']/1023.0
+                self.final_values['dds 3']['amp'] = data['amp3']/1023.0
+                self.final_values['dds 2']['phase'] = data['phase2']*360/16384.0
+                self.final_values['dds 3']['phase'] = data['phase3']*360/16384.0
                     
         # Now program the buffered outputs:
         if table_data is not None:
@@ -237,14 +237,14 @@ class NovaTechDDS9MWorker(Worker):
                 
             # Get the final values of table mode so that the GUI can
             # reflect them after the run:
-            self.final_values['channel 0'] = {}
-            self.final_values['channel 1'] = {}
-            self.final_values['channel 0']['freq'] = data[-1]['freq0']/10.0
-            self.final_values['channel 1']['freq'] = data[-1]['freq1']/10.0
-            self.final_values['channel 0']['amp'] = data[-1]['amp0']/1023.0
-            self.final_values['channel 1']['amp'] = data[-1]['amp1']/1023.0
-            self.final_values['channel 0']['phase'] = data[-1]['phase0']*360/16384.0
-            self.final_values['channel 1']['phase'] = data[-1]['phase1']*360/16384.0
+            self.final_values['dds 0'] = {}
+            self.final_values['dds 1'] = {}
+            self.final_values['dds 0']['freq'] = data[-1]['freq0']/10.0
+            self.final_values['dds 1']['freq'] = data[-1]['freq1']/10.0
+            self.final_values['dds 0']['amp'] = data[-1]['amp0']/1023.0
+            self.final_values['dds 1']['amp'] = data[-1]['amp1']/1023.0
+            self.final_values['dds 0']['phase'] = data[-1]['phase0']*360/16384.0
+            self.final_values['dds 1']['phase'] = data[-1]['phase1']*360/16384.0
             
             # Transition to table mode:
             self.connection.write(b'm t\r\n')
@@ -299,7 +299,7 @@ class NovaTechDDS9MWorker(Worker):
             
         # only program the channels that we need to
         for ddsnumber in DDSs:
-            channel_values = values['channel %d'%ddsnumber]
+            channel_values = values['dds %d'%ddsnumber]
             for subchnl in ['freq','amp','phase']:            
                 self.program_static(ddsnumber,subchnl,channel_values[subchnl])
             

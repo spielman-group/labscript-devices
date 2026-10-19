@@ -71,7 +71,8 @@ class RFBlasterWorker(PseudoclockWorker):
         form = MultiPartForm()
         for i in range(self.num_DDS):
             # Program the frequency, amplitude and phase
-            form.add_field("a_ch%d_in"%i,str(front_panel_values['dds %d'%i]['amp']*front_panel_values['dds %d'%i]['gate']))
+            # The board takes the amplitude in %
+            form.add_field("a_ch%d_in"%i,str(100*front_panel_values['dds %d'%i]['amp']*front_panel_values['dds %d'%i]['gate']))
             form.add_field("f_ch%d_in"%i,str(front_panel_values['dds %d'%i]['freq']*1e-6)) # method expects MHz
             form.add_field("p_ch%d_in"%i,str(front_panel_values['dds %d'%i]['phase']))
         form.add_field("set_dds", "Set device")
@@ -91,7 +92,7 @@ class RFBlasterWorker(PseudoclockWorker):
                 #Find the final value from the human-readable part of the h5 file to use for
                 #the front panel values at the end
                 self.final_values['dds %d'%i] = {'freq':group['TABLE_DATA']["freq%d"%i][-1],
-                                                 'amp':group['TABLE_DATA']["amp%d"%i][-1]*100,
+                                                 'amp':group['TABLE_DATA']["amp%d"%i][-1],
                                                  'phase':group['TABLE_DATA']["phase%d"%i][-1],
                                                  'gate':True
                                                 }
@@ -179,6 +180,7 @@ class RFBlasterWorker(PseudoclockWorker):
                 newvals['dds %d'%i]['gate'] = True
                 
             newvals['dds %d'%i]['freq'] *= 1e6 # BLACS expects it in the base unit (Hz)
+            newvals['dds %d'%i]['amp'] /= 100 # and the amplitude as a fraction of full scale
             
             # if the gate is off, keep the front panel amplitude
             if not newvals['dds %d'%i]['gate']:

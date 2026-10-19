@@ -7,7 +7,7 @@ With minor modifications, it can also control the Novatech 409B DDS.
 Usage
 ~~~~~
 
-Outputs connect as `'channel 0'` to `'channel 3'`.
+Outputs connect as `'dds 0'` to `'dds 3'`.
 Channels 0 and 1 step through a table on each clock tick, so use a `DDS`; channels 2 and 3 hold one value for the shot, so use a `StaticDDS`.
 
 .. code-block:: python
@@ -20,8 +20,8 @@ Channels 0 and 1 step through a table on each clock tick, so use a `DDS`; channe
 	DummyPseudoclock(name='pseudoclock')
 	NovaTechDDS9M(name='novatech', parent_device=pseudoclock.clockline, com_port='COM1')
 
-	DDS(name='dds_0', parent_device=novatech, connection='channel 0')
-	StaticDDS(name='dds_2', parent_device=novatech, connection='channel 2')
+	DDS(name='dds_0', parent_device=novatech, connection='dds 0')
+	StaticDDS(name='dds_2', parent_device=novatech, connection='dds 2')
 
 	start()
 	dds_0.setfreq(0, 10e6)

@@ -168,7 +168,7 @@ class DDSPulseBlasterTabMixin:
 
     def initialise_GUI(self):
         # Capabilities
-        self.base_units     = {'freq':'Hz',        'amp':'Vpp', 'phase':'Degrees'}
+        self.base_units     = {'freq':'Hz',        'amp':'Arb', 'phase':'Degrees'}
         self.base_min       = {'freq':0.3,         'amp':0.0,   'phase':0}
         self.base_max       = {'freq':150000000.0, 'amp':1.0,   'phase':360}
         self.base_step      = {'freq':1000000,     'amp':0.01,  'phase':1}
