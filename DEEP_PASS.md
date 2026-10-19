@@ -36,8 +36,9 @@ Each stage's commits on `CodeHealth`, for review:
   - The package check skips only AlazarTechBoard's missing library.
 - Step 2.2.1's Phase B: `25c2f22..` the commit that records this line, coupled
   with labscript `2e47a79`, `608013c`, `f9d64b9`, `1d5ea89`, `58c5445` and `1988218`.
-- Codex's findings on Phase B: `e0243fa..` the commit that records this line,
-  coupled with labscript `ab2ffae`.
+- Codex's findings on Phase B, and its re-check's finding: `e0243fa..` the
+  commit that records this line, coupled with labscript `0b14960`, `ab2ffae` and
+  `bbcbad9`.
 
 ## The test contract
 
@@ -332,13 +333,16 @@ On `CodeHealth` after Phase A (`25c2f22`), in this order:
 - **Card 9, ticks and DDS values** (`f6849e6`, `4134c99`). Steps become ticks
   with `quantise_to_pseudoclock(ticks=True)`; NovaTech, QuickSyn and RFBlaster
   quantise their DDS values with labscript's `quantise_channel`.
-- **The reviews' fixes** (`f9c09d9`, `a1afd1f`, `b58f9ed`).
+- **The reviews' fixes** (`f9c09d9`, `a1afd1f`, `b58f9ed`, and the commit that
+  records this line).
 - **Card 10** (`82c42cc`): `TriggerableCameraInterface` composes
-  `set_attributes`, which keeps the `attr_dict` keyword, and `snap`, and
-  `DictAttributesMixin` holds dict attributes.
+  `set_attributes`, which takes the dict as `attr_dict` or `attributes` as the
+  cameras did, and `snap`, and `DictAttributesMixin` holds dict attributes.
+  Card 10 and its fixes stay on `CodeHealth`: upstream PR #148's `DummyCamera`
+  branch takes only true bug fixes in the PR's own camera code (Ian).
 
 Merge coupling: this range must merge with labscript `2e47a79`, `608013c`,
-`f9d64b9`, `1d5ea89`, `58c5445`, `1988218` and `ab2ffae`.
+`f9d64b9`, `1d5ea89`, `58c5445`, `1988218`, `0b14960`, `ab2ffae` and `bbcbad9`.
 
 Intended differences:
 
