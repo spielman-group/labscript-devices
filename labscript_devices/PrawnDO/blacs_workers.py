@@ -272,12 +272,15 @@ class PrawnDOWorker(PseudoclockWorker):
 
         with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['devices'][device_name]
-            if 'pulse_program' not in group:
+            # LEGACY PULSE_PROGRAM NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+            # Shot files compiled before the dataset's name was upper case.
+            dataset = 'PULSE_PROGRAM' if 'PULSE_PROGRAM' in group else 'pulse_program'
+            if dataset not in group:
                 # if no output commanded, return
                 return {}
             self.device_properties = labscript_utils.properties.get(
                 hdf5_file, device_name, "device_properties")
-            pulse_program = group['pulse_program'][()]
+            pulse_program = group[dataset][()]
 
         # configure clock from device properties
         ext = self.device_properties['external_clock']

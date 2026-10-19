@@ -38,8 +38,10 @@ class PrawnDOParser(object):
             self.wait_delay = device_properties['wait_delay']
 
             group = f['devices/' + self.name]
-
-            pulse_program = group['pulse_program'][()]
+            # LEGACY PULSE_PROGRAM NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+            # Shot files compiled before the dataset's name was upper case.
+            dataset = 'PULSE_PROGRAM' if 'PULSE_PROGRAM' in group else 'pulse_program'
+            pulse_program = group[dataset][()]
 
         # remove final element from program (2nd part of stop instruction)
         pulse_program = np.delete(pulse_program, -1)

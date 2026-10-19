@@ -281,7 +281,7 @@ class PrawnDO(PseudoclockDevice):
         pulse_program = np.zeros(len(reps), dtype=dtype)
         pulse_program['bit_sets'] = bit_sets
         pulse_program['reps'] = reps
-        group.create_dataset('pulse_program', data=pulse_program)
+        group.create_dataset('PULSE_PROGRAM', data=pulse_program)
 
 
 class _PrawnDOIntermediateDevice(IntermediateDevice):
