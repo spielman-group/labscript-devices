@@ -83,7 +83,7 @@ class PineblasterWorker(PseudoclockWorker):
         response = self.pineblaster.readline().decode()
         assert response == 'ok\r\n', 'PineBlaster said \'%s\', expected \'ok\''%repr(response)
     
-    def status_monitor(self):
+    def shot_finished(self):
         # Wait to see if it's done within the timeout:
         response = self.pineblaster.readline().decode()
         if response:
@@ -91,9 +91,6 @@ class PineblasterWorker(PseudoclockWorker):
             return True
         return False
         
-    def shot_finished(self):
-        return self.status_monitor()
-
     def transition_to_manual(self):
         # The master's 'done' was read already, by its tab's status monitor:
         if not self.is_master_pseudoclock:

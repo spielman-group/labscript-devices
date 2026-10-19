@@ -28,8 +28,8 @@ class DummyPseudoclockTab(DeviceTab):
 
     @define_state(MODE_BUFFERED, True)
     def wait_until_done(self, notify_queue):
-        """Call check_if_done repeatedly in the worker until the shot is complete"""
-        done = yield (self.queue_work(self.primary_worker, 'check_if_done'))
+        """Call shot_finished repeatedly in the worker until the shot is complete"""
+        done = yield (self.queue_work(self.primary_worker, 'shot_finished'))
         # Experiment is over. Tell the queue manager about it:
         if done:
             notify_queue.put('done')

@@ -183,7 +183,7 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
         # Start in software:
         assert self.dev.ActivateTriggerIn(0x40,0) == self.dev.NoError
     
-    def status_monitor(self):
+    def shot_finished(self):
         def ReadU32(addr):
             lo = self.dev.GetWireOutValue(addr)
             hi = self.dev.GetWireOutValue(addr+1)
@@ -258,9 +258,6 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
         assert not status & 2	# aborted
         return status & 1		# finished
         
-    def shot_finished(self):
-        return self.status_monitor()
-
     def transition_to_manual(self):
         #       Save wait data if there were waits and this was the wait monitor
         #       find out if this device was the wait monitor by looking at 

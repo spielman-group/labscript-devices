@@ -27,7 +27,7 @@ class DummyPseudoclockWorker(PseudoclockWorker):
             self.stop_time = device_properties['stop_time']
         return {}
     
-    def check_if_done(self):
+    def shot_finished(self):
         # Wait up to 1 second for the shot to be done, returning True if it is
         # or False if not.
         if getattr(self, 'start_time', None) is None:
@@ -48,7 +48,9 @@ class DummyPseudoclockWorker(PseudoclockWorker):
         return
 
     def abort_buffered(self):
-        return self.transition_to_manual()
+        self.start_time = None
+        self.stop_time = None
+        return True
 
     def abort_transition_to_buffered(self):
         self.stop_time = None

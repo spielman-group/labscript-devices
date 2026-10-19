@@ -53,7 +53,7 @@ class PseudoclockWorker(Worker):
 
 class PseudoclockTab(DeviceTab):
     """The tab of a pseudoclock device whose worker says, through its
-    ``status_monitor``, whether the shot it started is over."""
+    ``shot_finished``, whether the shot it started is over."""
 
     @define_state(MODE_BUFFERED, True)
     def start_run(self, notify_queue):
@@ -70,7 +70,7 @@ class PseudoclockTab(DeviceTab):
             self.statemachine_timeout_remove(self.status_monitor)
             return
 
-        status = yield(self.queue_work(self.primary_worker, 'status_monitor'))
+        status = yield(self.queue_work(self.primary_worker, 'shot_finished'))
         if status:
             notify_queue.put('done')
             self.statemachine_timeout_remove(self.status_monitor)
