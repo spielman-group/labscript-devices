@@ -249,7 +249,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
 
         return True
      
-    def abort_buffered(self):
+    def abort(self):
         # Stop the execution
         self.pb_stop()
         # Reset to the beginning of the pulse sequence
@@ -260,7 +260,10 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
         # This ensures the device isn't accidentally retriggered by another device
         # while it is running it's abort function
         return True
-        
+
+    def abort_buffered(self):
+        return self.abort()
+
     def abort_transition_to_buffered(self):
         return True
         

@@ -102,8 +102,11 @@ class FunctionRunnerWorker(Worker):
     def shutdown(self):
         return
 
-    def abort_buffered(self):
+    def abort(self):
         return self.transition_to_manual()
+
+    def abort_buffered(self):
+        return self.abort()
 
     def abort_transition_to_buffered(self):
         return True

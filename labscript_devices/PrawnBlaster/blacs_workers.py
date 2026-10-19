@@ -536,8 +536,8 @@ class PrawnBlasterWorker(PseudoclockWorker):
 
         self.conn.close()
 
-    def abort_buffered(self):
-        """Aborts a currently running buffered execution.
+    def abort(self):
+        """Aborts a currently running buffered execution, or a transition to it.
 
         Returns:
             bool: `True` is abort is successful.
@@ -552,9 +552,7 @@ class PrawnBlasterWorker(PseudoclockWorker):
         return True
 
     def abort_transition_to_buffered(self):
-        """Aborts a transition to buffered.
+        return self.abort()
 
-        Calls :py:meth:`abort_buffered`.
-        """
-
-        return self.abort_buffered()
+    def abort_buffered(self):
+        return self.abort()

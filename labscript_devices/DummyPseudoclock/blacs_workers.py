@@ -47,11 +47,13 @@ class DummyPseudoclockWorker(PseudoclockWorker):
     def shutdown(self):
         return
 
-    def abort_buffered(self):
+    def abort(self):
         self.start_time = None
         self.stop_time = None
         return True
 
+    def abort_buffered(self):
+        return self.abort()
+
     def abort_transition_to_buffered(self):
-        self.stop_time = None
-        return True
+        return self.abort()

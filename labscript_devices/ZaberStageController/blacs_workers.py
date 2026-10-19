@@ -102,11 +102,14 @@ class ZaberStageControllerWorker(Worker):
     def transition_to_manual(self):
         return True
 
-    def abort_buffered(self):
+    def abort(self):
         return True
 
+    def abort_buffered(self):
+        return self.abort()
+
     def abort_transition_to_buffered(self):
-        return True
+        return self.abort()
 
     def shutdown(self):
         self.controller.close()

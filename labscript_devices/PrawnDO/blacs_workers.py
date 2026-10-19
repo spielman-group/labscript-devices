@@ -361,8 +361,8 @@ class PrawnDOWorker(PseudoclockWorker):
             raise
         return True
 
-    def abort_buffered(self):
-        """Aborts a currently running buffered execution.
+    def abort(self):
+        """Aborts a currently running buffered execution, or a transition to it.
         
         Returns:
             bool: `True` is abort was successful.
@@ -372,11 +372,10 @@ class PrawnDOWorker(PseudoclockWorker):
         return True
 
     def abort_transition_to_buffered(self):
-        """Aborts transition to buffered.
-        
-        Calls :meth:`abort_buffered`
-        """
-        return self.abort_buffered()
+        return self.abort()
+
+    def abort_buffered(self):
+        return self.abort()
 
     def shutdown(self):
         """Closes serial connection to PrawnDO"""

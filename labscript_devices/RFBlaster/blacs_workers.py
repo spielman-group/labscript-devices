@@ -103,20 +103,19 @@ class RFBlasterWorker(PseudoclockWorker):
         self.http_request(form)
         return self.final_values
                  
-    def abort_transition_to_buffered(self):
-        # TODO: untested (this is probably wrong...)
-        form = MultiPartForm()
-        #tell the rfblaster to stop
-        form.add_field("halt","Halt execution")
-        self.http_request(form)
-        return True
-    
-    def abort_buffered(self):
+    def abort(self):
         form = MultiPartForm()
         # Tell the rfblaster to stop
         form.add_field("halt", "Halt execution")
         self.http_request(form)
         return True
+
+    def abort_transition_to_buffered(self):
+        # TODO: untested (this is probably wrong...)
+        return self.abort()
+
+    def abort_buffered(self):
+        return self.abort()
      
     def transition_to_manual(self):
         # The RFBlaster cannot say whether its program has finished, so this
