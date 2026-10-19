@@ -128,17 +128,19 @@ class PylonCameraInterface(TriggerableCameraInterface):
                 f'Snap error {result.ErrorCode}: {result.ErrorDescription}'
             )
 
-    def configure_acquisition(self, continuous=True, bufferCount=10):
+    def configure_acquisition(self, continuous=True, buffer_count=None):
         """Configure acquisition by calling StartGrabbing with appropriate
         grab strategy: LatestImageOnly for continuous, OneByOne otherwise.
         """
-        self.camera.MaxNumBuffer = bufferCount
+        if buffer_count is None:
+            buffer_count = 10
+        self.camera.MaxNumBuffer = buffer_count
         if continuous:
             self.camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
         else:
             self.camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
 
-    def grab(self, continuous=True):
+    def grab(self):
         """Grab single image during pre-configured acquisition."""
             
         result = self.camera.RetrieveResult(self.timeout,

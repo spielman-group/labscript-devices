@@ -95,7 +95,7 @@ class TriggerableCameraInterface(object):
 
     def snap(self):
         """Acquire and return one image, configuring acquisition as needed."""
-        self.configure_acquisition(continuous=False, bufferCount=1)
+        self.configure_acquisition(continuous=False, buffer_count=1)
         image = self.grab()
         self.stop_acquisition()
         return image
@@ -104,12 +104,13 @@ class TriggerableCameraInterface(object):
         """Return the next image of an acquisition already configured."""
         raise NotImplementedError(_unwritten(self, 'grab'))
 
-    def configure_acquisition(self, continuous=True, bufferCount=None):
+    def configure_acquisition(self, continuous=True, buffer_count=None):
         """Ready the camera to be grabbed from.
 
         The worker calls this with no arguments for manual-mode continuous
-        acquisition, and with `continuous=False` and a `bufferCount` of the
-        shot's exposures for a buffered one.
+        acquisition, and with `continuous=False` and a `buffer_count` of the
+        shot's exposures for a buffered one. `None` leaves the number of
+        buffers to the camera.
         """
         raise NotImplementedError(_unwritten(self, 'configure_acquisition'))
 
@@ -396,7 +397,7 @@ class TriggerableCameraWorker(Worker):
         else:
             self.attributes_to_save = None
         print(f"Configuring camera for {self.n_images} images.")
-        self.camera.configure_acquisition(continuous=False, bufferCount=self.n_images)
+        self.camera.configure_acquisition(continuous=False, buffer_count=self.n_images)
         self.images = []
         self.acquisition_thread = threading.Thread(
             target=self.camera.grab_multiple,

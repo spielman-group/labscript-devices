@@ -126,14 +126,16 @@ class IMAQdxCameraInterface(TriggerableCameraInterface):
         nv.IMAQdxSnap(self.imaqdx, self.img)
         return self._decode_image_data(self.img)
 
-    def configure_acquisition(self, continuous=True, bufferCount=5):
+    def configure_acquisition(self, continuous=True, buffer_count=None):
+        if buffer_count is None:
+            buffer_count = 5
         nv.IMAQdxConfigureAcquisition(
-            self.imaqdx, continuous=continuous, bufferCount=bufferCount
+            self.imaqdx, continuous=continuous, bufferCount=buffer_count
         )
         nv.IMAQdxStartAcquisition(self.imaqdx)
 
-    def grab(self, waitForNextBuffer=True):
-        nv.IMAQdxGrab(self.imaqdx, self.img, waitForNextBuffer=waitForNextBuffer)
+    def grab(self):
+        nv.IMAQdxGrab(self.imaqdx, self.img, waitForNextBuffer=True)
         return self._decode_image_data(self.img)
 
     def is_transient_grab_error(self, exception):

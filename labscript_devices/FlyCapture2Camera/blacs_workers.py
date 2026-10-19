@@ -324,7 +324,7 @@ class FlyCapture2CameraInterface(TriggerableCameraInterface):
             # Add some info to the exception:
             raise Exception(f"Failed to get attribute {name}") from e
 
-    def configure_acquisition(self, continuous=True, bufferCount=10):
+    def configure_acquisition(self, continuous=True, buffer_count=None):
         """Configure acquisition buffer count and grab mode.
         
         This method also saves image width, heigh, and pixelFormat to class
@@ -335,11 +335,13 @@ class FlyCapture2CameraInterface(TriggerableCameraInterface):
                 acquire and only keep most recent frames in the buffer. If False,
                 all acquired frames are kept and error occurs if buffer is exceeded.
                 Default is True.
-            bufferCount (:obj:`int`, optional): Number of memory buffers to use 
+            buffer_count (:obj:`int`, optional): Number of memory buffers to use 
                 in the acquistion. Default is 10.
         """
+        if buffer_count is None:
+            buffer_count = 10
         config = self.camera.getConfiguration()
-        config.numBuffers = bufferCount
+        config.numBuffers = buffer_count
         if continuous:
             config.grabMode = PyCapture2.GRAB_MODE.DROP_FRAMES
             self.camera.setConfiguration(config)

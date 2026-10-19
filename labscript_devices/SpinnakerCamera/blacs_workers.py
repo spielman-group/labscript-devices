@@ -132,7 +132,7 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
 
     def snap(self):
         """Acquire a single image and return it"""
-        self.configure_acquisition(continuous=False, bufferCount=1)
+        self.configure_acquisition(continuous=False, buffer_count=1)
         #self.trigger()
         image = self.grab()
         self.camera.EndAcquisition()
@@ -156,7 +156,9 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
             trigger_cmd.Execute()
 
 
-    def configure_acquisition(self, continuous=True, bufferCount=10):
+    def configure_acquisition(self, continuous=True, buffer_count=None):
+        if buffer_count is None:
+            buffer_count = 10
         self.pix_fmt = self.get_attribute('PixelFormat')
         self.height = self.get_attribute('Height')
         self.width = self.get_attribute('Width')
@@ -167,10 +169,10 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
         # easily.  It really is quite annoying.
         if continuous:
             self.set_stream_attribute('StreamBufferCountMode', 'Manual')
-            self.set_stream_attribute('StreamBufferCountManual', bufferCount)
+            self.set_stream_attribute('StreamBufferCountManual', buffer_count)
             self.set_stream_attribute('StreamBufferHandlingMode', 'NewestFirst')
             self.set_attribute('AcquisitionMode', 'Continuous')
-        elif bufferCount == 1:
+        elif buffer_count == 1:
             # The StreamBufferCountMode originally was set to 'Auto', but this feature was depreciated by Spinnaker version 3.0.0.118
             self.set_stream_attribute('StreamBufferCountMode', 'Manual')
             self.set_stream_attribute('StreamBufferCountManual', 1)
@@ -178,10 +180,10 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
             self.set_attribute('AcquisitionMode', 'SingleFrame')
         else:
             self.set_stream_attribute('StreamBufferCountMode', 'Manual')
-            self.set_stream_attribute('StreamBufferCountManual', bufferCount)
+            self.set_stream_attribute('StreamBufferCountManual', buffer_count)
             self.set_stream_attribute('StreamBufferHandlingMode', 'OldestFirst')
             self.set_attribute('AcquisitionMode', 'MultiFrame')
-            self.set_attribute('AcquisitionFrameCount', bufferCount)
+            self.set_attribute('AcquisitionFrameCount', buffer_count)
 
         self.camera.BeginAcquisition()
 

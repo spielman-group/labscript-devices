@@ -43,7 +43,7 @@ class DummyCameraInterface(DictAttributesMixin, TriggerableCameraInterface):
         self.images = None
         self.index = 0
 
-    def configure_acquisition(self, continuous=True, bufferCount=5):
+    def configure_acquisition(self, continuous=True, buffer_count=None):
         # A continuous acquisition is manual mode, where there is no shot and
         # so no compiled frames. Whatever the last shot left behind is not
         # live data, and handing it back would show it as though it were.

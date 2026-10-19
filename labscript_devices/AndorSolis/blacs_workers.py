@@ -33,7 +33,7 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
         print(f'Exposure time was {self.camera.exposure_time}')
         return images # This may be a 3D array of several images
 
-    def configure_acquisition(self, continuous=False, bufferCount=None):
+    def configure_acquisition(self, continuous=True, buffer_count=None):
         self.camera.setup_acquisition(self.attributes)
 
     def grab(self):
