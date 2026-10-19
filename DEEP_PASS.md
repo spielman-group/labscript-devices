@@ -42,6 +42,10 @@ Each stage's commits on `CodeHealth`, for review:
 - The suite vocabulary (Ian): `d5eae95..` the commit that records this line.
   blacs did its own two items, `b68d188` and `27e20bb`; nothing here waits on
   them.
+- The device differences (Ian), and the review's findings on them: `e791c8d..`
+  the commit that records this line, coupled with labscript `6e5af94` and
+  `fe63433` (`renamed_keyword` and its `stacklevel`) and `ac21df6` (its
+  example and tests use the new names).
 
 ## The test contract
 
@@ -487,3 +491,100 @@ labscript-devices, blacs and labscript suites pass.
 | Pulse-program datasets | `PULSE_PROGRAM` ×5 against `pulse_program` PrawnDO; column names differ per board | one case | shot-file format | 2 |
 | `test_device` | a lower-case labscript class | CamelCase | test-only, but stored in connection tables | 1 |
 | NI_DAQmx `self.AI_timebease_rate` | a misspelt, unused attribute (labscript_devices.py:267) | remove | no | 1 line |
+
+## The device differences (Ian)
+
+Ian decided the 19 differences (meta
+`issues/campaign_progress/device_differences.html`): the public ones change,
+leaving the old forms working with a `FutureWarning`, which points at the
+script's line, and a `# LEGACY … WILL BE REMOVED` comment; the internal ones
+change outright.
+
+Public:
+1. A serial port is `com_port` and a network host `host` (`c994b7a`):
+   PineBlaster's `usbport`, RFBlaster's `ip_address` and LightCrafterDMD's
+   `server`. AlazarTechBoard's `server`, a PCI board's BLACS name, and
+   TekScope's `addr`, a VISA address, are neither and stay.
+2. Cicero's `serial` is `serial_number` (`4331d7a`).
+3. PulseBlaster's `core_clock_freq`, in MHz, is `clock_frequency`, in Hz
+   (`dfff799`); a lab's subclass that sets `core_clock_freq` still works.
+4. Cicero's `use_wait_monitor` defaults to True, and only a master pseudoclock
+   makes one, as on the PrawnBlaster (`5f042ef`). A default cannot be
+   deprecated: a script that made its own WaitMonitor on a Cicero master now
+   fails with "Cannot instantiate a second WaitMonitor", and needs
+   `use_wait_monitor=False`.
+5. AlazarTechBoard, Cicero, PineBlaster, RFBlaster, PrawnBlaster,
+   LightCrafterDMD and its ImageSet, PhaseMatrixQuickSyn and QuickSynDDS take
+   the core `Device` keywords and pass them on (`04539ff`).
+6. Every DDS connects as `'dds n'`, and every amplitude is `'Arb'`, 0 to 1, the
+   unit labscript-utils' NovaTech and AOM conversions use (`20140dc`,
+   `e167a83`, `ba1282a`). NovaTech's `'channel n'` still connects, and its tab
+   renames the outputs of a front panel saved under the old names. RFBlaster's
+   worker converts to the board's %, and its tab converts a front panel saved in
+   %; both tabs do so at startup and when a front panel is loaded. A
+   PulseBlaster amplitude calibration written for `'Vpp'`, the old name of the
+   same 0 to 1, still loads, with a FutureWarning. An RFBlaster calibration
+   written for `'%'` is refused by BLACS, which logs why; none is in the
+   workspace.
+7. PrawnDO's dataset is `PULSE_PROGRAM`, as on the other pseudoclocks
+   (`01a5da5`); its worker and parser still read `pulse_program`.
+8. The test device's class is `TestDevice`; `test_device` still works
+   (`7d278ce`). Its package keeps its name.
+
+Internal:
+9. PulseBlaster's and PrawnBlaster's tabs inherit `PseudoclockTab`'s
+   `start_run` and `status_monitor`, which ask the worker `shot_finished`, and
+   they and QuickSyn's refresh their widgets in `update_status` (`f37de4f`,
+   `0a5e705`). PulseBlaster's
+   reprogramming after a STOP shot is its `shot_over`. PrawnBlaster's
+   `shot_finished` takes its tab's test, reading each wait as it ends; a
+   run-status of 5 during a shot now raises, where the tab ended the shot.
+10. Every worker aborts through `abort()`, which `abort_buffered` and
+    `abort_transition_to_buffered` call; where its transition and abort share
+    their work, both call `_return_to_manual(abort)` (`ecc96af`, `7185596`).
+    PulseBlaster's and FunctionRunner's transition aborts still do less, as
+    before: neither stops the board nor runs the stop functions.
+11. Every tab creates its workers in `initialise_workers` (`5adaed5`). Cicero's
+    tab reflashes its FPGA once its worker exists.
+12. Parsers read back `device_properties` and `connection_table_properties`
+    (`d597d1d`).
+13. Workers keep the shot's file as `self.h5_file` (`7a0d8bf`).
+14. The camera interfaces are `<Device>Interface`, as their base
+    `TriggerableCameraInterface` is (`477de21`): `<Device>Camera` would name
+    DummyCamera's interface `DummyCamera`, its labscript class.
+15. Spinnaker's `get_attribute(name)` and `set_attribute(name, value)`; its
+    stream node map has `set_stream_attribute` (`8f9389f`).
+16. Every camera's `configure_acquisition(continuous=True, buffer_count=None)`,
+    `None` leaving each its own number of buffers, and `grab()` (`330ee3d`). The
+    worker passes the count positionally, so a camera on IMAQdxCameraWorker's
+    deprecated route, written with upstream's `bufferCount`, still works
+    (`c37313b`).
+17. Every `register_classes.py` in the documented form; PrawnDO's intermediate
+    device has `BLACS_tab=None` (`cfda0bc`).
+18. Every package has the `lazy_attributes` `__init__` (`ac54e75`); NI_DAQmx's
+    also exports its models.
+19. NI_DAQmx's misspelt, unused `self.AI_timebease_rate` goes (`ec8e054`).
+
+Intended differences in shot files, against `e791c8d`: NovaTech's DDSs connect
+as `'dds n'` (the RbChip sequences' 8 NovaTech DDSs too, their only
+difference); PineBlaster saves `com_port`; PrawnDO writes `PULSE_PROGRAM`; a
+Cicero master gets its wait monitor; the test device's error names
+`TestDevice`. Labs recompile their connection table once.
+
+Checks: every other test shot compiles identical, and every old public form
+compiles with its `FutureWarning`; BLACS and runviewer find every device, and
+`TestDevice`; old and new shot files give the same runviewer traces; the
+PulseBlaster, NovaTech, RFBlaster, QuickSyn, Spinnaker and PrawnDO workers do
+the same on fake hardware; labscript-devices, blacs and labscript suites pass.
+
+Seen, not changed:
+- PulseBlaster's and FunctionRunner's transition aborts, above: whether they
+  should stop the board and run the stop functions is Ian's call.
+- labscript's example puts labscript-utils' `example3`, based on `'Vpp'`, on a
+  PulseBlaster DDS amplitude, so BLACS now warns for it; labscript-utils has no
+  `'Arb'`-based example to use instead.
+- PulseBlaster's parsers take `get_traces(add_trace, parent=None)`, where
+  §5 names it `clock`; runviewer passes it positionally.
+- TekScope's driver module `TekScope.py` shadows the package's `TekScope`
+  class in a process that has imported it.
+- The test device's `DoSomething` keyword is CamelCase.
