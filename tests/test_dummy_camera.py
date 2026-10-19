@@ -26,7 +26,7 @@ import labscript_utils.h5_lock  # must precede h5py, as labscript itself does
 import h5py
 
 from labscript_devices.DummyCamera.blacs_workers import (
-    Dummy_Camera,
+    DummyCameraInterface,
     DummyCameraWorker,
 )
 from labscript_devices.IMAQdxCamera.blacs_workers import IMAQdxCameraWorker
@@ -450,7 +450,7 @@ class AnOldStyleCamera:
     attributes one at a time, with no get_attributes_as_dict."""
 
     def __init__(self, serial_number):
-        self._camera = Dummy_Camera(serial_number)
+        self._camera = DummyCameraInterface(serial_number)
 
     def __getattr__(self, name):
         if name == 'get_attributes_as_dict':
@@ -483,7 +483,7 @@ class PlaybackTests(unittest.TestCase):
     """What the worker's camera does with the images the shot compiled."""
 
     def setUp(self):
-        self.camera = Dummy_Camera(0x0)
+        self.camera = DummyCameraInterface(0x0)
         self.camera.set_attributes({'Width': 5, 'Height': 4})
         self.frames = np.arange(3 * 4 * 5, dtype='uint16').reshape(3, 4, 5)
 

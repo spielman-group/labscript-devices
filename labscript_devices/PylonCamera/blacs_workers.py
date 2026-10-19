@@ -25,7 +25,7 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
 pylon = None
 genicam = None
 
-class Pylon_Camera(TriggerableCameraInterface):
+class PylonCameraInterface(TriggerableCameraInterface):
     def __init__(self, serial_number):
         
         global pylon
@@ -167,6 +167,6 @@ class PylonCameraWorker(TriggerableCameraWorker):
     """Pylon API Camera Worker.
 
     Inherits from TriggerableCameraWorker. Defines interface_class."""
-    interface_class = Pylon_Camera
+    interface_class = PylonCameraInterface
 
 

@@ -17,7 +17,7 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
     TriggerableCameraWorker,
 )
 
-class AndorCamera(DictAttributesMixin, TriggerableCameraInterface):
+class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
 
     def __init__(self):
         global AndorCam
@@ -105,7 +105,7 @@ class AndorCamera(DictAttributesMixin, TriggerableCameraInterface):
 
 class AndorSolisWorker(TriggerableCameraWorker):
 
-    interface_class = AndorCamera
+    interface_class = AndorSolisInterface
 
     def get_camera(self):
         """ Andor cameras may not be specified by serial numbers"""

@@ -20,7 +20,7 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
 )
 
 
-class Dummy_Camera(DictAttributesMixin, TriggerableCameraInterface):
+class DummyCameraInterface(DictAttributesMixin, TriggerableCameraInterface):
     """A camera whose frames were computed when the shot was compiled.
 
     It presents the interface every camera interface class presents, and
@@ -83,13 +83,13 @@ class Dummy_Camera(DictAttributesMixin, TriggerableCameraInterface):
 class DummyCameraWorker(TriggerableCameraWorker):
     """Thin sub-class of :obj:`TriggerableCameraWorker`.
 
-    It names :obj:`Dummy_Camera` as its interface class, and hands that camera
+    It names :obj:`DummyCameraInterface` as its interface class, and hands that camera
     the images the shot compiled before the acquisition starts. Everything
     after that -- the acquisition thread, saving the images to the shot file
     and displaying them in the tab -- is inherited unchanged, which is what
     makes these images indistinguishable from a real camera's downstream."""
 
-    interface_class = Dummy_Camera
+    interface_class = DummyCameraInterface
 
     def load_shot_data(self, shot_file):
         """Hand the camera the frames this shot compiled."""
@@ -107,6 +107,6 @@ class DummyCameraWorker(TriggerableCameraWorker):
         # switches the rest of them off. Merging it last also keeps a camera
         # attribute of the same name from overriding it.
         self.attributes_to_save = dict(
-            self.attributes_to_save or {}, **Dummy_Camera.identifying_attributes
+            self.attributes_to_save or {}, **DummyCameraInterface.identifying_attributes
         )
         return return_value

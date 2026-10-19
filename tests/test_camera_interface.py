@@ -20,12 +20,12 @@ import unittest
 from labscript_devices.TriggerableCamera.blacs_workers import (
     TriggerableCameraInterface,
 )
-from labscript_devices.IMAQdxCamera.blacs_workers import IMAQdx_Camera
-from labscript_devices.PylonCamera.blacs_workers import Pylon_Camera
-from labscript_devices.SpinnakerCamera.blacs_workers import Spinnaker_Camera
-from labscript_devices.FlyCapture2Camera.blacs_workers import FlyCapture2_Camera
-from labscript_devices.AndorSolis.blacs_workers import AndorCamera
-from labscript_devices.DummyCamera.blacs_workers import Dummy_Camera
+from labscript_devices.IMAQdxCamera.blacs_workers import IMAQdxCameraInterface
+from labscript_devices.PylonCamera.blacs_workers import PylonCameraInterface
+from labscript_devices.SpinnakerCamera.blacs_workers import SpinnakerCameraInterface
+from labscript_devices.FlyCapture2Camera.blacs_workers import FlyCapture2CameraInterface
+from labscript_devices.AndorSolis.blacs_workers import AndorSolisInterface
+from labscript_devices.DummyCamera.blacs_workers import DummyCameraInterface
 
 
 # What TriggerableCameraWorker calls on self.camera that no base can supply,
@@ -40,12 +40,12 @@ VENDOR_MUST_WRITE = [
 
 # Every camera in the tree.
 EVERY_CAMERA = [
-    IMAQdx_Camera,
-    Pylon_Camera,
-    Spinnaker_Camera,
-    FlyCapture2_Camera,
-    AndorCamera,
-    Dummy_Camera,
+    IMAQdxCameraInterface,
+    PylonCameraInterface,
+    SpinnakerCameraInterface,
+    FlyCapture2CameraInterface,
+    AndorSolisInterface,
+    DummyCameraInterface,
 ]
 
 

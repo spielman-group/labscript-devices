@@ -29,7 +29,7 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
 # to inherit its classes, and doing so must not require the API
 PyCapture2 = None
 
-class FlyCapture2_Camera(TriggerableCameraInterface):
+class FlyCapture2CameraInterface(TriggerableCameraInterface):
     """The backend hardware interface class for the FlyCapture2Camera.
     
     This class handles all of the API/hardware implementation details for the
@@ -105,7 +105,7 @@ class FlyCapture2_Camera(TriggerableCameraInterface):
             mtu = gige_camera.discoverGigEPacketSize()
             if mtu <= 1500:
                 msg = """WARNING: Maximum Transmission Unit (MTU) for ethernet 
-                NIC FlyCapture2_Camera SN:%d is connected to is only %d. 
+                NIC FlyCapture2CameraInterface SN:%d is connected to is only %d. 
                 Reliable operation not expected. 
                 Please enable Jumbo frames on NIC."""
                 print(dedent(msg%(serial_number,mtu)))
@@ -430,6 +430,6 @@ class FlyCapture2CameraWorker(TriggerableCameraWorker):
     """FlyCapture2 API Camera Worker. 
     
     Inherits from obj:`TriggerableCameraWorker`. Defines :obj:`interface_class`."""
-    interface_class = FlyCapture2_Camera
+    interface_class = FlyCapture2CameraInterface
 
 

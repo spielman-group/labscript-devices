@@ -55,7 +55,7 @@ def _monkeypatch_imaqdispose():
     nivision.core.imaqDispose = nv.imaqDispose = imaqDispose
 
 
-class IMAQdx_Camera(TriggerableCameraInterface):
+class IMAQdxCameraInterface(TriggerableCameraInterface):
     def __init__(self, serial_number):
         global nv
         import nivision as nv
@@ -165,14 +165,14 @@ class IMAQdx_Camera(TriggerableCameraInterface):
 
 
 class IMAQdxCameraWorker(TriggerableCameraWorker):
-    """Worker for :obj:`IMAQdx_Camera`.
+    """Worker for :obj:`IMAQdxCameraInterface`.
 
     A subclass of this may name a camera that does not subclass
     :obj:`TriggerableCameraInterface`, and the camera's attributes are then read
     one at a time. That route is deprecated, and says so when the worker starts.
     """
 
-    interface_class = IMAQdx_Camera
+    interface_class = IMAQdxCameraInterface
 
     def init(self):
         super().init()

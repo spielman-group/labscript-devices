@@ -24,7 +24,7 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
     TriggerableCameraWorker,
 )
 
-class Spinnaker_Camera(TriggerableCameraInterface):
+class SpinnakerCameraInterface(TriggerableCameraInterface):
     def __init__(self, serial_number):
         """Initialize Spinnaker API camera.
 
@@ -231,5 +231,5 @@ class SpinnakerCameraWorker(TriggerableCameraWorker):
     """Spinnaker API Camera Worker.
 
     Inherits from TriggerableCameraWorker."""
-    interface_class = Spinnaker_Camera
+    interface_class = SpinnakerCameraInterface
 
