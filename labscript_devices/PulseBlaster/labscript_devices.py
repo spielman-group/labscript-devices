@@ -11,6 +11,8 @@
 #                                                                   #
 #####################################################################
 
+import inspect
+import os
 import sys
 import warnings
 
@@ -32,6 +34,9 @@ from labscript import (
 )
 
 import numpy as np
+
+import labscript
+import labscript_devices
 
 class PulseBlasterDDS(DDSQuantity):
     description = 'PulseBlasterDDS'
@@ -628,6 +633,25 @@ class PulseBlaster(DDSPulseBlasterMixin, PulseBlasterBase):
     clock_frequency = 75e6
 
 
+# LEGACY VPP AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+_SUITE = (
+    os.path.dirname(labscript.__file__) + os.sep,
+    os.path.dirname(labscript_devices.__file__) + os.sep,
+)
+
+
+def _constructing(frame, device):
+    """Whether `frame` is one of `device`'s constructors or their wrappers: its
+    first argument is the device."""
+    code = frame.f_code
+    if code.co_argcount:
+        return frame.f_locals.get(code.co_varnames[0]) is device
+    if code.co_flags & inspect.CO_VARARGS:
+        args = frame.f_locals.get(code.co_varnames[code.co_kwonlyargcount])
+        return bool(args) and args[0] is device
+    return False
+
+
 class PulseBlasterDirectOutputs(IntermediateDevice):
     allowed_children = [DDS, PulseBlasterDDS, DigitalOut]
     clock_limit = PulseBlaster.clock_limit
@@ -638,10 +662,14 @@ class PulseBlasterDirectOutputs(IntermediateDevice):
         # LEGACY VPP AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
         conversion = getattr(getattr(device, 'amplitude', None), 'unit_conversion_class', None)
         if getattr(conversion, 'base_unit', None) == 'Vpp':
-            # Warn at the script's line: past this method and the DDS's constructors.
-            stacklevel, frame = 2, sys._getframe(1)
-            while any(frame.f_locals.get(name) is device for name in ('self', 'inst')):
-                stacklevel, frame = stacklevel + 1, frame.f_back
+            # Warn at the line that made or added the DDS: past the suite's code
+            # and the DDS's own constructors and their wrappers. Never raise.
+            try:
+                stacklevel, frame = 2, sys._getframe(1)
+                while frame.f_code.co_filename.startswith(_SUITE) or _constructing(frame, device):
+                    stacklevel, frame = stacklevel + 1, frame.f_back
+            except Exception:
+                stacklevel = 2
             warnings.warn(
                 f"{conversion.__name__}'s base_unit 'Vpp' will be removed for a "
                 "PulseBlaster DDS amplitude; use 'Arb'.", FutureWarning,
