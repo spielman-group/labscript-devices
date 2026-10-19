@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 
-from labscript import PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError, set_passed_properties
+from labscript import PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError, set_passed_properties, renamed_keyword
 
 import numpy as np
 
@@ -32,11 +32,13 @@ class PineBlaster(PseudoclockDevice):
     max_instructions = 15000
     
     @set_passed_properties(property_names = {
-        "connection_table_properties": ["usbport"]}
+        "connection_table_properties": ["com_port"]}
         )    
-    def __init__(self, name, trigger_device=None, trigger_connection=None, usbport='COM1', **kwargs):
+    def __init__(self, name, trigger_device=None, trigger_connection=None, com_port='COM1', **kwargs):
+        # LEGACY USBPORT KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        self.com_port = com_port = renamed_keyword(kwargs, 'usbport', 'com_port', com_port, 'PineBlaster')
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
-        self.BLACS_connection = usbport
+        self.BLACS_connection = com_port
         
         # create Pseudoclock and clockline
         self._pseudoclock = Pseudoclock('%s_pseudoclock'%name, self, 'clock', max_clock_lines=1) # possibly a better connection name than 'clock'?

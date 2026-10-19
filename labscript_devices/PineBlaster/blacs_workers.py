@@ -22,7 +22,7 @@ class PineBlasterWorker(PseudoclockWorker):
         global time; import time
         self.smart_cache = []
     
-        self.pineblaster = serial.Serial(self.usbport, 115200, timeout=1)
+        self.pineblaster = serial.Serial(self.com_port, 115200, timeout=1)
         # Device has a finite startup time:
         time.sleep(5)
         self.pineblaster.write(b'hello\r\n')

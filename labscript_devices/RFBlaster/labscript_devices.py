@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 import os
-from labscript import PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, compiler, startupinfo, LabscriptError, set_passed_properties
+from labscript import PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, compiler, startupinfo, LabscriptError, set_passed_properties, renamed_keyword
 import numpy as np
 
 class RFBlaster(PseudoclockDevice):
@@ -26,9 +26,13 @@ class RFBlaster(PseudoclockDevice):
     wait_delay = trigger_delay
     
     @set_passed_properties()
-    def __init__(self, name, ip_address, trigger_device=None, trigger_connection=None, **kwargs):
+    def __init__(self, name, host=None, trigger_device=None, trigger_connection=None, **kwargs):
+        # LEGACY IP_ADDRESS KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        host = renamed_keyword(kwargs, 'ip_address', 'host', host, 'RFBlaster')
+        if host is None:
+            raise LabscriptError(f'RFBlaster {name} needs the host of its board.')
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
-        self.BLACS_connection = ip_address
+        self.BLACS_connection = host
         
         # create Pseudoclock and clockline
         self._pseudoclock = Pseudoclock('%s_pseudoclock'%name, self, 'clock', max_clock_lines=1) # possibly a better connection name than 'clock'?

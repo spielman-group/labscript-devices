@@ -16,7 +16,7 @@ import struct
 import PIL.Image
 from io import BytesIO
 
-from labscript import Device, IntermediateDevice, LabscriptError, Output, compiler
+from labscript import Device, IntermediateDevice, LabscriptError, Output, compiler, renamed_keyword
 import numpy as np
 
 
@@ -107,9 +107,11 @@ class LightCrafterDMD(IntermediateDevice):
     width = WIDTH
     height = HEIGHT
     
-    def __init__(self, name, parent_device, server = '192.168.1.100', port=21845, **kwargs):
+    def __init__(self, name, parent_device, host='192.168.1.100', port=21845, **kwargs):
+        # LEGACY SERVER KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        host = renamed_keyword(kwargs, 'server', 'host', host, 'LightCrafterDMD')
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
-        self.BLACS_connection = '%s:%d'%(server, port)
+        self.BLACS_connection = '%s:%d'%(host, port)
         
     def add_device(self, device):        
         # run checks
