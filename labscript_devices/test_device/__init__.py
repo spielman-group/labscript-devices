@@ -3,10 +3,12 @@
 # load only when asked for by name.
 from labscript_devices import lazy_attributes
 from .labscript_devices import (
+    TestDevice,
     test_device,
 )
 
 __all__ = [
+    'TestDevice',
     'test_device',
 ]
 
@@ -14,13 +16,13 @@ __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'test_deviceTab',
+            'TestDeviceTab',
         ],
         'blacs_workers': [
-            'test_deviceWorker',
+            'TestDeviceWorker',
         ],
         'runviewer_parsers': [
-            'test_deviceParser',
+            'TestDeviceParser',
         ],
     },
 )

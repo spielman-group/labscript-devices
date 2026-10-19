@@ -1,2 +1,2 @@
-class test_deviceWorker(object):
+class TestDeviceWorker(object):
     pass
