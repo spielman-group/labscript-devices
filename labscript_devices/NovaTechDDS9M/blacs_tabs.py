@@ -14,6 +14,18 @@
 from blacs.device_base_class import DeviceTab
 
 class NovaTechDDS9MTab(DeviceTab):
+    # LEGACY 'channel n' NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+    def upgrade_front_panel(self, saved):
+        """Rename the outputs of a front panel saved before the channels were
+        named 'dds n'."""
+        for name in list(saved):
+            if name.startswith('channel '):
+                saved.setdefault('dds ' + name[len('channel '):], saved.pop(name))
+
+    def update_from_settings(self, settings):
+        self.upgrade_front_panel(settings.setdefault('front_panel_settings', {}))
+        super().update_from_settings(settings)
+
     def initialise_GUI(self):        
         # Capabilities
         self.base_units =    {'freq':'Hz',          'amp':'Arb',   'phase':'Degrees'}
@@ -23,12 +35,7 @@ class NovaTechDDS9MTab(DeviceTab):
         self.base_decimals = {'freq':1,             'amp':4,       'phase':3} # TODO: find out what the phase precision is!
         self.num_DDS = 4
         
-        # LEGACY 'channel n' NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        # Front panels saved before the channels were named 'dds n'.
-        saved = self.settings.setdefault('front_panel_settings', {})
-        for name in list(saved):
-            if name.startswith('channel '):
-                saved.setdefault('dds ' + name[len('channel '):], saved.pop(name))
+        self.upgrade_front_panel(self.settings.setdefault('front_panel_settings', {}))
 
         # Create DDS Output objects
         dds_prop = {}

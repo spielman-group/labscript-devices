@@ -17,6 +17,20 @@ from blacs.device_base_class import DeviceTab
 
 
 class RFBlasterTab(DeviceTab):
+    # LEGACY PERCENT AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+    def upgrade_front_panel(self, saved):
+        """Convert the amplitudes of a front panel saved when they were shown in
+        %."""
+        for name, output in saved.items():
+            if name.endswith('_amp') and output.get('current_units') == '%':
+                output['base_value'] /= 100
+                output['base_step_size'] /= 100
+                output['current_units'] = 'Arb'
+
+    def update_from_settings(self, settings):
+        self.upgrade_front_panel(settings.setdefault('front_panel_settings', {}))
+        super().update_from_settings(settings)
+
     def initialise_GUI(self):
         # Capabilities 
         self.base_units =     {'freq':'Hz',        'amp':'Arb',       'phase':'Degrees'}
@@ -27,14 +41,7 @@ class RFBlasterTab(DeviceTab):
         self.base_decimals =  {'freq':1,           'amp':5,           'phase':3}
         self.num_DDS = 2  
 
-        # LEGACY PERCENT AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        # Front panels saved when the amplitude was shown in %.
-        for i in range(self.num_DDS):
-            saved = self.settings.get('front_panel_settings', {}).get('dds %d_amp' % i)
-            if saved and saved.get('current_units') == '%':
-                saved['base_value'] /= 100
-                saved['base_step_size'] /= 100
-                saved['current_units'] = 'Arb'
+        self.upgrade_front_panel(self.settings.setdefault('front_panel_settings', {}))
 
         # Create DDS Output objects
         dds_prop = {}
