@@ -324,15 +324,15 @@ class NI_DAQmxWorker(Worker):
 
         return final_values
 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         # Store the initial values in case we have to abort and restore them:
-        self.initial_values = initial_values
+        self.initial_values = front_panel_values
 
         # Stop the manual mode output tasks, if any:
         self.stop_tasks()
 
         # Get the data to be programmed into the output tasks:
-        AO_table, DO_table = self.get_output_tables(h5file, device_name)
+        AO_table, DO_table = self.get_output_tables(h5_file, device_name)
 
         # Mirror the clock terminal, if applicable:
         self.set_mirror_clock_terminal_connected(True)
@@ -548,11 +548,11 @@ class NI_DAQmxAcquisitionWorker(Worker):
             self.task = None
             self.read_array = None
 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         self.logger.debug('transition_to_buffered')
 
         # read channels, acquisition rate, etc from H5 file
-        with h5py.File(h5file, 'r') as f:
+        with h5py.File(h5_file, 'r') as f:
             group = f['/devices/' + device_name]
             if 'AI' not in group:
                 # No acquisition
@@ -564,7 +564,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
         # Remove duplicates and sort:
         if chans:
             self.buffered_chans = sorted(set(chans), key=split_conn_AI)
-        self.h5_file = h5file
+        self.h5_file = h5_file
         self.buffered_rate = device_properties['acquisition_rate']
         if device_properties['start_delay_ticks']:
             # delay is defined in sample clock ticks, calculate in sec and save for later
@@ -691,7 +691,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
     def abort_transition_to_buffered(self):
         return self.transition_to_manual(True)
 
-    def program_manual(self, values):
+    def program_manual(self, front_panel_values):
         return {}
 
 
@@ -904,10 +904,10 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                 1, True, 1, DAQmx_Val_GroupByChannel, self.timeout_rearm, written, None
             )
 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         self.logger.debug('transition_to_buffered')
-        self.h5_file = h5file
-        with h5py.File(h5file, 'r') as hdf5_file:
+        self.h5_file = h5_file
+        with h5py.File(h5_file, 'r') as hdf5_file:
             dataset = hdf5_file['waits']
             if len(dataset) == 0:
                 # There are no waits. Do nothing.
@@ -982,5 +982,5 @@ class NI_DAQmxWaitMonitorWorker(Worker):
     def abort_transition_to_buffered(self):
         return self.transition_to_manual(True)
 
-    def program_manual(self, values):
+    def program_manual(self, front_panel_values):
         return {}

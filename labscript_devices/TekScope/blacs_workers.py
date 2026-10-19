@@ -20,11 +20,11 @@ class TekScopeWorker(Worker):
         )
         print('Connected to {} (SN: {})'.format(model, sn))
 
-    def transition_to_buffered(self, device_name, h5file, front_panel_values, refresh):
-        self.h5file = h5file  # We'll need this in transition_to_manual
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
+        self.h5file = h5_file  # We'll need this in transition_to_manual
         self.device_name = device_name
-        with h5py.File(h5file, 'r') as hdf5_file:
-            print('\n' + h5file)
+        with h5py.File(h5_file, 'r') as hdf5_file:
+            print('\n' + h5_file)
             self.device_properties = labscript_utils.properties.get(
                 hdf5_file, device_name, 'device_properties'
             )
@@ -71,8 +71,8 @@ class TekScopeWorker(Worker):
         print('Done!')
         return True
 
-    def program_manual(self, values):
-        return values
+    def program_manual(self, front_panel_values):
+        return front_panel_values
 
     def abort(self):
         print('aborting!')

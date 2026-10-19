@@ -40,5 +40,5 @@ class GuilessWorker(Worker):
     """The worker of a device with no front panel, which has nothing to program
     in manual mode."""
 
-    def program_manual(self, values):
-        return values
+    def program_manual(self, front_panel_values):
+        return front_panel_values

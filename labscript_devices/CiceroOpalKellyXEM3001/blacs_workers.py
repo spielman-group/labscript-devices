@@ -125,17 +125,17 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
         del self.dev	# close() function not available in Python
         
     # Dummy method because there is no manual mode for this device
-    def program_manual(self, values):    
-        return values
+    def program_manual(self, front_panel_values):    
+        return front_panel_values
                 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
-        self.h5_file = h5file # store reference to h5 file for wait monitor
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
+        self.h5_file = h5_file # store reference to h5 file for wait monitor
         self.current_wait = 0 # reset wait analysis
         
         # Abort any manual mode loop (manual mode is a hack which has it stuck in a wait) and return the output to 0 in preparation for clock to begin
         self.abort()
         
-        with h5py.File(h5file,'r') as hdf5_file:
+        with h5py.File(h5_file,'r') as hdf5_file:
             
             # main data
             group = hdf5_file['devices/%s'%device_name]

@@ -19,8 +19,8 @@ class DummyIntermediateDeviceWorker(Worker):
     def program_manual(self, front_panel_values):
         return front_panel_values 
 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
-        return initial_values
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
+        return front_panel_values
 
     def transition_to_manual(self,abort = False):
         return True

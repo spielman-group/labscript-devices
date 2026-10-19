@@ -265,12 +265,12 @@ class PrawnDOWorker(PseudoclockWorker):
 
         return self._int_to_dict(resp_i)
 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
 
         if fresh:
             self.smart_cache = {'pulse_program':None}
 
-        with h5py.File(h5file, 'r') as hdf5_file:
+        with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['devices'][device_name]
             if 'pulse_program' not in group:
                 # if no output commanded, return

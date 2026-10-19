@@ -83,14 +83,14 @@ class ZaberStageControllerWorker(Worker):
             remote_values[connection] = self.controller.get_position(device_number)
         return remote_values
 
-    def program_manual(self, values):
-        for connection, value in values.items():
+    def program_manual(self, front_panel_values):
+        for connection, value in front_panel_values.items():
             device_number = get_device_number(connection)
             self.controller.move(device_number, int(round(value)))
         return self.check_remote_values()
 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
-        with h5py.File(h5file, 'r') as hdf5_file:
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
+        with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['/devices/' + device_name]
             if 'static_values' in group:
                 data = group['static_values']

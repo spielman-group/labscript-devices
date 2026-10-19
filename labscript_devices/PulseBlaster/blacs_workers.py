@@ -47,7 +47,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
         self.time_based_shot_duration = None
         self.time_based_shot_end_time = None
 
-    def program_manual(self,values):
+    def program_manual(self,front_panel_values):
         # create flags string
         # NOTE: The spinapi can take a string or integer for flags.
                 # If it is a string: 
@@ -61,7 +61,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
                 # Be warned!
         flags = ''
         for i in range(self.num_DO):
-            if values['flag %d'%i]:
+            if front_panel_values['flag %d'%i]:
                 flags += '1'
             else:
                 flags += '0'
@@ -101,12 +101,12 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
             import time
             self.time_based_shot_end_time = time.time() + self.time_based_shot_duration
             
-    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
-        self.h5file = h5file
+    def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):
+        self.h5file = h5_file
         if self.programming_scheme == 'pb_stop_programming/STOP':
             # Need to ensure device is stopped before programming - or we wont know what line it's on.
             pb_stop()
-        with h5py.File(h5file,'r') as hdf5_file:
+        with h5py.File(h5_file,'r') as hdf5_file:
             group = hdf5_file['devices/%s'%device_name]
                           
             # Is this shot using the fixed-duration workaround instead of checking the PulseBlaster's status?
@@ -122,7 +122,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
             #Let's get the final state of the pulseblaster. z's are the args we don't need:
             flags,z,z,z = pulse_program[-1]
             
-            if fresh or (self.smart_cache['initial_values'] != initial_values) or \
+            if fresh or (self.smart_cache['initial_values'] != front_panel_values) or \
                 (len(self.smart_cache['pulse_program']) != len(pulse_program)) or \
                 (self.smart_cache['pulse_program'] != pulse_program).any() or \
                 not self.smart_cache['ready_to_go']:
@@ -130,7 +130,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
                 pb_start_programming(PULSE_PROGRAM)
             
                 self.smart_cache['ready_to_go'] = True
-                self.smart_cache['initial_values'] = initial_values
+                self.smart_cache['initial_values'] = front_panel_values
 
                 # create initial flags string
                 # NOTE: The spinapi can take a string or integer for flags.
@@ -145,7 +145,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
                 # Be warned!
                 initial_flags = ''
                 for i in range(self.num_DO):
-                    if initial_values['flag %d'%i]:
+                    if front_panel_values['flag %d'%i]:
                         initial_flags += '1'
                     else:
                         initial_flags += '0'
@@ -271,7 +271,7 @@ class DDSPulseBlasterWorkerMixin:
         self.smart_cache.update({'amps0':None,'freqs0':None,'phases0':None,
                                  'amps1':None,'freqs1':None,'phases1':None})
 
-    def program_manual(self,values):
+    def program_manual(self,front_panel_values):
     
         if self.programming_scheme == 'pb_stop_programming/STOP':
             # Need to ensure device is stopped before programming - or we won't know what line it's on.
@@ -282,9 +282,9 @@ class DDSPulseBlasterWorkerMixin:
             pb_select_dds(i)
             # Program the frequency, amplitude and phase into their
             # zeroth registers:
-            program_amp_regs(values['dds %d'%i]['amp']) # Does not call pb_stop_programming anyway, so no kwarg needed
-            program_freq_regs(values['dds %d'%i]['freq']/10.0**6, call_stop_programming=False) # method expects MHz
-            program_phase_regs(values['dds %d'%i]['phase'], call_stop_programming=False)
+            program_amp_regs(front_panel_values['dds %d'%i]['amp']) # Does not call pb_stop_programming anyway, so no kwarg needed
+            program_freq_regs(front_panel_values['dds %d'%i]['freq']/10.0**6, call_stop_programming=False) # method expects MHz
+            program_phase_regs(front_panel_values['dds %d'%i]['phase'], call_stop_programming=False)
 
         # create flags string
         # NOTE: The spinapi can take a string or integer for flags.
@@ -299,7 +299,7 @@ class DDSPulseBlasterWorkerMixin:
                 # Be warned!
         flags = ''
         for i in range(self.num_DO):
-            if values['flag %d'%i]:
+            if front_panel_values['flag %d'%i]:
                 flags += '1'
             else:
                 flags += '0'
@@ -307,9 +307,9 @@ class DDSPulseBlasterWorkerMixin:
         # Write the first two lines of the pulse program:
         pb_start_programming(PULSE_PROGRAM)
         # Line zero is a wait:
-        pb_inst_dds2(0,0,0,values['dds 0']['gate'],0,0,0,0,values['dds 1']['gate'],0,flags, WAIT, 0, 100)
+        pb_inst_dds2(0,0,0,front_panel_values['dds 0']['gate'],0,0,0,0,front_panel_values['dds 1']['gate'],0,flags, WAIT, 0, 100)
         # Line one is a brach to line 0:
-        pb_inst_dds2(0,0,0,values['dds 0']['gate'],0,0,0,0,values['dds 1']['gate'],0,flags, BRANCH, 0, 100)
+        pb_inst_dds2(0,0,0,front_panel_values['dds 0']['gate'],0,0,0,0,front_panel_values['dds 1']['gate'],0,flags, BRANCH, 0, 100)
         pb_stop_programming()
         
         # Now we're waiting on line zero, so when we start() we'll go to
@@ -323,12 +323,12 @@ class DDSPulseBlasterWorkerMixin:
         # TODO: return coerced/quantised values
         return {}
         
-    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
-        self.h5file = h5file
+    def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):
+        self.h5file = h5_file
         if self.programming_scheme == 'pb_stop_programming/STOP':
             # Need to ensure device is stopped before programming - or we wont know what line it's on.
             pb_stop()
-        with h5py.File(h5file,'r') as hdf5_file:
+        with h5py.File(h5_file,'r') as hdf5_file:
             group = hdf5_file['devices/%s'%device_name]
             
             # Is this shot using the fixed-duration workaround instead of checking the PulseBlaster's status?
@@ -347,9 +347,9 @@ class DDSPulseBlasterWorkerMixin:
                 freqs = group['DDS%d/FREQ_REGS'%i][:]
                 phases = group['DDS%d/PHASE_REGS'%i][:]
                 
-                amps[0] = initial_values['dds %d'%i]['amp']
-                freqs[0] = initial_values['dds %d'%i]['freq']/10.0**6 # had better be in MHz!
-                phases[0] = initial_values['dds %d'%i]['phase']
+                amps[0] = front_panel_values['dds %d'%i]['amp']
+                freqs[0] = front_panel_values['dds %d'%i]['freq']/10.0**6 # had better be in MHz!
+                phases[0] = front_panel_values['dds %d'%i]['phase']
                 
                 pb_select_dds(i)
                 # Only reprogram each thing if there's been a change:
@@ -389,13 +389,13 @@ class DDSPulseBlasterWorkerMixin:
             # occurred due to smart programming:
             pb_start_programming(PULSE_PROGRAM)
             
-            if fresh or (self.smart_cache['initial_values'] != initial_values) or \
+            if fresh or (self.smart_cache['initial_values'] != front_panel_values) or \
                 (len(self.smart_cache['pulse_program']) != len(pulse_program)) or \
                 (self.smart_cache['pulse_program'] != pulse_program).any() or \
                 not self.smart_cache['ready_to_go']:
             
                 self.smart_cache['ready_to_go'] = True
-                self.smart_cache['initial_values'] = initial_values
+                self.smart_cache['initial_values'] = front_panel_values
 
                 # create initial flags string
                 # NOTE: The spinapi can take a string or integer for flags.
@@ -410,7 +410,7 @@ class DDSPulseBlasterWorkerMixin:
                 # Be warned!
                 initial_flags = ''
                 for i in range(self.num_DO):
-                    if initial_values['flag %d'%i]:
+                    if front_panel_values['flag %d'%i]:
                         initial_flags += '1'
                     else:
                         initial_flags += '0'
@@ -420,10 +420,10 @@ class DDSPulseBlasterWorkerMixin:
                     pb_inst_dds2(freqreg0,phasereg0,ampreg0,en0,0,freqreg1,phasereg1,ampreg1,en1,0,flags,WAIT,0,100)
                 else:
                     # Line zero otherwise just contains the initial state 
-                    pb_inst_dds2(0,0,0,initial_values['dds 0']['gate'],0,0,0,0,initial_values['dds 1']['gate'],0,initial_flags, CONTINUE, 0, 100)
+                    pb_inst_dds2(0,0,0,front_panel_values['dds 0']['gate'],0,0,0,0,front_panel_values['dds 1']['gate'],0,initial_flags, CONTINUE, 0, 100)
 
                 # Line one is a continue with the current front panel values:
-                pb_inst_dds2(0,0,0,initial_values['dds 0']['gate'],0,0,0,0,initial_values['dds 1']['gate'],0,initial_flags, CONTINUE, 0, 100)
+                pb_inst_dds2(0,0,0,front_panel_values['dds 0']['gate'],0,0,0,0,front_panel_values['dds 1']['gate'],0,initial_flags, CONTINUE, 0, 100)
                 # Now the rest of the program:
                 if fresh or len(self.smart_cache['pulse_program']) != len(pulse_program) or \
                 (self.smart_cache['pulse_program'] != pulse_program).any():

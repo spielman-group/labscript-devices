@@ -17,12 +17,12 @@ from labscript_devices.pseudoclock import PseudoclockWorker
 import labscript_utils.properties as properties
 
 class DummyPseudoclockWorker(PseudoclockWorker):
-    def program_manual(self, values):
+    def program_manual(self, front_panel_values):
         return {}
 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         # get stop time:
-        with h5py.File(h5file, 'r') as f:
+        with h5py.File(h5_file, 'r') as f:
             device_properties = properties.get(f, self.device_name, 'device_properties')
             self.stop_time = device_properties['stop_time']
         return {}

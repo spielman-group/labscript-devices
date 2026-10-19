@@ -39,19 +39,19 @@ class PineBlasterWorker(PseudoclockWorker):
     def shutdown(self):
         self.pineblaster.close()
         
-    def program_manual(self, values):    
-        value = values['internal'] # there is only one value
+    def program_manual(self, front_panel_values):    
+        value = front_panel_values['internal'] # there is only one value
         self.pineblaster.write(b'go high\r\n' if value else b'go low\r\n')
         response = self.pineblaster.readline().decode()
         assert response == 'ok\r\n', 'PineBlaster said \'%s\', expected \'ok\''%repr(response)
         return {}
         
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         if fresh:
             self.smart_cache = []
         self.program_manual({'internal':0})
         
-        with h5py.File(h5file,'r') as hdf5_file:
+        with h5py.File(h5_file,'r') as hdf5_file:
             group = hdf5_file['devices/%s'%device_name]
             pulse_program = group['PULSE_PROGRAM'][:]
             device_properties = labscript_utils.properties.get(hdf5_file, device_name, 'device_properties')

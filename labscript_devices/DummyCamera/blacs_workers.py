@@ -97,9 +97,9 @@ class DummyCameraWorker(TriggerableCameraWorker):
         images = group['IMAGES'][:] if 'IMAGES' in group else None
         self.camera.load_images(images)
 
-    def transition_to_buffered(self, device_name, h5_filepath, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         return_value = TriggerableCameraWorker.transition_to_buffered(
-            self, device_name, h5_filepath, initial_values, fresh
+            self, device_name, h5_file, front_panel_values, fresh
         )
         # NOT_REAL_DATA is not camera metadata anyone may decide not to save:
         # it is the only thing in the shot file saying these images were made

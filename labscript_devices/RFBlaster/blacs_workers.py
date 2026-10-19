@@ -66,20 +66,20 @@ class RFBlasterWorker(PseudoclockWorker):
         self.netlogger.info('restart_kloned: Finished. Closing socket.')
         s.close()
 
-    def program_manual(self,values):
-        self._last_program_manual_values = values
+    def program_manual(self,front_panel_values):
+        self._last_program_manual_values = front_panel_values
         form = MultiPartForm()
         for i in range(self.num_DDS):
             # Program the frequency, amplitude and phase
-            form.add_field("a_ch%d_in"%i,str(values['dds %d'%i]['amp']*values['dds %d'%i]['gate']))
-            form.add_field("f_ch%d_in"%i,str(values['dds %d'%i]['freq']*1e-6)) # method expects MHz
-            form.add_field("p_ch%d_in"%i,str(values['dds %d'%i]['phase']))
+            form.add_field("a_ch%d_in"%i,str(front_panel_values['dds %d'%i]['amp']*front_panel_values['dds %d'%i]['gate']))
+            form.add_field("f_ch%d_in"%i,str(front_panel_values['dds %d'%i]['freq']*1e-6)) # method expects MHz
+            form.add_field("p_ch%d_in"%i,str(front_panel_values['dds %d'%i]['phase']))
         form.add_field("set_dds", "Set device")
         return_vals = self.get_web_values(self.http_request(form))
         return return_vals
         
-    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
-        with h5py.File(h5file,'r') as hdf5_file:
+    def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):
+        with h5py.File(h5_file,'r') as hdf5_file:
             group = hdf5_file['devices'][device_name]
             # Strip out the binary files and submit to the webserver
             form = MultiPartForm()

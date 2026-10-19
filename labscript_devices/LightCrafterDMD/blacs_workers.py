@@ -127,8 +127,8 @@ class LightCrafterDMDWorker(Worker):
     
     
     
-    def program_manual(self, values):
-        for region, value in values.items():
+    def program_manual(self, front_panel_values):
+        for region, value in front_panel_values.items():
             data = value
             data = base64.b64decode(data)
         # Replace empty data with the black picture
@@ -144,8 +144,8 @@ class LightCrafterDMDWorker(Worker):
         self.send(self.send_packet_type['write'], self.command['static_image'], data)
         return {}
         
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
-        with h5py.File(h5file, 'r') as hdf5_file:
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
+        with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
             if 'IMAGE_TABLE' in group:
                 table_data = group['IMAGE_TABLE'][:]

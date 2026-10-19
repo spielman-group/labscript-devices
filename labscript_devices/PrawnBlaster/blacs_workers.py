@@ -280,18 +280,18 @@ class PrawnBlasterWorker(PseudoclockWorker):
                 f"PrawnBlaster is confused: saying '{response}' instead of 'run-status:<int> clock-status:<int>'"
             )
 
-    def program_manual(self, values):
+    def program_manual(self, front_panel_values):
         """Manually sets the state of output pins for the pseudoclocks.
 
         Args:
-            values (dict): Dictionary of pseudoclock: value pairs to set.
+            front_panel_values (dict): Dictionary of pseudoclock: value pairs to set.
 
         Returns:
-            dict: `values` from arguments on successful programming
+            dict: `front_panel_values` from arguments on successful programming
             reflecting current output state.
         """
 
-        for channel, value in values.items():
+        for channel, value in front_panel_values.items():
             pin = int(channel.split()[1])
             pseudoclock = self.out_pins.index(pin)
             if value:
@@ -299,15 +299,15 @@ class PrawnBlasterWorker(PseudoclockWorker):
             else:
                 self.send_command_ok(f"go low {pseudoclock}")
 
-        return values
+        return front_panel_values
 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         """Configures the PrawnBlaster for buffered execution.
 
         Args:
             device_name (str): labscript name of PrawnBlaster
-            h5file (str): path to shot file to be run
-            initial_values (dict): Dictionary of output states at start of shot
+            h5_file (str): path to shot file to be run
+            front_panel_values (dict): Dictionary of output states at start of shot
             fresh (bool): When `True`, clear the local :py:attr:`smart_cache`, forcing
                 a complete reprogramming of the output table.
 
@@ -319,7 +319,7 @@ class PrawnBlasterWorker(PseudoclockWorker):
             self.smart_cache = {}
 
         # fmt: off
-        self.h5_file = h5file  # store reference to h5 file for wait monitor
+        self.h5_file = h5_file  # store reference to h5 file for wait monitor
         self.current_wait = 0  # reset wait analysis
         self.started = False   # Prevent status check from detecting previous wait values
         #                        betwen now and when we actually send the start signal
@@ -327,7 +327,7 @@ class PrawnBlasterWorker(PseudoclockWorker):
 
         # Get data from HDF5 file
         pulse_programs = []
-        with h5py.File(h5file, "r") as hdf5_file:
+        with h5py.File(h5_file, "r") as hdf5_file:
             group = hdf5_file[f"devices/{device_name}"]
             for i in range(self.num_pseudoclocks):
                 pulse_programs.append(group[f"PULSE_PROGRAM_{i}"][:])

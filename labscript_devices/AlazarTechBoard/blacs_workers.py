@@ -193,11 +193,11 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         self.acquisition_thread.start()
         self.aborting = False
 
-    def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
-        self.h5file = h5file  # We'll need this in transition_to_manual
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
+        self.h5file = h5_file  # We'll need this in transition_to_manual
         self.device_name = device_name
-        with h5py.File(h5file, 'r') as hdf5_file:
-            print("\nUsing "+h5file)
+        with h5py.File(h5_file, 'r') as hdf5_file:
+            print("\nUsing "+h5_file)
             self.device_properties = device_properties = labscript_utils.properties.get(
                 hdf5_file, device_name, 'device_properties')
 
@@ -258,7 +258,7 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
 
         # Store the actual acquisition rate back as an attribute.
         # Again, this should be done as an ACQUISITIONS table entry, but not today
-        with h5py.File(h5file, 'r+') as hdf5_file:
+        with h5py.File(h5_file, 'r+') as hdf5_file:
             hdf5_file['devices'][device_name].attrs.create(
                 'acquisition_rate', actual_acquisition_rate, dtype='int32')
 

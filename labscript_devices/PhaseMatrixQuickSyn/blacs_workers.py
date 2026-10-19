@@ -143,12 +143,12 @@ class PhaseMatrixQuickSynWorker(Worker):
     def update_lock_recovery(self,value):
         pass
     
-    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
+    def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):
         # Store the initial values in case we have to abort and restore them:
-        self.initial_values = initial_values
+        self.initial_values = front_panel_values
         # Store the final values to for use during transition_to_static:
         self.final_values = {}
-        with h5py.File(h5file, 'r') as hdf5_file:
+        with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
             # If there are values to set the unbuffered outputs to, set them now:
             if 'STATIC_DATA' in group:

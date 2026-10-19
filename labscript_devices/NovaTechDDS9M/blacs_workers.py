@@ -153,7 +153,7 @@ class NovaTechDDS9MWorker(Worker):
         # Now that a static update has been done, we'd better invalidate the saved STATIC_DATA:
         self.smart_cache['STATIC_DATA'] = None
      
-    def transition_to_buffered(self,device_name,h5file,initial_values,fresh):
+    def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):
 
         # The "double clutch" trick: switching to table mode and back again, before
         # going into table mode for real, is observed empirically to resolve an
@@ -171,12 +171,12 @@ class NovaTechDDS9MWorker(Worker):
 
 
         # Store the initial values in case we have to abort and restore them:
-        self.initial_values = initial_values
+        self.initial_values = front_panel_values
         # Store the final values to for use during transition_to_static:
         self.final_values = {}
         static_data = None
         table_data = None
-        with h5py.File(h5file, 'r') as hdf5_file:
+        with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
             # If there are values to set the unbuffered outputs to, set them now:
             if 'STATIC_DATA' in group:

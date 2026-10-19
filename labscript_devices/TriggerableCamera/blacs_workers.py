@@ -359,17 +359,17 @@ class TriggerableCameraWorker(Worker):
         if not pause:
             self.continuous_dt = None
 
-    def transition_to_buffered(self, device_name, h5_filepath, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         if getattr(self, 'is_remote', False):
-            h5_filepath = path_to_local(h5_filepath)
+            h5_file = path_to_local(h5_file)
         if self.continuous_thread is not None:
             # Pause continuous acquistion during transition_to_buffered:
             self.stop_continuous(pause=True)
-        with h5py.File(h5_filepath, 'r') as f:
+        with h5py.File(h5_file, 'r') as f:
             group = f['devices'][self.device_name]
             if not 'EXPOSURES' in group:
                 return {}
-            self.h5_filepath = h5_filepath
+            self.h5_filepath = h5_file
             self.exposures = group['EXPOSURES'][:]
             self.n_images = len(self.exposures)
 
@@ -511,7 +511,7 @@ class TriggerableCameraWorker(Worker):
     def abort_transition_to_buffered(self):
         return self.abort()
 
-    def program_manual(self, values):
+    def program_manual(self, front_panel_values):
         return {}
 
     def shutdown(self):

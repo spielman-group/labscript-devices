@@ -52,10 +52,10 @@ class ShotContext(object):
 
 
 class FunctionRunnerWorker(Worker):
-    def program_manual(self, values):
+    def program_manual(self, front_panel_values):
         return {}
 
-    def transition_to_buffered(self, device_name, h5_file, initial_values, fresh):
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         rich_print(f"====== new shot: {os.path.basename(h5_file)} ======", color=GREEN)
         with h5py.File(h5_file, 'r') as f:
             group = f[f'devices/{self.device_name}']
