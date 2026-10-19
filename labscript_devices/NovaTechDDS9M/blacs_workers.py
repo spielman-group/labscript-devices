@@ -18,7 +18,7 @@ from blacs.tab_base_classes import Worker
 from .labscript_devices import bauds
 
 
-class NovatechDDS9mWorker(Worker):
+class NovaTechDDS9MWorker(Worker):
     def init(self):
         global serial; import serial
         global socket; import socket

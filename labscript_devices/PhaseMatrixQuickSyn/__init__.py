@@ -30,7 +30,7 @@ __getattr__ = lazy_attributes(
             'PhaseMatrixQuickSynTab',
         ],
         'blacs_workers': [
-            'QuickSynWorker',
+            'PhaseMatrixQuickSynWorker',
         ],
     },
 )

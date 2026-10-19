@@ -32,7 +32,7 @@ __getattr__ = lazy_attributes(
             'PulseBlasterBaseTab', 'DDSPulseBlasterTabMixin', 'PulseBlasterTab',
         ],
         'blacs_workers': [
-            'PulseBlasterBaseWorker', 'DDSPulseBlasterWorkerMixin', 'PulseblasterWorker',
+            'PulseBlasterBaseWorker', 'DDSPulseBlasterWorkerMixin', 'PulseBlasterWorker',
         ],
         'runviewer_parsers': [
             'profiles', 'profile', 'start_profile', 'stop_profile',

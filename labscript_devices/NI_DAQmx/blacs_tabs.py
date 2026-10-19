@@ -143,7 +143,7 @@ class NI_DAQmxTab(DeviceTab):
         # Create and set the primary worker
         self.create_worker(
             "main_worker",
-            'labscript_devices.NI_DAQmx.blacs_workers.NI_DAQmxOutputWorker',
+            'labscript_devices.NI_DAQmx.blacs_workers.NI_DAQmxWorker',
             {
                 'MAX_name': self.MAX_name,
                 'Vmin': AO_base_min,

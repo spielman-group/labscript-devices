@@ -15,7 +15,7 @@ from labscript_devices.pseudoclock import PseudoclockWorker
 import labscript_utils.properties
 
 
-class PineblasterWorker(PseudoclockWorker):
+class PineBlasterWorker(PseudoclockWorker):
     def init(self):
         global h5py; import labscript_utils.h5_lock, h5py
         global serial; import serial

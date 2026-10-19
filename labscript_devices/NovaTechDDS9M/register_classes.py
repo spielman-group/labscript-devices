@@ -14,8 +14,8 @@
 import labscript_devices
 
 labscript_device_name = 'NovaTechDDS9M'
-blacs_tab = 'labscript_devices.NovaTechDDS9M.blacs_tabs.NovatechDDS9MTab'
-parser = 'labscript_devices.NovaTechDDS9M.runviewer_parsers.RunviewerClass'
+blacs_tab = 'labscript_devices.NovaTechDDS9M.blacs_tabs.NovaTechDDS9MTab'
+parser = 'labscript_devices.NovaTechDDS9M.runviewer_parsers.NovaTechDDS9MParser'
 
 labscript_devices.register_classes(
     labscript_device_name=labscript_device_name,

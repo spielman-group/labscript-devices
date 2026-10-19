@@ -15,7 +15,7 @@ import labscript_devices
 
 labscript_device_name = 'CiceroOpalKellyXEM3001'
 blacs_tab = 'labscript_devices.CiceroOpalKellyXEM3001.blacs_tabs.CiceroOpalKellyXEM3001Tab'
-parser = 'labscript_devices.CiceroOpalKellyXEM3001.runviewer_parsers.RunviewerClass'
+parser = 'labscript_devices.CiceroOpalKellyXEM3001.runviewer_parsers.CiceroOpalKellyXEM3001Parser'
 
 labscript_devices.register_classes(
     labscript_device_name=labscript_device_name,

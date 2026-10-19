@@ -27,13 +27,13 @@ __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'PineblasterTab',
+            'PineBlasterTab',
         ],
         'blacs_workers': [
-            'PineblasterWorker',
+            'PineBlasterWorker',
         ],
         'runviewer_parsers': [
-            'RunviewerClass',
+            'PineBlasterParser',
         ],
     },
 )

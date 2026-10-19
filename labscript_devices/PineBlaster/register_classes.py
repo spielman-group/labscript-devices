@@ -14,8 +14,8 @@
 import labscript_devices
 
 labscript_device_name = 'PineBlaster'
-blacs_tab = 'labscript_devices.PineBlaster.blacs_tabs.PineblasterTab'
-parser = 'labscript_devices.PineBlaster.runviewer_parsers.RunviewerClass'
+blacs_tab = 'labscript_devices.PineBlaster.blacs_tabs.PineBlasterTab'
+parser = 'labscript_devices.PineBlaster.runviewer_parsers.PineBlasterParser'
 
 labscript_devices.register_classes(
     labscript_device_name=labscript_device_name,

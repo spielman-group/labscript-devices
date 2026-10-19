@@ -11,8 +11,8 @@
 #                                                                   #
 #####################################################################
 
-from labscript_devices.PulseBlaster_No_DDS.blacs_workers import PulseblasterNoDDSWorker
+from labscript_devices.PulseBlaster_No_DDS.blacs_workers import PulseBlaster_No_DDS_Worker
 
 
-class PulseblasterESRPro500Worker(PulseblasterNoDDSWorker):
+class PulseBlasterESRPro500Worker(PulseBlaster_No_DDS_Worker):
     core_clock_freq = 500.0

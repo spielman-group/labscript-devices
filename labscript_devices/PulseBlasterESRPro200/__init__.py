@@ -27,13 +27,13 @@ __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'Pulseblaster_No_DDS_Tab', 'pulseblasteresrpro200',
+            'PulseBlaster_No_DDS_Tab', 'PulseBlasterESRPro200Tab',
         ],
         'blacs_workers': [
-            'PulseblasterNoDDSWorker', 'PulseblasterESRPro200Worker',
+            'PulseBlaster_No_DDS_Worker', 'PulseBlasterESRPro200Worker',
         ],
         'runviewer_parsers': [
-            'PulseBlaster_No_DDS_Parser', 'PulseblasterESRPro200Parser',
+            'PulseBlaster_No_DDS_Parser', 'PulseBlasterESRPro200Parser',
         ],
     },
 )

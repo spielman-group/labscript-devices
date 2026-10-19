@@ -20,7 +20,7 @@ from blacs.tab_base_classes import Worker
 from .labscript_devices import BLANK_BMP
 
 
-class LightCrafterWorker(Worker):
+class LightCrafterDMDWorker(Worker):
     command = {'version' :             b'\x01\x00',
                 'display_mode':         b'\x01\x01',
                 'static_image':         b'\x01\x05',

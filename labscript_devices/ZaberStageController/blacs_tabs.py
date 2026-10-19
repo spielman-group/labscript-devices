@@ -56,7 +56,7 @@ class ZaberStageControllerTab(DeviceTab):
         # Create and set the primary worker
         self.create_worker(
             "main_worker",
-            "labscript_devices.ZaberStageController.blacs_workers.ZaberWorker",
+            "labscript_devices.ZaberStageController.blacs_workers.ZaberStageControllerWorker",
             {
                 'com_port': self.com_port,
                 'mock': self.mock,

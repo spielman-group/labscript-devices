@@ -35,7 +35,7 @@ from .utils import split_conn_port, split_conn_DO, split_conn_AI
 from .daqmx_utils import incomplete_sample_detection
 
 
-class NI_DAQmxOutputWorker(Worker):
+class NI_DAQmxWorker(Worker):
     def init(self):
         self.check_version()
         # Reset Device: clears previously added routes etc. Note: is insufficient for

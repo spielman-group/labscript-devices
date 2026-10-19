@@ -17,7 +17,7 @@ import labscript_utils.properties
 from labscript_devices.runviewer_parsing import rising_edge_times
 
 
-class RunviewerClass(object):    
+class NovaTechDDS9MParser(object):    
     def __init__(self, path, device):
         self.path = path
         self.name = device.name

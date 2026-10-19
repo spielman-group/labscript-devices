@@ -216,4 +216,4 @@ class DDSPulseBlasterTabMixin:
 
 class PulseBlasterTab(DDSPulseBlasterTabMixin, PulseBlasterBaseTab):
     num_DO = 12
-    worker_class = 'labscript_devices.PulseBlaster.blacs_workers.PulseblasterWorker'
+    worker_class = 'labscript_devices.PulseBlaster.blacs_workers.PulseBlasterWorker'

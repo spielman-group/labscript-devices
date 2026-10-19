@@ -466,5 +466,5 @@ class DDSPulseBlasterWorkerMixin:
             return return_values
 
 
-class PulseblasterWorker(DDSPulseBlasterWorkerMixin, PulseBlasterBaseWorker):
+class PulseBlasterWorker(DDSPulseBlasterWorkerMixin, PulseBlasterBaseWorker):
     core_clock_freq = 75

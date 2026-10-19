@@ -14,7 +14,7 @@
 import labscript_devices
 
 labscript_device_name = 'LightCrafterDMD'
-blacs_tab = 'labscript_devices.LightCrafterDMD.blacs_tabs.LightCrafterTab'
+blacs_tab = 'labscript_devices.LightCrafterDMD.blacs_tabs.LightCrafterDMDTab'
 
 labscript_devices.register_classes(
     labscript_device_name=labscript_device_name,

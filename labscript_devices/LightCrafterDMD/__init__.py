@@ -28,10 +28,10 @@ __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'LightCrafterTab',
+            'LightCrafterDMDTab',
         ],
         'blacs_workers': [
-            'LightCrafterWorker',
+            'LightCrafterDMDWorker',
         ],
     },
 )

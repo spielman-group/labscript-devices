@@ -13,7 +13,7 @@
 
 from blacs.device_base_class import DeviceTab
 
-class NovatechDDS9MTab(DeviceTab):
+class NovaTechDDS9MTab(DeviceTab):
     def initialise_GUI(self):        
         # Capabilities
         self.base_units =    {'freq':'Hz',          'amp':'Arb',   'phase':'Degrees'}
@@ -66,7 +66,7 @@ class NovatechDDS9MTab(DeviceTab):
 
 
         # Create and set the primary worker
-        self.create_worker("main_worker",'labscript_devices.NovaTechDDS9M.blacs_workers.NovatechDDS9mWorker',{'com_port':self.com_port,
+        self.create_worker("main_worker",'labscript_devices.NovaTechDDS9M.blacs_workers.NovaTechDDS9MWorker',{'com_port':self.com_port,
                                                               'baud_rate': self.baud_rate,
                                                               'default_baud_rate': self.default_baud_rate,
                                                               'update_mode': self.update_mode,

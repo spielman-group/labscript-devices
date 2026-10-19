@@ -49,7 +49,7 @@ Store strings as fixed-length bytes such as `'S256'`: `dtype=str` makes zero-len
 Raise `LabscriptError` for anything the hardware cannot do, such as too many instructions or a value out of range.
 
 The device's BLACS worker reads these datasets back in `transition_to_buffered`, and its runviewer parser reads them too, so all three must agree on the layout.
-`NI_DAQmx` is a complete example: it writes `AO`, `DO` and `AI` datasets, which `NI_DAQmxOutputWorker` (`AO`, `DO`), `NI_DAQmxAcquisitionWorker` (`AI`) and `NI_DAQmxParser` (`AO`, `DO`) read.
+`NI_DAQmx` is a complete example: it writes `AO`, `DO` and `AI` datasets, which `NI_DAQmxWorker` (`AO`, `DO`), `NI_DAQmxAcquisitionWorker` (`AI`) and `NI_DAQmxParser` (`AO`, `DO`) read.
 
 Pseudoclock devices
 -------------------

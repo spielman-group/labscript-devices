@@ -14,7 +14,7 @@
 import labscript_devices
 
 labscript_device_name = 'PulseBlasterUSB'
-blacs_tab = 'labscript_devices.PulseBlasterUSB.blacs_tabs.PulseblasterUSBTab'
+blacs_tab = 'labscript_devices.PulseBlasterUSB.blacs_tabs.PulseBlasterUSBTab'
 parser = 'labscript_devices.PulseBlasterUSB.runviewer_parsers.PulseBlasterUSBParser'
 
 labscript_devices.register_classes(

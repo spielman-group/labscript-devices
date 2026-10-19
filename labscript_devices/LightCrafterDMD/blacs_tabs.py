@@ -14,7 +14,7 @@
 from blacs.device_base_class import DeviceTab
 
 
-class LightCrafterTab(DeviceTab):
+class LightCrafterDMDTab(DeviceTab):
     # For now, assume only the DLP 0.3 WVGA is supported, fix the image dimensions:
     width = 608
     height = 684
@@ -54,5 +54,5 @@ class LightCrafterTab(DeviceTab):
         
     def initialise_workers(self):
         self.server = self.BLACS_connection
-        self.create_worker("main_worker",'labscript_devices.LightCrafterDMD.blacs_workers.LightCrafterWorker',{'server':self.server, 'slm_properties':{'width':self.width, 'height':self.height}})
+        self.create_worker("main_worker",'labscript_devices.LightCrafterDMD.blacs_workers.LightCrafterDMDWorker',{'server':self.server, 'slm_properties':{'width':self.width, 'height':self.height}})
         self.primary_worker = "main_worker"

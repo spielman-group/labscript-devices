@@ -14,7 +14,7 @@
 from blacs.tab_base_classes import Worker
 
 
-class QuickSynWorker(Worker):
+class PhaseMatrixQuickSynWorker(Worker):
     def init(self):
         global serial; import serial
         global h5py; import labscript_utils.h5_lock, h5py

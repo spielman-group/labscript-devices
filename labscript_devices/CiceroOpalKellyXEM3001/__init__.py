@@ -34,7 +34,7 @@ __getattr__ = lazy_attributes(
             'CiceroOpalKellyXEM3001Worker',
         ],
         'runviewer_parsers': [
-            'RunviewerClass',
+            'CiceroOpalKellyXEM3001Parser',
         ],
     },
 )

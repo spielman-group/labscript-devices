@@ -16,7 +16,7 @@ import labscript_utils.h5_lock, h5py
 from labscript_devices.runviewer_parsing import rising_edge_times
 
 
-class RunviewerClass(object):
+class PineBlasterParser(object):
     clock_resolution = 25e-9
     clock_type = 'fast clock'
     # Todo: find out what this actually is:

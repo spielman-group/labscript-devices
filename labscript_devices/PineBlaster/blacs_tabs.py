@@ -15,7 +15,7 @@
 from blacs.device_base_class import DeviceTab
 from labscript_devices.pseudoclock import PseudoclockTab
 
-class PineblasterTab(PseudoclockTab):
+class PineBlasterTab(PseudoclockTab):
     
     def initialise_GUI(self):
         # Create a single digital output     
@@ -28,7 +28,7 @@ class PineblasterTab(PseudoclockTab):
         # Store the board number to be used
         self.usb_port = str(self.settings['connection_table'].find_by_name(self.device_name).BLACS_connection)
         # Create and set the primary worker
-        self.create_worker("main_worker", 'labscript_devices.PineBlaster.blacs_workers.PineblasterWorker', {'usbport':self.usb_port})
+        self.create_worker("main_worker", 'labscript_devices.PineBlaster.blacs_workers.PineBlasterWorker', {'usbport':self.usb_port})
         self.primary_worker = "main_worker"
         
         # Set the capabilities of this device

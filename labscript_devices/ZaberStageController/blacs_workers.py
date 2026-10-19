@@ -69,7 +69,7 @@ class ZaberInterface(object):
         self.port.close()
 
 
-class ZaberWorker(Worker):
+class ZaberStageControllerWorker(Worker):
     def init(self):
         if self.mock:
             self.controller = MockZaberInterface(self.com_port)

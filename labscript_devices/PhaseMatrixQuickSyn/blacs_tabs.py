@@ -48,7 +48,7 @@ class PhaseMatrixQuickSynTab(DeviceTab):
         self.address = str(self.settings['connection_table'].find_by_name(self.settings["device_name"]).BLACS_connection)
         
         # Create and set the primary worker
-        self.create_worker("main_worker",'labscript_devices.PhaseMatrixQuickSyn.blacs_workers.QuickSynWorker',{'address':self.address})
+        self.create_worker("main_worker",'labscript_devices.PhaseMatrixQuickSyn.blacs_workers.PhaseMatrixQuickSynWorker',{'address':self.address})
         self.primary_worker = "main_worker"
 
         # Set the capabilities of this device

@@ -14,7 +14,7 @@
 from labscript_devices.PulseBlaster.blacs_tabs import PulseBlasterBaseTab
 
 
-class Pulseblaster_No_DDS_Tab(PulseBlasterBaseTab):
+class PulseBlaster_No_DDS_Tab(PulseBlasterBaseTab):
     # Capabilities
     num_DO = 24
-    worker_class = 'labscript_devices.PulseBlaster_No_DDS.blacs_workers.PulseblasterNoDDSWorker'
+    worker_class = 'labscript_devices.PulseBlaster_No_DDS.blacs_workers.PulseBlaster_No_DDS_Worker'

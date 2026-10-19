@@ -27,13 +27,13 @@ __getattr__ = lazy_attributes(
     __name__,
     {
         'blacs_tabs': [
-            'NovatechDDS9MTab',
+            'NovaTechDDS9MTab',
         ],
         'blacs_workers': [
-            'NovatechDDS9mWorker',
+            'NovaTechDDS9MWorker',
         ],
         'runviewer_parsers': [
-            'RunviewerClass',
+            'NovaTechDDS9MParser',
         ],
     },
 )
