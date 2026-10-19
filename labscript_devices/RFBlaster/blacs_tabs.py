@@ -21,11 +21,15 @@ class RFBlasterTab(DeviceTab):
     def upgrade_front_panel(self, saved):
         """Convert the amplitudes of a front panel saved when they were shown in
         %."""
-        for name, output in saved.items():
+        # Only the fields saved are converted, BLACS defaulting the rest, and each
+        # output is replaced whole, so a failure leaves it as it was.
+        for name, output in list(saved.items()):
             if name.endswith('_amp') and output.get('current_units') == '%':
-                output['base_value'] /= 100
-                output['base_step_size'] /= 100
-                output['current_units'] = 'Arb'
+                upgraded = dict(output, current_units='Arb')
+                for field in ('base_value', 'base_step_size'):
+                    if field in upgraded:
+                        upgraded[field] = upgraded[field] / 100
+                saved[name] = upgraded
 
     def update_from_settings(self, settings):
         self.upgrade_front_panel(settings.setdefault('front_panel_settings', {}))
