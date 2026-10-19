@@ -194,7 +194,7 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         self.aborting = False
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
-        self.h5file = h5_file  # We'll need this in transition_to_manual
+        self.h5_file = h5_file  # We'll need this in transition_to_manual
         self.device_name = device_name
         with h5py.File(h5_file, 'r') as hdf5_file:
             print("\nUsing "+h5_file)
@@ -457,11 +457,11 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
             self.acquisition_exception = None
 
     def transition_to_manual(self):
-        #print("transition_to_manual: using " + self.h5file)
+        #print("transition_to_manual: using " + self.h5_file)
         # Waits on the acquisition thread, and manages the lock
         self.wait_acquisition_complete()
         # Write data to HDF5 file
-        with h5py.File(self.h5file, 'r+') as hdf5_file:
+        with h5py.File(self.h5_file, 'r+') as hdf5_file:
             grp = hdf5_file.create_group('/data/traces/'+self.device_name)
             if self.channels & ats.CHANNEL_A:
                 dsetA = grp.create_dataset(

@@ -21,7 +21,7 @@ class TekScopeWorker(Worker):
         print('Connected to {} (SN: {})'.format(model, sn))
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
-        self.h5file = h5_file  # We'll need this in transition_to_manual
+        self.h5_file = h5_file  # We'll need this in transition_to_manual
         self.device_name = device_name
         with h5py.File(h5_file, 'r') as hdf5_file:
             print('\n' + h5_file)
@@ -62,7 +62,7 @@ class TekScopeWorker(Worker):
             data[ch] = vals[ch]
 
         # Open the file after download so as not to hog the file lock
-        with h5py.File(self.h5file, 'r+') as hdf_file:
+        with h5py.File(self.h5_file, 'r+') as hdf_file:
             grp = hdf_file.require_group('/data/traces')
             print('Saving traces...')
             dset = grp.create_dataset(self.device_name, data=data)

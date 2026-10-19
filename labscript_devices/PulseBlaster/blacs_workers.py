@@ -102,7 +102,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
             self.time_based_shot_end_time = time.time() + self.time_based_shot_duration
             
     def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):
-        self.h5file = h5_file
+        self.h5_file = h5_file
         if self.programming_scheme == 'pb_stop_programming/STOP':
             # Need to ensure device is stopped before programming - or we wont know what line it's on.
             pb_stop()
@@ -207,7 +207,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
     def check_status(self):
         if self.waits_pending:
             try:
-                self.all_waits_finished.wait(self.h5file, timeout=0)
+                self.all_waits_finished.wait(self.h5_file, timeout=0)
                 self.waits_pending = False
             except zprocess.TimeoutError:
                 pass
@@ -324,7 +324,7 @@ class DDSPulseBlasterWorkerMixin:
         return {}
         
     def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):
-        self.h5file = h5_file
+        self.h5_file = h5_file
         if self.programming_scheme == 'pb_stop_programming/STOP':
             # Need to ensure device is stopped before programming - or we wont know what line it's on.
             pb_stop()

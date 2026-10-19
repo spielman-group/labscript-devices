@@ -262,7 +262,7 @@ class TriggerableCameraWorker(Worker):
         self.attributes_to_save = None
         self.exposures = None
         self.acquisition_thread = None
-        self.h5_filepath = None
+        self.h5_file = None
         self.stop_acquisition_timeout = None
         self.exception_on_failed_shot = None
 
@@ -369,7 +369,7 @@ class TriggerableCameraWorker(Worker):
             group = f['devices'][self.device_name]
             if not 'EXPOSURES' in group:
                 return {}
-            self.h5_filepath = h5_file
+            self.h5_file = h5_file
             self.exposures = group['EXPOSURES'][:]
             self.n_images = len(self.exposures)
 
@@ -407,7 +407,7 @@ class TriggerableCameraWorker(Worker):
         return {}
 
     def transition_to_manual(self):
-        if self.h5_filepath is None:
+        if self.h5_file is None:
             print('No camera exposures in this shot.\n')
             return True
         assert self.acquisition_thread is not None
@@ -429,7 +429,7 @@ class TriggerableCameraWorker(Worker):
 
         print(f"Saving {len(self.images)}/{len(self.exposures)} images.")
 
-        with h5py.File(self.h5_filepath, 'r+') as f:
+        with h5py.File(self.h5_file, 'r+') as f:
             # Use orientation for image path, device_name if orientation unspecified
             if self.orientation is not None:
                 image_path = 'images/' + self.orientation

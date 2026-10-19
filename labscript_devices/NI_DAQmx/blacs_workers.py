@@ -135,9 +135,9 @@ class NI_DAQmxWorker(Worker):
         # TODO: return coerced/quantised values
         return {}
 
-    def get_output_tables(self, h5file, device_name):
+    def get_output_tables(self, h5_file, device_name):
         """Return the AO and DO tables rom the file, or None if they do not exist."""
-        with h5py.File(h5file, 'r') as hdf5_file:
+        with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['devices'][device_name]
             try:
                 AO_table = group['AO'][:]
