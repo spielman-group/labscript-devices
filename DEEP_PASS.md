@@ -39,6 +39,9 @@ Each stage's commits on `CodeHealth`, for review:
 - Codex's findings on Phase B, its re-check's finding, and Ian's decision on
   that: `e0243fa..` the commit that records this line, coupled with labscript
   `0b14960`, `ab2ffae` and `bbcbad9`.
+- The suite vocabulary (Ian): `d5eae95..` the commit that records this line.
+  blacs did its own two items, `b68d188` and `27e20bb`; nothing here waits on
+  them.
 
 ## The test contract
 
@@ -169,7 +172,7 @@ connection table once.
 | 2 | PrawnDO's pseudoclock and clockline still rewrite `add_device` to allow one child of one type | Yes | The same labscript checks: `max_clock_lines = 1`, and `allowed_children` on both. The clockline then limits its child's type but not the count; only PrawnDO itself creates that child | −14 | PrawnDO compiles; a misconnection error becomes labscript's own wording | agree |
 | 3 | The wait-monitor dummy pseudoclock, clockline and intermediate device, in Cicero (34 lines) and PrawnBlaster (55) | Yes: labscript's `WaitMonitor` must hang from an intermediate device on a clockline, and these boards time their own waits | One set of three classes, about 15 lines, with `allowed_children` and `max_clock_lines` doing the checks. Cicero's and PrawnBlaster's six names stay as empty subclasses, so imports and connection tables are unchanged. Where: a labscript-devices module, since only these two devices use it (recommended); or labscript core beside `WaitMonitor`, as the librarian suggests, which needs labscript's owner | about −60 | Cicero and PrawnBlaster compiles with an internal wait monitor | open: question below |
 | 4 | The rising-edge times of a parent clock, a six-line copy in seven runviewer parsers: Cicero, DummyPseudoclock, NI_DAQmx, NovaTechDDS9M, PineBlaster, PrawnBlaster, PrawnDO | Yes | One function, `(times, values) -> edge times`, about 8 lines, in a small new module `labscript_devices/runviewer_parsing.py` (librarian: runviewer has no such helper, and no parser imports runviewer); each parser calls it | about −35 | runviewer, for those seven devices | agree |
-| 5 | DummyPseudoclock's `generate_code` (32 lines) and parser (45) copy PineBlaster's, pulse-program format included | Yes: labscript's tests and labs' test setups use the dummy | DummyPseudoclock's package, whose imports are light. `PineBlaster` and its `RunviewerClass` subclass the dummy's classes, keeping their names, their own `__init__`, `max_instructions` and the parser's `trigger_delay`. Not the reverse: `PineBlaster.py` imports BLACS at module level, so the dummy would pull BLACS into every compile | about −75 | PineBlaster compiles and runviewer; no change to the dummy | open: step 2.2.1 |
+| 5 | DummyPseudoclock's `generate_code` (32 lines) and parser (45) copy PineBlaster's, pulse-program format included | Yes: labscript's tests and labs' test setups use the dummy | DummyPseudoclock's package, whose imports are light. `PineBlaster` and its `PineBlasterParser` subclass the dummy's classes, keeping their names, their own `__init__`, `max_instructions` and the parser's `trigger_delay`. Not the reverse: `PineBlaster.py` imports BLACS at module level, so the dummy would pull BLACS into every compile | about −75 | PineBlaster compiles and runviewer; no change to the dummy | open: step 2.2.1 |
 | 6 | PulseBlaster_No_DDS's worker and tab copy PulseBlaster's: 7 worker methods (60 lines) and 6 tab methods (79) are identical | Yes | PulseBlaster's classes. `PulseblasterNoDDSWorker` and `Pulseblaster_No_DDS_Tab` subclass them and keep only what differs for a board without DDS: `init`, `program_manual`, `transition_to_buffered` and `initialise_GUI` | −139 | BLACS, for every DDS-free PulseBlaster: No_DDS, ESRPro200, ESRPro500, USB, SP2 | agree |
 | 7 | Each PulseBlaster model's tab has a four-line `__init__` that only sets `device_worker_class` | Yes | A class attribute: `Pulseblaster_No_DDS_Tab.__init__` already uses one if set | −12 | the four model tabs | the most common pattern, everywhere |
 | 8 | The PulseBlaster parsers. SP2's restates `num_dds = 0` and `num_flags = 24`, which `PulseBlaster_No_DDS_Parser` already sets | Yes | `PulseBlaster_No_DDS_Parser`; SP2's subclasses it, as USB's does | −2 | runviewer, SP2 | agree |
@@ -408,10 +411,79 @@ tab and worker, and ESRPro500's parser; the lists below are as they stand.
 - `PhaseMatrixQuickSyn`: `__all__` QuickSynDDS, PhaseMatrixQuickSyn; by name PhaseMatrixQuickSynTab, PhaseMatrixQuickSynWorker; dropped np, BLACS_tab, runviewer_parser, Device, StaticDDS, StaticAnalogQuantity, StaticDigitalOut, compiler, LabscriptError, set_passed_properties, labscript_utils, Worker, define_state, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, os.
 - `PineBlaster`: `__all__` PineBlaster; by name PineBlasterTab, PineBlasterWorker, PineBlasterParser; dropped PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError, set_passed_properties, runviewer_parser, BLACS_tab, np, labscript_utils, h5py, PineBlasterPseudoclock, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
 - `PulseBlaster`: `__all__` PulseBlasterDDS, PulseBlasterBase, DDSPulseBlasterMixin, PulseBlaster, PulseBlasterDirectOutputs; by name PulseBlasterBaseTab, DDSPulseBlasterTabMixin, PulseBlasterTab, PulseBlasterBaseWorker, DDSPulseBlasterWorkerMixin, PulseBlasterWorker, profiles, profile, start_profile, stop_profile, PulseBlasterBaseParser, PulseBlasterParser (new: PulseBlasterBase, DDSPulseBlasterMixin, PulseBlasterBaseTab, DDSPulseBlasterTabMixin, PulseBlasterBaseWorker, DDSPulseBlasterWorkerMixin, PulseBlasterBaseParser); dropped BLACS_tab, runviewer_parser, dedent, Device, PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DigitalQuantity, DigitalOut, DDS, DDSQuantity, LabscriptError, set_passed_properties, compiler, np, labscript_utils, h5py, time, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, qtutils, os, QtCore, QtGui.
-- `PulseBlaster_No_DDS`: `__all__` PulseBlaster, PulseBlaster_No_DDS; by name PulseBlaster_No_DDS_Tab, PulseBlaster_No_DDS_Worker, PulseBlaster_No_DDS_Parser, PulseBlasterParser; dropped BLACS_tab, runviewer_parser, PseudoclockDevice, compiler, LabscriptError, np, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, qtutils, os, QtCore, QtGui, QtWidgets.
-- `PulseBlasterESRPro200`: `__all__` PulseBlaster_No_DDS, PulseBlasterESRPro200; by name PulseBlaster_No_DDS_Tab, PulseBlasterESRPro200Tab, PulseBlaster_No_DDS_Worker, PulseBlasterESRPro200Worker, PulseBlaster_No_DDS_Parser, PulseBlasterESRPro200Parser; dropped BLACS_tab, runviewer_parser.
-- `PulseBlasterESRPro500`: `__all__` PulseBlaster_No_DDS, PulseBlasterESRPro500; by name PulseBlaster_No_DDS_Tab, PulseBlasterESRPro500Tab, PulseBlaster_No_DDS_Worker, PulseBlasterESRPro500Worker, PulseBlasterESRPro500Parser (new: PulseBlasterESRPro500Parser); dropped BLACS_tab, runviewer_parser.
-- `PulseBlasterUSB`: `__all__` PulseBlaster_No_DDS, PulseBlasterUSB; by name PulseBlaster_No_DDS_Tab, PulseBlasterUSBTab, PulseBlaster_No_DDS_Worker, PulseBlasterUSBWorker, PulseBlaster_No_DDS_Parser, PulseBlasterUSBParser; dropped BLACS_tab, runviewer_parser.
-- `PulseBlaster_SP2_24_100_32k`: `__all__` PulseBlaster_No_DDS, PulseBlaster_SP2_24_100_32k; by name PulseBlaster_No_DDS_Tab, PulseBlaster_SP2_24_100_32k_Tab, PulseBlaster_No_DDS_Worker, PulseBlaster_SP2_24_100_32k_Worker, PulseBlaster_SP2_24_100_32k_Parser, PulseBlasterParser; dropped BLACS_tab, runviewer_parser.
+- `PulseBlaster_No_DDS`: `__all__` PulseBlaster, PulseBlaster_No_DDS; by name PulseBlaster_No_DDSTab, PulseBlaster_No_DDSWorker, PulseBlaster_No_DDSParser, PulseBlasterParser; dropped BLACS_tab, runviewer_parser, PseudoclockDevice, compiler, LabscriptError, np, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab, UiLoader, qtutils, os, QtCore, QtGui, QtWidgets.
+- `PulseBlasterESRPro200`: `__all__` PulseBlaster_No_DDS, PulseBlasterESRPro200; by name PulseBlaster_No_DDSTab, PulseBlasterESRPro200Tab, PulseBlaster_No_DDSWorker, PulseBlasterESRPro200Worker, PulseBlaster_No_DDSParser, PulseBlasterESRPro200Parser; dropped BLACS_tab, runviewer_parser.
+- `PulseBlasterESRPro500`: `__all__` PulseBlaster_No_DDS, PulseBlasterESRPro500; by name PulseBlaster_No_DDSTab, PulseBlasterESRPro500Tab, PulseBlaster_No_DDSWorker, PulseBlasterESRPro500Worker, PulseBlasterESRPro500Parser (new: PulseBlasterESRPro500Parser); dropped BLACS_tab, runviewer_parser.
+- `PulseBlasterUSB`: `__all__` PulseBlaster_No_DDS, PulseBlasterUSB; by name PulseBlaster_No_DDSTab, PulseBlasterUSBTab, PulseBlaster_No_DDSWorker, PulseBlasterUSBWorker, PulseBlaster_No_DDSParser, PulseBlasterUSBParser; dropped BLACS_tab, runviewer_parser.
+- `PulseBlaster_SP2_24_100_32k`: `__all__` PulseBlaster_No_DDS, PulseBlaster_SP2_24_100_32k; by name PulseBlaster_No_DDSTab, PulseBlaster_SP2_24_100_32kTab, PulseBlaster_No_DDSWorker, PulseBlaster_SP2_24_100_32kWorker, PulseBlaster_SP2_24_100_32kParser, PulseBlasterParser; dropped BLACS_tab, runviewer_parser.
 - `RFBlaster`: `__all__` RFBlaster, RFBlasterDirectOutputs; by name RFBlasterTab, MultiPartForm, RFBlasterWorker; dropped os, PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, compiler, startupinfo, LabscriptError, set_passed_properties, np, BLACS_tab, runviewer_parser, setup_logging, RFBlasterPseudoclock, define_state, PseudoclockWorker, MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED, DeviceTab.
-- `test_device`: `__all__` test_device; by name Tab, Worker, Parser; dropped BLACS_tab, runviewer_parser, Device, LabscriptError, set_passed_properties.
+- `test_device`: `__all__` test_device; by name test_deviceTab, test_deviceWorker, test_deviceParser; dropped BLACS_tab, runviewer_parser, Device, LabscriptError, set_passed_properties.
+
+## The suite vocabulary (Ian)
+
+Ian approved the ten rules of the librarian's survey (meta
+`issues/suite_vocabulary_survey.md`, `50428a2`); they are labscript-style's
+`IDIOMS.md` §5. On `CodeHealth`:
+
+- **attributes** (`d5eae95`, `b36d00d`): every camera's
+  `set_attributes(self, attributes)`, and FlyCapture2's `set_attribute(name, value)`.
+- **properties** (`a4a775b`, `75367b4`): each worker reads its shot-file
+  properties as `device_properties` (AlazarTechBoard's `atsparam`, TekScope's
+  `scope_params`, the dummy's `props`, TriggerableCamera's `properties`), and
+  `labscript_utils.properties`' helpers are called by module.
+- **Docs** (`7fb8c18`): `camera_attributes` and `manual_mode_camera_attributes`
+  in the FlyCapture2, Pylon and Spinnaker examples.
+- **Worker methods** (`650eae5`, `1df437e`, `3c502ff`): blacs' parameter names
+  on all 21 `transition_to_buffered` and 20 `program_manual`. `shot_finished` is
+  the end-of-shot query: Cicero's and PineBlaster's `status_monitor` and the
+  dummy's `check_if_done` go. The dummy's abort clears its shot without the
+  transition, which now waits for the dummy's own `shot_finished`, so an abort
+  still does not wait. It gains `abort_transition_to_buffered`, and TekScope
+  gains `shutdown`.
+- **Class names** (`e724bd8`, `b36d00d`): 32 tabs, workers and parsers. The
+  role is glued onto every device's name, underscores or not: `NI_DAQmxTab`,
+  `PulseBlaster_No_DDSTab`, `test_deviceTab`.
+- **GUI save data** (`f074ad5`): `restore_save_data(data)`. The two-key dicts
+  are blacs': one key each in `27e20bb`, and its demo worker's names in
+  `b68d188`.
+
+Choices made within the rules:
+- NI_DAQmx's output worker is its `NI_DAQmxWorker`; the acquisition and
+  wait-monitor workers keep their role in the name.
+- `check_status` stays: in PulseBlaster, PrawnBlaster, PrawnDO and QuickSyn it
+  returns the device's status for the front panel, not whether the shot is
+  over, and it has one name already.
+
+What breaks: a lab's code that imports an old tab, worker or parser name, or
+names an old worker in a `device_worker_class` string; and a
+`set_attributes(attr_dict=...)` call. Nothing in the workspace does.
+
+Checks: every test shot and the RbChip sequences compile identical to
+`d5eae95`; BLACS and runviewer find every registered device's tab and parser
+as before; every dotted class path resolves and every worker method a tab
+queues exists; the PulseBlaster workers drive the fake spinapi identically;
+labscript-devices, blacs and labscript suites pass.
+
+### Other differences, for Ian (not built)
+
+| Concept | Variants | Proposed | Public | Size |
+| --- | --- | --- | --- | --- |
+| Serial or instrument address kwarg | `com_port` ×5; `usbport` PineBlaster; `addr` TekScope; `ip_address` RFBlaster; `server`, `port` LightCrafterDMD; `server` AlazarTechBoard | `com_port` for serial ports; one name for network hosts | yes, kwargs and saved properties | ~6 devices |
+| Board identity kwarg | `board_number` PulseBlaster; `serial_number` cameras; `serial` Cicero; `MAX_name` NI_DAQmx | `serial_number` where it is a serial number | yes | ~3 |
+| Core clock frequency | `clock_frequency` in Hz, Cicero, PrawnBlaster, PrawnDO; `core_clock_freq` in MHz, a PulseBlaster class attribute | `clock_frequency` in Hz | partly | ~6 |
+| `use_wait_monitor` default | False on Cicero, True on PrawnBlaster | one default | yes, behaviour | 2 |
+| Core `Device` keywords | 9 labscript classes take no `**kwargs`, so no `gui`, `worker`, `start_order` | take and pass `**kwargs` | additive | 9 |
+| Tab's end-of-shot polling | `status_monitor` with three signatures; PulseBlaster's and PrawnBlaster's tabs reimplement `start_run` and `status_monitor`, and PulseBlaster's tab repeats its worker's `shot_finished` test | inherit `PseudoclockTab` | no | ~3 tabs |
+| Abort | `transition_to_manual(abort=False)` ×6 against an `abort()` helper ×9 | one `abort()` | no | ~6 |
+| Where a tab creates its worker | `initialise_GUI` ×8, `initialise_workers` ×12 | `initialise_workers` (rule 10) | no | 8 |
+| Parsers' shot-file read-backs | `device_props`, `props`, `conn_props` in PrawnBlaster, PrawnDO and NI_DAQmx parsers | `device_properties`, `connection_table_properties` | no | 3 |
+| The shot file kept for `transition_to_manual` | `self.h5file` ×4, `self.h5_filepath` TriggerableCamera | `self.h5_file` | no | ~6 |
+| Camera interface classes | `<Vendor>_Camera` ×5, `AndorCamera`; drivers inside `blacs_workers.py` | `<Device>Camera` | no | 6 |
+| Camera `set_attribute` | Spinnaker's takes a third argument, `stream_map=False` | `(name, value)` | no | 1 |
+| Camera interface keywords | `bufferCount`, `waitForNextBuffer` camelCase; `grab` and `configure_acquisition` defaults differ | snake_case, one default | no | 6 cameras |
+| `register_classes` call | three forms; PrawnDO's `BLACS_tab=''` where the registry expects `None` | one form, `None` | no | 31 files |
+| Package `__init__` | `lazy_attributes` ×15, `deprecated_import_alias` ×2 (DummyPseudoclock, PrawnBlaster), header only ×5, empty ×7 | `lazy_attributes` everywhere | the empty ones export nothing | ~14 |
+| DDS channel names and units | connection `'channel n'` NovaTech, `'dds n'` others; amplitude `'Arb'`, `'Vpp'`, `'%'` | one prefix and unit | yes, connection strings | 4 devices |
+| Pulse-program datasets | `PULSE_PROGRAM` ×5 against `pulse_program` PrawnDO; column names differ per board | one case | shot-file format | 2 |
+| `test_device` | a lower-case labscript class | CamelCase | test-only, but stored in connection tables | 1 |
+| NI_DAQmx `self.AI_timebease_rate` | a misspelt, unused attribute (labscript_devices.py:267) | remove | no | 1 line |
