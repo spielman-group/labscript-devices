@@ -28,7 +28,7 @@ class RFBlaster(PseudoclockDevice):
     @set_passed_properties()
     def __init__(self, name, host=None, trigger_device=None, trigger_connection=None, **kwargs):
         # LEGACY IP_ADDRESS KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        host = renamed_keyword(kwargs, 'ip_address', 'host', host, 'RFBlaster')
+        host = renamed_keyword(kwargs, 'ip_address', 'host', host, 'RFBlaster', stacklevel=4)
         if host is None:
             raise LabscriptError(f'RFBlaster {name} needs the host of its board.')
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)

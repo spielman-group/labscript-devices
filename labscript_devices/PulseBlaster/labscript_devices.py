@@ -151,7 +151,7 @@ class PulseBlasterBase(PseudoclockDevice):
         if hasattr(self, 'core_clock_freq'):
             warnings.warn(
                 f"{type(self).__name__}.core_clock_freq, in MHz, will be removed; "
-                "set clock_frequency, in Hz.", FutureWarning, stacklevel=2
+                "set clock_frequency, in Hz.", FutureWarning, stacklevel=3
             )
             self.clock_frequency = self.core_clock_freq * 1e6
         self.long_delay = 2**32 / self.clock_frequency - self.min_delay

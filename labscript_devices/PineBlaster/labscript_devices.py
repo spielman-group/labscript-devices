@@ -36,7 +36,7 @@ class PineBlaster(PseudoclockDevice):
         )    
     def __init__(self, name, trigger_device=None, trigger_connection=None, com_port='COM1', **kwargs):
         # LEGACY USBPORT KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        self.com_port = com_port = renamed_keyword(kwargs, 'usbport', 'com_port', com_port, 'PineBlaster')
+        self.com_port = com_port = renamed_keyword(kwargs, 'usbport', 'com_port', com_port, 'PineBlaster', stacklevel=4)
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.BLACS_connection = com_port
         

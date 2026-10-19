@@ -37,7 +37,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
         )    
     def __init__(self, name, trigger_device=None, trigger_connection=None, serial_number='', reference_clock='internal', clock_frequency=100e6, use_wait_monitor=True, trigger_debounce_clock_ticks=10, **kwargs):
         # LEGACY SERIAL KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        serial_number = renamed_keyword(kwargs, 'serial', 'serial_number', serial_number, 'CiceroOpalKellyXEM3001')
+        serial_number = renamed_keyword(kwargs, 'serial', 'serial_number', serial_number, 'CiceroOpalKellyXEM3001', stacklevel=4)
         # set device properties based on clock frequency
         self.clock_limit = clock_frequency/2
         self.clock_resolution = 1/clock_frequency
