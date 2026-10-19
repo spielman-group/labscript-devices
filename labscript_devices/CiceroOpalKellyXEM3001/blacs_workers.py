@@ -87,7 +87,7 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
     
         # Initialise connection to OPAL KELLY Board
         self.dev = ok.okCFrontPanel()
-        assert self.dev.OpenBySerial(self.serial) == self.dev.NoError
+        assert self.dev.OpenBySerial(self.serial_number) == self.dev.NoError
         
         try:
             assert self.dev.IsFrontPanelEnabled()

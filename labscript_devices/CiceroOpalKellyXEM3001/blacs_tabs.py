@@ -29,7 +29,7 @@ class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
     
         # Store the board number to be used
         connection_object = self.settings['connection_table'].find_by_name(self.device_name)
-        self.serial = str(connection_object.BLACS_connection)
+        self.serial_number = str(connection_object.BLACS_connection)
         self.reference_clock = connection_object.properties.get('reference_clock', 'internal')
         self.logger.debug('reference clock scheme is: %s'%self.reference_clock)
         
@@ -43,7 +43,7 @@ class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
 
     def initialise_workers(self):
         # Create and set the primary worker
-        self.create_worker("main_worker", 'labscript_devices.CiceroOpalKellyXEM3001.blacs_workers.CiceroOpalKellyXEM3001Worker', {'serial':self.serial, "reference_clock":self.reference_clock})
+        self.create_worker("main_worker", 'labscript_devices.CiceroOpalKellyXEM3001.blacs_workers.CiceroOpalKellyXEM3001Worker', {'serial_number':self.serial_number, "reference_clock":self.reference_clock})
         self.primary_worker = "main_worker"
         if self.reflash:
             self.flash_fpga()

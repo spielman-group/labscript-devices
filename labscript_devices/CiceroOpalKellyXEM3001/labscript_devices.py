@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 
-from labscript import Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, WaitMonitor, DigitalOut, internal_wait_monitor_outputs
+from labscript import Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, WaitMonitor, DigitalOut, internal_wait_monitor_outputs, renamed_keyword
 
 import numpy as np
 
@@ -35,7 +35,9 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
         "connection_table_properties": ["reference_clock", "clock_frequency", "trigger_debounce_clock_ticks"],
         "device_properties": ["trigger_delay", "wait_delay"]}
         )    
-    def __init__(self, name, trigger_device=None, trigger_connection=None, serial='', reference_clock='internal', clock_frequency=100e6, use_wait_monitor=True, trigger_debounce_clock_ticks=10, **kwargs):
+    def __init__(self, name, trigger_device=None, trigger_connection=None, serial_number='', reference_clock='internal', clock_frequency=100e6, use_wait_monitor=True, trigger_debounce_clock_ticks=10, **kwargs):
+        # LEGACY SERIAL KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        serial_number = renamed_keyword(kwargs, 'serial', 'serial_number', serial_number, 'CiceroOpalKellyXEM3001')
         # set device properties based on clock frequency
         self.clock_limit = clock_frequency/2
         self.clock_resolution = 1/clock_frequency
@@ -55,7 +57,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
         self.wait_delay = self.clock_resolution
         
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
-        self.BLACS_connection = serial
+        self.BLACS_connection = serial_number
         
         if trigger_debounce_clock_ticks >= 2**16:
             raise LabscriptError('The %s %s trigger_debounce_clock_ticks parameter must be between 0 and 65535'%(self.description, self.name))
