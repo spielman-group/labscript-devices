@@ -29,9 +29,9 @@ class NI_DAQmxParser(object):
             else:
                 DO_table = None
 
-            props = properties.get(f, self.name, 'connection_table_properties')
+            connection_table_properties = properties.get(f, self.name, 'connection_table_properties')
 
-            version = props.get('__version__', None)
+            version = connection_table_properties.get('__version__', None)
             if version is None:
                 msg = """Shot was compiled with the old version of the NI_DAQmx device
                     class. The new runviewer parser is not backward compatible with old
@@ -39,9 +39,9 @@ class NI_DAQmxParser(object):
                     recompile the shot with labscript_devices 2.3.0 or greater."""
                 raise RuntimeError(dedent(msg))
 
-            ports = props['ports']
-            static_AO = props['static_AO']
-            static_DO = props['static_DO']
+            ports = connection_table_properties['ports']
+            static_AO = connection_table_properties['static_AO']
+            static_DO = connection_table_properties['static_DO']
 
         clock_ticks = rising_edge_times(clock)
 

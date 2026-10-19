@@ -32,10 +32,10 @@ class PrawnDOParser(object):
 
         # Getting pulse_program from the shot file
         with h5py.File(self.path, "r") as f:
-            device_props = properties.get(f, self.name, 'device_properties')
-            self.clock_resolution = device_props['clock_resolution']
-            self.trigger_delay = device_props['trigger_delay']
-            self.wait_delay = device_props['wait_delay']
+            device_properties = properties.get(f, self.name, 'device_properties')
+            self.clock_resolution = device_properties['clock_resolution']
+            self.trigger_delay = device_properties['trigger_delay']
+            self.wait_delay = device_properties['wait_delay']
 
             group = f['devices/' + self.name]
 

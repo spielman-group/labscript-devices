@@ -51,15 +51,15 @@ class PrawnBlasterParser(object):
         pulse_programs = []
         with h5py.File(self.path, "r") as f:
             # Get the device properties
-            device_props = properties.get(f, self.name, "device_properties")
-            conn_props = properties.get(f, self.name, "connection_table_properties")
+            device_properties = properties.get(f, self.name, "device_properties")
+            connection_table_properties = properties.get(f, self.name, "connection_table_properties")
 
-            self.clock_resolution = device_props["clock_resolution"]
-            self.trigger_delay = device_props["trigger_delay"]
-            self.wait_delay = device_props["wait_delay"]
+            self.clock_resolution = device_properties["clock_resolution"]
+            self.trigger_delay = device_properties["trigger_delay"]
+            self.wait_delay = device_properties["wait_delay"]
 
             # Extract the pulse programs
-            num_pseudoclocks = conn_props["num_pseudoclocks"]
+            num_pseudoclocks = connection_table_properties["num_pseudoclocks"]
             for i in range(num_pseudoclocks):
                 pulse_programs.append(f[f"devices/{self.name}/PULSE_PROGRAM_{i}"][:])
 
