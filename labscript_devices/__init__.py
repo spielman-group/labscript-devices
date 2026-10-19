@@ -47,8 +47,8 @@ def warn_legacy_shot_file(path, legacy):
     if (path, legacy) not in _legacy_reads:
         _legacy_reads.add((path, legacy))
         warnings.warn(
-            f"{path} {legacy}. Reading it will be removed, so the file may not be "
-            "readable in future.", FutureWarning, stacklevel=2
+            f"{path} {legacy}. Reading that legacy form will be removed, so the "
+            "file may not be readable in future.", FutureWarning, stacklevel=2
         )
 
 

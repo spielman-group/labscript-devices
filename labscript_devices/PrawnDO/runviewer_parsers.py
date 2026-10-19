@@ -42,7 +42,7 @@ class PrawnDOParser(object):
             # LEGACY PULSE_PROGRAM NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
             # Shot files compiled before the dataset's name was upper case.
             dataset = 'PULSE_PROGRAM' if 'PULSE_PROGRAM' in group else 'pulse_program'
-            if dataset == 'pulse_program':
+            if 'pulse_program' in group:
                 warn_legacy_shot_file(
                     self.path, "names the PrawnDO's pulse program pulse_program, not PULSE_PROGRAM"
                 )
