@@ -50,14 +50,16 @@ class RFBlasterTab(DeviceTab):
         # Store the COM port to be used
         self.address = "http://" + str(self.BLACS_connection) + ":8080"
         
+
+        # Set the capabilities of this device
+        self.supports_remote_value_check(True)
+        self.supports_smart_programming(False)
+
+    def initialise_workers(self):
         # Create and set the primary worker
         self.create_worker("main_worker", 'labscript_devices.RFBlaster.blacs_workers.RFBlasterWorker', {'address': self.address, 'num_DDS': self.num_DDS})
         self.primary_worker = "main_worker"
 
-        # Set the capabilities of this device
-        self.supports_remote_value_check(True)
-        self.supports_smart_programming(False) 
-    
     def get_child_from_connection_table(self, parent_device_name, port):
         # This is a direct output, let's search for it on the internal intermediate device called 
         # RFBlasterDirectOutputs

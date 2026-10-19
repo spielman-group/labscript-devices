@@ -41,20 +41,8 @@ class NI_DAQmxTab(DeviceTab):
             raise RuntimeError(dedent(msg))
 
         num_AO = properties['num_AO']
-        num_AI = properties['num_AI']
-        try:
-            AI_chans = properties['AI_chans']
-        except KeyError:
-            # new code being run on older model specification file
-            # assume legacy behavior, warn user to update
-            AI_chans = [f'ai{i:d}' for i in range(num_AI)]
-            msg = """Connection table was compiled with old model specifications for {0}.
-                     Please recompile the connection table.
-                  """
-            warnings.warn(dedent(msg.format(properties['MAX_name'])), FutureWarning)
 
         ports = properties['ports']
-        num_CI = properties['num_CI']
 
         AO_base_units = 'V'
         if num_AO > 0:
@@ -63,15 +51,6 @@ class NI_DAQmxTab(DeviceTab):
             AO_base_min, AO_base_max = None, None
         AO_base_step = 0.1
         AO_base_decimals = 3
-
-        clock_terminal = properties['clock_terminal']
-        clock_mirror_terminal = properties['clock_mirror_terminal']
-        # get to avoid error on older connection tables
-        connected_terminals = properties.get('connected_terminals', None)
-        static_AO = properties['static_AO']
-        static_DO = properties['static_DO']
-        clock_limit = properties['clock_limit']
-        min_semiperiod_measurement = properties['min_semiperiod_measurement']
 
         # And the Measurement and Automation Explorer (MAX) name we will need to
         # communicate with the device:
@@ -89,14 +68,12 @@ class NI_DAQmxTab(DeviceTab):
             }
 
         DO_proplist = []
-        DO_hardware_names = []
         for port_num in range(len(ports)):
             port_str ='port%d' % port_num
             port_props = {}
             for line in range(ports[port_str]['num_lines']):
                 hardware_name = 'port%d/line%d' % (port_num, line)
                 port_props[hardware_name] = {}
-                DO_hardware_names.append(hardware_name)
             DO_proplist.append((port_str, port_props))
 
         # Create the output objects
@@ -127,6 +104,38 @@ class NI_DAQmxTab(DeviceTab):
             widget_list.append((name, DO_widgets, split_conn_DO))
         self.auto_place_widgets(*widget_list)
 
+        # Set the capabilities of this device
+        self.supports_remote_value_check(False)
+        self.supports_smart_programming(False)
+
+    def initialise_workers(self):
+        connection_table = self.settings['connection_table']
+        properties = connection_table.find_by_name(self.device_name).properties
+        num_AO = properties['num_AO']
+        ports = properties['ports']
+        if num_AO > 0:
+            AO_base_min, AO_base_max = properties['AO_range']
+        else:
+            AO_base_min, AO_base_max = None, None
+        num_AI = properties['num_AI']
+        try:
+            AI_chans = properties['AI_chans']
+        except KeyError:
+            # new code being run on older model specification file
+            # assume legacy behavior, warn user to update
+            AI_chans = [f'ai{i:d}' for i in range(num_AI)]
+            msg = """Connection table was compiled with old model specifications for {0}.
+                     Please recompile the connection table.
+                  """
+            warnings.warn(dedent(msg.format(properties['MAX_name'])), FutureWarning)
+        num_CI = properties['num_CI']
+        clock_terminal = properties['clock_terminal']
+        clock_mirror_terminal = properties['clock_mirror_terminal']
+        static_AO = properties['static_AO']
+        static_DO = properties['static_DO']
+        clock_limit = properties['clock_limit']
+        min_semiperiod_measurement = properties['min_semiperiod_measurement']
+
         # We only need a wait monitor worker if we are if fact the device with
         # the wait monitor input.
         with h5py.File(connection_table.filepath, 'r') as f:
@@ -155,7 +164,7 @@ class NI_DAQmxTab(DeviceTab):
                 'clock_mirror_terminal': clock_mirror_terminal,
                 'static_AO': static_AO,
                 'static_DO': static_DO,
-                'DO_hardware_names': DO_hardware_names,
+                'DO_hardware_names': list(self._DO),
                 'wait_timeout_device': wait_timeout_device,
                 'wait_timeout_connection': wait_timeout_connection,
                 'wait_timeout_rearm_value': int(timeout_trigger_type == 'falling')
@@ -213,6 +222,3 @@ class NI_DAQmxTab(DeviceTab):
             )
             self.add_secondary_worker("acquisition_worker")
 
-        # Set the capabilities of this device
-        self.supports_remote_value_check(False)
-        self.supports_smart_programming(False)

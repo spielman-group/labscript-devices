@@ -62,9 +62,12 @@ class NovaTechDDS9MTab(DeviceTab):
         else:
             self.com_port = blacs_connection
             self.baud_rate = 115200
-        
 
+        # Set the capabilities of this device
+        self.supports_remote_value_check(True)
+        self.supports_smart_programming(True)
 
+    def initialise_workers(self):
         # Create and set the primary worker
         self.create_worker("main_worker",'labscript_devices.NovaTechDDS9M.blacs_workers.NovaTechDDS9MWorker',{'com_port':self.com_port,
                                                               'baud_rate': self.baud_rate,
@@ -73,6 +76,3 @@ class NovaTechDDS9MTab(DeviceTab):
                                                               'phase_mode': self.phase_mode})
         self.primary_worker = "main_worker"
 
-        # Set the capabilities of this device
-        self.supports_remote_value_check(True)
-        self.supports_smart_programming(True)

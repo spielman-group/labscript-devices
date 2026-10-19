@@ -13,7 +13,7 @@
 from blacs.device_base_class import DeviceTab
 
 class DummyIntermediateDeviceTab(DeviceTab):
-    def initialise_GUI(self):
+    def initialise_workers(self):
         self.create_worker(
             "main_worker",
             "labscript_devices.DummyIntermediateDevice.blacs_workers.DummyIntermediateDeviceWorker",

@@ -57,14 +57,6 @@ class PulseBlasterBaseTab(DeviceTab):
         # (default values for backward compat with old connection tables)
         self.programming_scheme = connection_object.properties.get('programming_scheme', 'pb_start/BRANCH')
             
-        # Create and set the primary worker. A lab's own tab may name its worker
-        # class in device_worker_class instead.
-        worker_class = getattr(self, 'device_worker_class', self.worker_class)
-        self.create_worker("main_worker",worker_class,
-                           {'board_number':self.board_number,
-                            'num_DO': self.num_DO,
-                            'programming_scheme': self.programming_scheme})
-        self.primary_worker = "main_worker"
         
         # Set the capabilities of this device
         self.supports_smart_programming(True) 
@@ -94,7 +86,17 @@ class PulseBlasterBaseTab(DeviceTab):
         
         # Create status monitor timout
         self.statemachine_timeout_add(2000, self.status_monitor)
-        
+
+    def initialise_workers(self):
+        # Create and set the primary worker. A lab's own tab may name its worker
+        # class in device_worker_class instead.
+        worker_class = getattr(self, 'device_worker_class', self.worker_class)
+        self.create_worker("main_worker",worker_class,
+                           {'board_number':self.board_number,
+                            'num_DO': self.num_DO,
+                            'programming_scheme': self.programming_scheme})
+        self.primary_worker = "main_worker"
+
     def get_child_from_connection_table(self, parent_device_name, port):
         # This is a direct output, let's search for it on the internal intermediate device called 
         # PulseBlasterDirectOutputs

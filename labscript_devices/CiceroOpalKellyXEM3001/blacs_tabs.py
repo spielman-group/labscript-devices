@@ -32,9 +32,6 @@ class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
         self.serial = str(connection_object.BLACS_connection)
         self.reference_clock = connection_object.properties.get('reference_clock', 'internal')
         self.logger.debug('reference clock scheme is: %s'%self.reference_clock)
-        # Create and set the primary worker
-        self.create_worker("main_worker", 'labscript_devices.CiceroOpalKellyXEM3001.blacs_workers.CiceroOpalKellyXEM3001Worker', {'serial':self.serial, "reference_clock":self.reference_clock})
-        self.primary_worker = "main_worker"
         
         # Set the capabilities of this device
         self.supports_smart_programming(False) 
@@ -43,8 +40,14 @@ class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
         self.flash_fpga_button = QPushButton('Flash FPGA firmware (this should be handled automatically by BLACS, if the device is not working correctly, try this button!)')
         self.flash_fpga_button.clicked.connect(self.flash_fpga)
         self.get_tab_layout().insertWidget(self.get_tab_layout().count()-1, self.flash_fpga_button)
-        
-     
+
+    def initialise_workers(self):
+        # Create and set the primary worker
+        self.create_worker("main_worker", 'labscript_devices.CiceroOpalKellyXEM3001.blacs_workers.CiceroOpalKellyXEM3001Worker', {'serial':self.serial, "reference_clock":self.reference_clock})
+        self.primary_worker = "main_worker"
+        if self.reflash:
+            self.flash_fpga()
+
     def get_child_from_connection_table(self, parent_device_name, port):
         # This is a direct output, let's search for it on the internal Pseudoclock
         if parent_device_name == self.device_name:
@@ -65,8 +68,10 @@ class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
         return Tab.close_tab(self, *args, **kwargs)
     
     def restore_save_data(self, data):
-        # Flash the FPGA if the type of reference clock has changed since last time!
-        if 'reference_clock' not in data or self.reference_clock != data['reference_clock']:
+        # Flash the FPGA if the type of reference clock has changed since last
+        # time: now if its worker exists, else once initialise_workers makes it.
+        self.reflash = 'reference_clock' not in data or self.reference_clock != data['reference_clock']
+        if self.reflash and self.primary_worker is not None:
             self.flash_fpga()
     
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)

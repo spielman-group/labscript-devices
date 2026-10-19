@@ -27,13 +27,15 @@ class PineBlasterTab(PseudoclockTab):
         
         # Store the board number to be used
         self.usb_port = str(self.settings['connection_table'].find_by_name(self.device_name).BLACS_connection)
+        
+        # Set the capabilities of this device
+        self.supports_smart_programming(True)
+
+    def initialise_workers(self):
         # Create and set the primary worker
         self.create_worker("main_worker", 'labscript_devices.PineBlaster.blacs_workers.PineBlasterWorker', {'usbport':self.usb_port})
         self.primary_worker = "main_worker"
-        
-        # Set the capabilities of this device
-        self.supports_smart_programming(True) 
-     
+
     def get_child_from_connection_table(self, parent_device_name, port):
         # This is a direct output, let's search for it on the internal Pseudoclock
         if parent_device_name == self.device_name:

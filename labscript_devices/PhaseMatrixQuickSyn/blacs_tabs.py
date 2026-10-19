@@ -47,9 +47,6 @@ class PhaseMatrixQuickSynTab(DeviceTab):
         # Store the COM port to be used
         self.address = str(self.settings['connection_table'].find_by_name(self.settings["device_name"]).BLACS_connection)
         
-        # Create and set the primary worker
-        self.create_worker("main_worker",'labscript_devices.PhaseMatrixQuickSyn.blacs_workers.PhaseMatrixQuickSynWorker',{'address':self.address})
-        self.primary_worker = "main_worker"
 
         # Set the capabilities of this device
         self.supports_remote_value_check(True)
@@ -62,6 +59,12 @@ class PhaseMatrixQuickSynTab(DeviceTab):
     
     # This function gets the status of the phasematrix,
     # and updates the front panel widgets!
+
+    def initialise_workers(self):
+        # Create and set the primary worker
+        self.create_worker("main_worker",'labscript_devices.PhaseMatrixQuickSyn.blacs_workers.PhaseMatrixQuickSynWorker',{'address':self.address})
+        self.primary_worker = "main_worker"
+
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
     def status_monitor(self):
         # When called with a queue, this function writes to the queue
