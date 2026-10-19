@@ -265,13 +265,19 @@ class NovaTechDDS9MWorker(Worker):
         return self.final_values
     
     def abort_transition_to_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
         
     def abort_buffered(self):
         # TODO: untested
-        return self.transition_to_manual(True)
+        return self.abort()
     
-    def transition_to_manual(self,abort = False):
+    def transition_to_manual(self):
+        return self._return_to_manual(abort=False)
+
+    def abort(self):
+        return self._return_to_manual(abort=True)
+
+    def _return_to_manual(self, abort):
         self.connection.write(b'm 0\r\n')
         if self.connection.readline() != b"OK\r\n":
             raise Exception('Error: Failed to execute command: "m 0"')

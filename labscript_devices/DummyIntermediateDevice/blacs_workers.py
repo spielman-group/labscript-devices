@@ -22,14 +22,17 @@ class DummyIntermediateDeviceWorker(Worker):
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         return front_panel_values
 
-    def transition_to_manual(self,abort = False):
+    def transition_to_manual(self):
+        return True
+
+    def abort(self):
         return True
 
     def abort_transition_to_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
         
     def abort_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
 
     def shutdown(self):
         pass

@@ -169,19 +169,20 @@ class PhaseMatrixQuickSynWorker(Worker):
         return final_values
         
     def abort_transition_to_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
         
     def abort_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
     
 
     
-    def transition_to_manual(self,abort = False):
-        if abort:
-            # If we're aborting the run, reset to original value
-            self.program_manual(self.initial_values)
-        # If we're not aborting the run, stick with buffered value. Nothing to do really!
-        # return the current values in the device
+    def transition_to_manual(self):
+        # The device keeps the shot's final value; nothing to do.
+        return True
+
+    def abort(self):
+        # Reset to the value from before the shot.
+        self.program_manual(self.initial_values)
         return True
         
     def shutdown(self):

@@ -355,7 +355,13 @@ class NI_DAQmxWorker(Worker):
 
         return final_values
 
-    def transition_to_manual(self, abort=False):
+    def transition_to_manual(self):
+        return self._return_to_manual(abort=False)
+
+    def abort(self):
+        return self._return_to_manual(abort=True)
+
+    def _return_to_manual(self, abort):
         # Stop output tasks and call program_manual. Only call StopTask if not aborting.
         # Otherwise results in an error if output was incomplete. If aborting, call
         # ClearTask only.
@@ -404,10 +410,10 @@ class NI_DAQmxWorker(Worker):
         return True
 
     def abort_transition_to_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
 
     def abort_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
 
 
 class NI_DAQmxAcquisitionWorker(Worker):
@@ -576,7 +582,13 @@ class NI_DAQmxAcquisitionWorker(Worker):
         self.start_task(self.buffered_chans, self.buffered_rate)
         return {}
 
-    def transition_to_manual(self, abort=False):
+    def transition_to_manual(self):
+        return self._return_to_manual(abort=False)
+
+    def abort(self):
+        return self._return_to_manual(abort=True)
+
+    def _return_to_manual(self, abort):
         self.logger.debug('transition_to_manual')
         #  If we were doing buffered mode acquisition, stop the buffered mode task and
         # start the manual mode task. We might not have been doing buffered mode
@@ -686,10 +698,10 @@ class NI_DAQmxAcquisitionWorker(Worker):
                 measurements.create_dataset(label, data=data)
 
     def abort_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
 
     def abort_transition_to_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
 
     def program_manual(self, front_panel_values):
         return {}
@@ -928,7 +940,13 @@ class NI_DAQmxWaitMonitorWorker(Worker):
 
         return {}
 
-    def transition_to_manual(self, abort=False):
+    def transition_to_manual(self):
+        return self._return_to_manual(abort=False)
+
+    def abort(self):
+        return self._return_to_manual(abort=True)
+
+    def _return_to_manual(self, abort):
         self.logger.debug('transition_to_manual')
         self.stop_tasks(abort)
         if not abort and self.wait_table is not None:
@@ -977,10 +995,10 @@ class NI_DAQmxWaitMonitorWorker(Worker):
         return True
 
     def abort_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
 
     def abort_transition_to_buffered(self):
-        return self.transition_to_manual(True)
+        return self.abort()
 
     def program_manual(self, front_panel_values):
         return {}
