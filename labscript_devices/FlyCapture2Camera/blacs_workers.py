@@ -143,21 +143,21 @@ class FlyCapture2_Camera(TriggerableCameraInterface):
             configuration. This driver is therefore not compatible, as written."""
             raise RuntimeError(dedent(msg))
 
-    def set_attributes(self, attr_dict):
-        """Sets all attribues in attr_dict.
+    def set_attributes(self, attributes):
+        """Sets all attributes in `attributes`.
         
         FlyCapture does not control all settings through same interface,
         so we must do them separately.
         Interfaces are: <Standard PROPERTY_TYPE>, TriggerMode, ImageMode
             
         Args:
-            attr_dict (dict): dictionary of property dictionaries to set for the camera.
+            attributes (dict): property dictionaries to set for the camera.
                 These property dictionaries assume a specific structure, outlined in
                 :obj:`set_attribute`, :obj:`set_trigger_mode` and , :obj:`set_image_mode`
                 methods.
         """
         
-        for prop, vals in attr_dict.items():
+        for prop, vals in attributes.items():
             if prop == 'TriggerMode':
                 self.set_trigger_mode(vals)
                 

@@ -36,9 +36,9 @@ Each stage's commits on `CodeHealth`, for review:
   - The package check skips only AlazarTechBoard's missing library.
 - Step 2.2.1's Phase B: `25c2f22..` the commit that records this line, coupled
   with labscript `2e47a79`, `608013c`, `f9d64b9`, `1d5ea89`, `58c5445` and `1988218`.
-- Codex's findings on Phase B, and its re-check's finding: `e0243fa..` the
-  commit that records this line, coupled with labscript `0b14960`, `ab2ffae` and
-  `bbcbad9`.
+- Codex's findings on Phase B, its re-check's finding, and Ian's decision on
+  that: `e0243fa..` the commit that records this line, coupled with labscript
+  `0b14960`, `ab2ffae` and `bbcbad9`.
 
 ## The test contract
 
@@ -333,11 +333,10 @@ On `CodeHealth` after Phase A (`25c2f22`), in this order:
 - **Card 9, ticks and DDS values** (`f6849e6`, `4134c99`). Steps become ticks
   with `quantise_to_pseudoclock(ticks=True)`; NovaTech, QuickSyn and RFBlaster
   quantise their DDS values with labscript's `quantise_channel`.
-- **The reviews' fixes** (`f9c09d9`, `a1afd1f`, `b58f9ed`, and the commit that
-  records this line).
+- **The reviews' fixes** (`f9c09d9`, `a1afd1f`, `b58f9ed`, `b291d89` and the
+  commit that records this line).
 - **Card 10** (`82c42cc`): `TriggerableCameraInterface` composes
-  `set_attributes`, which takes the dict as `attr_dict` or `attributes` as the
-  cameras did, and `snap`, and `DictAttributesMixin` holds dict attributes.
+  `set_attributes` and `snap`, and `DictAttributesMixin` holds dict attributes.
   Card 10 and its fixes stay on `CodeHealth`: upstream PR #148's `DummyCamera`
   branch takes only true bug fixes in the PR's own camera code (Ian).
 
@@ -370,6 +369,9 @@ Intended differences:
   `PulseBlasterParser`.
 - **Error wording:** misconnections to the internal wait-monitor chain (Cicero,
   PrawnBlaster) and to PrawnDO's internals raise labscript's own messages.
+- **Cameras:** every camera's `set_attributes` names its dict `attributes`, as
+  the interface does (Ian), so a call by the old `attr_dict=` or
+  `attributes_dict=` keyword fails. Nothing in the workspace calls it by keyword.
 
 Kept for labs' own subclasses, after the review:
 - **DDS quantisers:** NovaTech's and QuickSyn's `quantise_*` methods are still

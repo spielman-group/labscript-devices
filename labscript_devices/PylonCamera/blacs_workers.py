@@ -46,29 +46,29 @@ class Pylon_Camera(TriggerableCameraInterface):
         self.nodeMap = self.camera.GetNodeMap()
 
 
-    def set_attributes(self, attributes_dict):
-        """Sets all attribues in attr_dict.
+    def set_attributes(self, attributes):
+        """Sets all attributes in `attributes`.
         Pylon cameras require that ROI settings be done in correct order,
         so we do them separately."""
         # make a copy of dict so we can pop off already handled values
-        attr_dict = attributes_dict.copy()
+        attributes = attributes.copy()
         ROIx = ['Width','OffsetX']
         ROIy = ['Height','OffsetY']
-        if set(ROIx).issubset(attr_dict):
-            if attr_dict['OffsetX'] <= (self.camera.WidthMax()-self.camera.Width()):
+        if set(ROIx).issubset(attributes):
+            if attributes['OffsetX'] <= (self.camera.WidthMax()-self.camera.Width()):
                 ROIx.reverse()
-            ROIx_settings = [attr_dict.pop(k) for k in ROIx]
+            ROIx_settings = [attributes.pop(k) for k in ROIx]
             for k,v in zip(ROIx,ROIx_settings):
                 self.set_attribute(k, v)
         
-        if set(ROIy).issubset(attr_dict):
-            if attr_dict['OffsetY'] <= (self.camera.HeightMax()-self.camera.Height()):
+        if set(ROIy).issubset(attributes):
+            if attributes['OffsetY'] <= (self.camera.HeightMax()-self.camera.Height()):
                 ROIy.reverse()
-            ROIy_settings = [attr_dict.pop(k) for k in ROIy]
+            ROIy_settings = [attributes.pop(k) for k in ROIy]
             for k,v in zip(ROIy,ROIy_settings):
                 self.set_attribute(k, v)
         
-        for k, v in attr_dict.items():
+        for k, v in attributes.items():
             self.set_attribute(k, v)
 
     def set_attribute(self, name, value):
