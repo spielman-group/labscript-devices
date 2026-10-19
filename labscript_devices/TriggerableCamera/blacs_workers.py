@@ -397,7 +397,10 @@ class TriggerableCameraWorker(Worker):
         else:
             self.attributes_to_save = None
         print(f"Configuring camera for {self.n_images} images.")
-        self.camera.configure_acquisition(continuous=False, buffer_count=self.n_images)
+        # LEGACY BUFFERCOUNT COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        # Positional, as a camera on IMAQdxCameraWorker's deprecated route names it
+        # bufferCount.
+        self.camera.configure_acquisition(False, self.n_images)
         self.images = []
         self.acquisition_thread = threading.Thread(
             target=self.camera.grab_multiple,
