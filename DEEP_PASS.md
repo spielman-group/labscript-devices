@@ -46,8 +46,8 @@ Each stage's commits on `CodeHealth`, for review:
   the commit that records this line, coupled with labscript `6e5af94` and
   `fe63433` (`renamed_keyword` and its `stacklevel`) and `ac21df6` (its
   example and tests use the new names).
-- Codex's findings on the device differences: `b3a1880..` the commit that
-  records this line.
+- Codex's findings on the device differences, and Ian's decision on the third:
+  `b3a1880..` the commit that records this line.
 
 ## The test contract
 
@@ -531,7 +531,9 @@ Public:
    written for `'%'` is refused by BLACS, which logs why; none is in the
    workspace.
 7. PrawnDO's dataset is `PULSE_PROGRAM`, as on the other pseudoclocks
-   (`01a5da5`); its worker and parser still read `pulse_program`.
+   (`01a5da5`); its worker and parser still read `pulse_program`, warning once
+   for each such file that it may not be readable in future (`4eca405`, Ian).
+   NovaTech's parser warns the same for a file connected as `'channel n'`.
 8. The test device's class is `TestDevice`; `test_device` still works
    (`7d278ce`). Its package keeps its name.
 
