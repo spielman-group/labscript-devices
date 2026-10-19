@@ -25,7 +25,6 @@ import zmq
 
 from labscript_utils.ls_zprocess import Context
 from labscript_utils.shared_drive import path_to_local
-from labscript_utils.properties import set_attributes
 
 
 def _unwritten(camera, method):
@@ -441,7 +440,9 @@ class TriggerableCameraWorker(Worker):
 
             # Save camera attributes to the HDF5 file:
             if self.attributes_to_save is not None:
-                set_attributes(image_group, self.attributes_to_save)
+                labscript_utils.properties.set_attributes(
+                    image_group, self.attributes_to_save
+                )
 
             # Whether we failed to get all the expected exposures:
             image_group.attrs['failed_shot'] = len(self.images) != len(self.exposures)

@@ -15,7 +15,7 @@ import inspect
 import textwrap
 from types import FunctionType
 from labscript_utils import dedent, ensure_str
-from labscript_utils.properties import serialise, deserialise
+import labscript_utils.properties as properties
 
 
 def serialise_function(function, *args, **kwargs):
@@ -40,8 +40,8 @@ def serialise_function(function, *args, **kwargs):
 
     # Serialise the function, args and kwargs:
     source = textwrap.dedent(inspect.getsource(function))
-    args = serialise(args)
-    kwargs = serialise(kwargs)
+    args = properties.serialise(args)
+    kwargs = properties.serialise(kwargs)
 
     return function.__name__, source, args, kwargs
 
@@ -53,8 +53,8 @@ def deserialise_function(
     __name__ and __file__ arguments set those attributes in the namespace that the
     function will be defined."""
     name = ensure_str(name)
-    args = deserialise(args)
-    kwargs = deserialise(kwargs)
+    args = properties.deserialise(args)
+    kwargs = properties.deserialise(kwargs)
     code = compile(source, '<string>', 'exec', dont_inherit=True,)
     namespace = {'__name__': __name__, '__file__': __file__}
     exec(code, namespace)
