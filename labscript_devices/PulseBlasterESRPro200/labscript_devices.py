@@ -19,4 +19,4 @@ class PulseBlasterESRPro200(PulseBlaster_No_DDS):
     clock_limit = 200.0e6
     clock_resolution = 5e-9
     n_flags = 21
-    core_clock_freq = 200.0
+    clock_frequency = 200e6

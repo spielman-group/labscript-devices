@@ -11,6 +11,8 @@
 #                                                                   #
 #####################################################################
 
+import warnings
+
 from labscript_utils import dedent
 
 from labscript import (
@@ -57,7 +59,7 @@ class PulseBlasterDDS(DDSQuantity):
 class PulseBlasterBase(PseudoclockDevice):
     """The pseudoclock and flags of a SpinCore PulseBlaster board. A board's class
     sets its ``description``, ``clock_limit``, ``clock_resolution``, ``n_flags``
-    and ``core_clock_freq``."""
+    and ``clock_frequency``, in Hz."""
 
     pb_instructions = {'CONTINUE':   0,
                        'STOP':       1, 
@@ -145,7 +147,14 @@ class PulseBlasterBase(PseudoclockDevice):
         # less than the minimum instruction length, we can add self.long_delay to it (and
         # reduce the number of repetitions of the long delay by one), to keep it above
         # the minimum delay without exceeding the true maximum delay.
-        self.long_delay = 2**32 / (self.core_clock_freq * 1e6) - self.min_delay
+        # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        if hasattr(self, 'core_clock_freq'):
+            warnings.warn(
+                f"{type(self).__name__}.core_clock_freq, in MHz, will be removed; "
+                "set clock_frequency, in Hz.", FutureWarning, stacklevel=2
+            )
+            self.clock_frequency = self.core_clock_freq * 1e6
+        self.long_delay = 2**32 / self.clock_frequency - self.min_delay
 
         if pulse_width == 'minimum':
             pulse_width = 0.5/self.clock_limit # the shortest possible
@@ -615,7 +624,7 @@ class PulseBlaster(DDSPulseBlasterMixin, PulseBlasterBase):
     clock_resolution = 26.6666666666666666e-9
     # TODO: Add n_dds and generalise code
     n_flags = 12
-    core_clock_freq = 75 # MHz
+    clock_frequency = 75e6
 
 
 class PulseBlasterDirectOutputs(IntermediateDevice):

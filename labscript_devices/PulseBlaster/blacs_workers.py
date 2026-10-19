@@ -11,12 +11,14 @@
 #                                                                   #
 #####################################################################
 
+import warnings
+
 from labscript_devices.pseudoclock import PseudoclockWorker
 
 
 class PulseBlasterBaseWorker(PseudoclockWorker):
     """The worker of a PulseBlaster board's pseudoclock and flags. A board's class
-    sets ``core_clock_freq``, in MHz."""
+    sets ``clock_frequency``, in Hz."""
 
     def init(self):
         exec('from spinapi import *', globals())
@@ -39,7 +41,14 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
     
         pb_select_board(self.board_number)
         pb_init()
-        pb_core_clock(self.core_clock_freq)
+        # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        if hasattr(self, 'core_clock_freq'):
+            warnings.warn(
+                f"{type(self).__name__}.core_clock_freq, in MHz, will be removed; "
+                "set clock_frequency, in Hz.", FutureWarning
+            )
+            self.clock_frequency = self.core_clock_freq * 1e6
+        pb_core_clock(self.clock_frequency / 1e6)
         
         # This is only set to True on a per-shot basis, so set it to False
         # for manual mode. Set associated attributes to None:
@@ -467,4 +476,4 @@ class DDSPulseBlasterWorkerMixin:
 
 
 class PulseBlasterWorker(DDSPulseBlasterWorkerMixin, PulseBlasterBaseWorker):
-    core_clock_freq = 75
+    clock_frequency = 75e6

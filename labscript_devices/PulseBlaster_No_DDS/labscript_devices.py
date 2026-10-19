@@ -20,4 +20,4 @@ class PulseBlaster_No_DDS(PulseBlasterBase):
     clock_limit = 8.3e6 # can probably go faster
     clock_resolution = 20e-9
     n_flags = 24
-    core_clock_freq = 100 # MHz
+    clock_frequency = 100e6

@@ -15,4 +15,4 @@ from labscript_devices.PulseBlaster_No_DDS.blacs_workers import PulseBlaster_No_
 
 
 class PulseBlasterESRPro500Worker(PulseBlaster_No_DDSWorker):
-    core_clock_freq = 500.0
+    clock_frequency = 500e6
