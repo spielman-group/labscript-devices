@@ -15,6 +15,7 @@ from blacs.tab_base_classes import define_state
 from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
 
 from blacs.device_base_class import DeviceTab
+from labscript_devices.pseudoclock import PseudoclockTab
 
 from qtutils import UiLoader
 import qtutils.icons
@@ -25,7 +26,7 @@ from qtutils.qt import QtCore
 from qtutils.qt import QtGui
 
 
-class PulseBlasterBaseTab(DeviceTab):
+class PulseBlasterBaseTab(PseudoclockTab):
     """The tab of a PulseBlaster board's flags. A board's class sets ``num_DO``,
     and ``worker_class``, the full import path of its worker."""
 
@@ -84,8 +85,8 @@ class PulseBlasterBaseTab(DeviceTab):
             self.status[state] = False
             self.status_widgets[state] = getattr(ui,'%s_label'%state)        
         
-        # Create status monitor timout
-        self.statemachine_timeout_add(2000, self.status_monitor)
+        # Refresh the status widgets every 2 s, in every mode
+        self.statemachine_timeout_add(2000, self.update_status)
 
     def initialise_workers(self):
         # Create and set the primary worker. A lab's own tab may name its worker
@@ -126,31 +127,8 @@ class PulseBlasterBaseTab(DeviceTab):
     # This function gets the status of the Pulseblaster from the spinapi,
     # and updates the front panel widgets!
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
-    def status_monitor(self,notify_queue=None):
-        # When called with a queue, this function writes to the queue
-        # when the pulseblaster is waiting. This indicates the end of
-        # an experimental run.
-        self.status, waits_pending, time_based_shot_over = yield(self.queue_work(self._primary_worker,'check_status'))
-        
-        if self.programming_scheme == 'pb_start/BRANCH':
-            done_condition = self.status['waiting']
-        elif self.programming_scheme == 'pb_stop_programming/STOP':
-            done_condition = self.status['stopped']
-            
-        if time_based_shot_over is not None:
-            done_condition = time_based_shot_over
-            
-        if notify_queue is not None and done_condition and not waits_pending:
-            # Experiment is over. Tell the queue manager about it, then
-            # set the status checking timeout back to every 2 seconds
-            # with no queue.
-            notify_queue.put('done')
-            self.statemachine_timeout_remove(self.status_monitor)
-            self.statemachine_timeout_add(2000,self.status_monitor)
-            if self.programming_scheme == 'pb_stop_programming/STOP':
-                # Not clear that on all models the outputs will be correct after being
-                # stopped this way, so we do program_manual with current values to be sure:
-                self.program_device()
+    def update_status(self):
+        self.status, _, _ = yield(self.queue_work(self._primary_worker,'check_status'))
                 
         # Update widgets with new status
         for state in self.status_states:
@@ -165,25 +143,23 @@ class PulseBlasterBaseTab(DeviceTab):
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
     def start(self,widget=None):
         yield(self.queue_work(self._primary_worker,'start_run'))
-        self.status_monitor()
+        self.update_status()
         
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
     def stop(self,widget=None):
         yield(self.queue_work(self._primary_worker,'pb_stop'))
-        self.status_monitor()
+        self.update_status()
         
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
     def reset(self,widget=None):
         yield(self.queue_work(self._primary_worker,'pb_reset'))
-        self.status_monitor()
-    
-    @define_state(MODE_BUFFERED,True)  
-    def start_run(self, notify_queue):
-        """Starts the Pulseblaster, notifying the queue manager when
-        the run is over"""
-        self.statemachine_timeout_remove(self.status_monitor)
-        self.start()
-        self.statemachine_timeout_add(100,self.status_monitor,notify_queue)
+        self.update_status()
+
+    def shot_over(self):
+        if self.programming_scheme == 'pb_stop_programming/STOP':
+            # Not clear that on all models the outputs will be correct after being
+            # stopped this way, so we do program_manual with current values to be sure:
+            self.program_device()
 
 
 class DDSPulseBlasterTabMixin:

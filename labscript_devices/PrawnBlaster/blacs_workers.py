@@ -483,12 +483,14 @@ class PrawnBlasterWorker(PseudoclockWorker):
         self.started = True
 
     def shot_finished(self):
-        run_status, clock_status = self.read_status()
+        # check_status also reads out each wait as it ends, so the shot is over
+        # only once every wait has been read.
+        run_status, clock_status, waits_pending = self.check_status()
         if run_status in [3, 4, 5]:
             raise RuntimeError(
-                f"Prawnblaster status returned run-status={run_status} during transition to manual"
+                f"Prawnblaster status returned run-status={run_status} during the shot"
             )
-        return run_status == 0
+        return run_status == 0 and not waits_pending
 
     def transition_to_manual(self):
         """Transition the PrawnBlaster back to manual mode from buffered execution at

@@ -21,9 +21,10 @@ from blacs.device_base_class import (
 import labscript_utils.properties
 
 from qtutils.qt import QtWidgets
+from labscript_devices.pseudoclock import PseudoclockTab
 
 
-class PrawnBlasterTab(DeviceTab):
+class PrawnBlasterTab(PseudoclockTab):
     """BLACS Tab for the PrawnBlaster Device."""
 
     def initialise_GUI(self):
@@ -56,8 +57,8 @@ class PrawnBlasterTab(DeviceTab):
         # Set the capabilities of this device
         self.supports_smart_programming(True)
 
-        # Create status monitor timout
-        self.statemachine_timeout_add(2000, self.status_monitor)
+        # Refresh the status labels every 2 s, in every mode
+        self.statemachine_timeout_add(2000, self.update_status)
 
     def get_child_from_connection_table(self, parent_device_name, port):
         """Finds the attached ClockLines.
@@ -118,43 +119,10 @@ class PrawnBlasterTab(DeviceTab):
         | MODE_TRANSITION_TO_MANUAL,
         True,
     )
-    def status_monitor(self, notify_queue=None):
-        """Gets the status of the PrawnBlaster from the worker.
-
-        When called with a queue, this function writes to the queue
-        when the PrawnBlaster is waiting. This indicates the end of
-        an experimental run.
-
-        Args:
-            notify_queue (:class:`~queue.Queue`): Queue to notify when
-                the experiment is done.
-
-        """
-
-        status, clock_status, waits_pending = yield (
+    def update_status(self):
+        """Shows the PrawnBlaster's run and clock status."""
+        status, clock_status, _ = yield (
             self.queue_work(self.primary_worker, "check_status")
         )
-
-        # Manual mode or aborted
-        done_condition = status == 0 or status == 5
-
-        # Update GUI status/clock status widgets
         self.status_label.setText(f"Status: {status}")
         self.clock_status_label.setText(f"Clock status: {clock_status}")
-
-        if notify_queue is not None and done_condition and not waits_pending:
-            # Experiment is over. Tell the queue manager about it, then
-            # set the status checking timeout back to every 2 seconds
-            # with no queue.
-            notify_queue.put("done")
-            self.statemachine_timeout_remove(self.status_monitor)
-            self.statemachine_timeout_add(2000, self.status_monitor)
-
-    @define_state(MODE_BUFFERED, True)
-    def start_run(self, notify_queue):
-        """When used as the primary Pseudoclock, this starts the run."""
-
-        self.statemachine_timeout_remove(self.status_monitor)
-        yield (self.queue_work(self.primary_worker, "start_run"))
-        self.status_monitor()
-        self.statemachine_timeout_add(100, self.status_monitor, notify_queue)

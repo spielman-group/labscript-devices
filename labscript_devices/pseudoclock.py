@@ -53,7 +53,8 @@ class PseudoclockWorker(Worker):
 
 class PseudoclockTab(DeviceTab):
     """The tab of a pseudoclock device whose worker says, through its
-    ``shot_finished``, whether the shot it started is over."""
+    ``shot_finished``, whether the shot it started is over. A tab that shows the
+    board's status refreshes it in its own state function, on its own timer."""
 
     @define_state(MODE_BUFFERED, True)
     def start_run(self, notify_queue):
@@ -74,6 +75,7 @@ class PseudoclockTab(DeviceTab):
         if status:
             notify_queue.put('done')
             self.statemachine_timeout_remove(self.status_monitor)
+            self.shot_over()
         elif status is None:
             # The worker failed. TODO: This is a bit of a hack. We fake a restart
             # in order to notify the queue that something went wrong and that it
@@ -84,3 +86,6 @@ class PseudoclockTab(DeviceTab):
                     f(self.device_name)
                 except Exception:
                     self.logger.exception('Could not notify a connected receiver function')
+
+    def shot_over(self):
+        """Called once the worker says the shot it started is over."""

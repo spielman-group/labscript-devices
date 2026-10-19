@@ -27,7 +27,7 @@ class EndOfShotTests(unittest.TestCase):
         worker = PrawnBlasterWorker.__new__(PrawnBlasterWorker)
         worker.read_status = lambda: (next(run_statuses), 0)
         worker.mainloop = lambda: None
-        workerargs.update(is_master_pseudoclock=False, wait_table=None)
+        workerargs.update(is_master_pseudoclock=False, wait_table=None, started=True)
         with mock.patch('labscript_utils.setup_logging.setup_logging'), \
              mock.patch('labscript_utils.excepthook.set_logger'), \
              mock.patch('labscript_utils.ls_zprocess.ProcessTree'):
