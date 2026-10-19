@@ -46,6 +46,8 @@ Each stage's commits on `CodeHealth`, for review:
   the commit that records this line, coupled with labscript `6e5af94` and
   `fe63433` (`renamed_keyword` and its `stacklevel`) and `ac21df6` (its
   example and tests use the new names).
+- Codex's findings on the device differences: `b3a1880..` the commit that
+  records this line.
 
 ## The test contract
 
@@ -521,9 +523,11 @@ Public:
    `e167a83`, `ba1282a`). NovaTech's `'channel n'` still connects, and its tab
    renames the outputs of a front panel saved under the old names. RFBlaster's
    worker converts to the board's %, and its tab converts a front panel saved in
-   %; both tabs do so at startup and when a front panel is loaded. A
-   PulseBlaster amplitude calibration written for `'Vpp'`, the old name of the
-   same 0 to 1, still loads, with a FutureWarning. An RFBlaster calibration
+   %, converting only the fields saved (`98956f4`); both tabs do so at
+   startup and when a front panel is loaded (`e167a83`). A PulseBlaster
+   amplitude calibration written for `'Vpp'`, the old name of the same 0 to 1,
+   still loads, with a FutureWarning at compile, at the script's line
+   (`cc627dd`), and in BLACS (`ba1282a`). An RFBlaster calibration
    written for `'%'` is refused by BLACS, which logs why; none is in the
    workspace.
 7. PrawnDO's dataset is `PULSE_PROGRAM`, as on the other pseudoclocks
@@ -581,8 +585,8 @@ Seen, not changed:
 - PulseBlaster's and FunctionRunner's transition aborts, above: whether they
   should stop the board and run the stop functions is Ian's call.
 - labscript's example puts labscript-utils' `example3`, based on `'Vpp'`, on a
-  PulseBlaster DDS amplitude, so BLACS now warns for it; labscript-utils has no
-  `'Arb'`-based example to use instead.
+  PulseBlaster DDS amplitude, so its compile and BLACS now warn; labscript-utils
+  has no `'Arb'`-based example to use instead.
 - PulseBlaster's parsers take `get_traces(add_trace, parent=None)`, where
   §5 names it `clock`; runviewer passes it positionally.
 - TekScope's driver module `TekScope.py` shadows the package's `TekScope`
