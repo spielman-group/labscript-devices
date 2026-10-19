@@ -11,6 +11,7 @@
 #                                                                   #
 #####################################################################
 
+import sys
 import warnings
 
 from labscript_utils import dedent
@@ -634,6 +635,18 @@ class PulseBlasterDirectOutputs(IntermediateDevice):
   
     def add_device(self, device):
         IntermediateDevice.add_device(self, device)
+        # LEGACY VPP AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        conversion = getattr(getattr(device, 'amplitude', None), 'unit_conversion_class', None)
+        if getattr(conversion, 'base_unit', None) == 'Vpp':
+            # Warn at the script's line: past this method and the DDS's constructors.
+            stacklevel, frame = 2, sys._getframe(1)
+            while any(frame.f_locals.get(name) is device for name in ('self', 'inst')):
+                stacklevel, frame = stacklevel + 1, frame.f_back
+            warnings.warn(
+                f"{conversion.__name__}'s base_unit 'Vpp' will be removed for a "
+                "PulseBlaster DDS amplitude; use 'Arb'.", FutureWarning,
+                stacklevel=stacklevel,
+            )
         if isinstance(device, DDS):
             # Check that the user has not specified another digital line as the gate for this DDS, that doesn't make sense.
             # Then instantiate a DigitalQuantity to keep track of gating.
