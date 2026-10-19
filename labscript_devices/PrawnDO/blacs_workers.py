@@ -10,6 +10,7 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from labscript_devices import warn_legacy_shot_file
 from labscript_devices.pseudoclock import PseudoclockWorker
 import labscript_utils.h5_lock, h5py
 import labscript_utils
@@ -275,6 +276,10 @@ class PrawnDOWorker(PseudoclockWorker):
             # LEGACY PULSE_PROGRAM NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
             # Shot files compiled before the dataset's name was upper case.
             dataset = 'PULSE_PROGRAM' if 'PULSE_PROGRAM' in group else 'pulse_program'
+            if dataset == 'pulse_program':
+                warn_legacy_shot_file(
+                    h5_file, "names the PrawnDO's pulse program pulse_program, not PULSE_PROGRAM"
+                )
             if dataset not in group:
                 # if no output commanded, return
                 return {}
