@@ -51,25 +51,18 @@ class PhaseMatrixQuickSynTab(DeviceTab):
         # Set the capabilities of this device
         self.supports_remote_value_check(True)
         self.supports_smart_programming(False) 
-        self.statemachine_timeout_add(2000, self.status_monitor)
-        
-        
-        
-
-    
-    # This function gets the status of the phasematrix,
-    # and updates the front panel widgets!
+        # Refresh the status widgets every 2 s, in every mode
+        self.statemachine_timeout_add(2000, self.update_status)
 
     def initialise_workers(self):
         # Create and set the primary worker
         self.create_worker("main_worker",'labscript_devices.PhaseMatrixQuickSyn.blacs_workers.PhaseMatrixQuickSynWorker',{'address':self.address})
         self.primary_worker = "main_worker"
 
+    # This function gets the status of the phasematrix,
+    # and updates the front panel widgets!
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
-    def status_monitor(self):
-        # When called with a queue, this function writes to the queue
-        # when the pulseblaster is waiting. This indicates the end of
-        # an experimental run.
+    def update_status(self):
         self.status = yield(self.queue_work(self._primary_worker,'check_status'))
         #TODO: update some widgets to reflect the current state
         self.status_ui.temperature_label.setText(str(self.status['temperature']))
