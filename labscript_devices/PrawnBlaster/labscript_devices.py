@@ -105,6 +105,7 @@ class PrawnBlaster(PseudoclockDevice):
         clock_frequency=100e6,
         external_clock_pin=None,
         use_wait_monitor=True,
+        **kwargs,
     ):
         """PrawnBlaster Pseudoclock labscript device.
 
@@ -170,7 +171,7 @@ class PrawnBlaster(PseudoclockDevice):
             self.wait_delay *= factor
 
         # Instantiate the base class
-        PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection)
+        PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.num_pseudoclocks = num_pseudoclocks
         # Wait monitor can only be used if this is the master pseudoclock
         self.use_wait_monitor = use_wait_monitor and self.is_master_pseudoclock

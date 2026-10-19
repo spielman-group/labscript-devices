@@ -48,8 +48,8 @@ class ImageSet(Output):
     :meta hide-value:
     """
     
-    def __init__(self, name, parent_device, connection = 'Mirror'):
-        Output.__init__(self, name, parent_device, connection)
+    def __init__(self, name, parent_device, connection = 'Mirror', **kwargs):
+        Output.__init__(self, name, parent_device, connection, **kwargs)
         
     def set_array(self, t, arr):
         self.set_image(t, raw=arr_to_bmp(arr))
@@ -107,8 +107,8 @@ class LightCrafterDMD(IntermediateDevice):
     width = WIDTH
     height = HEIGHT
     
-    def __init__(self, name, parent_device, server = '192.168.1.100', port=21845):
-        IntermediateDevice.__init__(self, name, parent_device)
+    def __init__(self, name, parent_device, server = '192.168.1.100', port=21845, **kwargs):
+        IntermediateDevice.__init__(self, name, parent_device, **kwargs)
         self.BLACS_connection = '%s:%d'%(server, port)
         
     def add_device(self, device):        

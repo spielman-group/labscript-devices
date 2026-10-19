@@ -26,8 +26,8 @@ class RFBlaster(PseudoclockDevice):
     wait_delay = trigger_delay
     
     @set_passed_properties()
-    def __init__(self, name, ip_address, trigger_device=None, trigger_connection=None):
-        PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection)
+    def __init__(self, name, ip_address, trigger_device=None, trigger_connection=None, **kwargs):
+        PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.BLACS_connection = ip_address
         
         # create Pseudoclock and clockline

@@ -34,8 +34,8 @@ class PineBlaster(PseudoclockDevice):
     @set_passed_properties(property_names = {
         "connection_table_properties": ["usbport"]}
         )    
-    def __init__(self, name, trigger_device=None, trigger_connection=None, usbport='COM1'):
-        PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection)
+    def __init__(self, name, trigger_device=None, trigger_connection=None, usbport='COM1', **kwargs):
+        PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.BLACS_connection = usbport
         
         # create Pseudoclock and clockline

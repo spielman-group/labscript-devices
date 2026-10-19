@@ -61,8 +61,9 @@ class AlazarTechBoard(Device):
                  chB_coupling_id         = ats.AC_COUPLING,
                  chB_input_range         = 4000,
                  chB_impedance_id        = ats.IMPEDANCE_1M_OHM,
-                 chB_bw_limit            = 0):
-        Device.__init__(self, name, None, None)
+                 chB_bw_limit            = 0,
+                 **kwargs):
+        Device.__init__(self, name, None, None, **kwargs)
         self.name = name
         # This line makes BLACS think the device is connected to something
         self.BLACS_connection = server

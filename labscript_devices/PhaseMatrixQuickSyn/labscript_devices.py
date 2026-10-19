@@ -23,8 +23,8 @@ class QuickSynDDS(StaticDDS):
     generation = 2
     
     @set_passed_properties()    
-    def __init__(self, name, parent_device, connection, freq_limits = None, freq_conv_class = None,freq_conv_params = {}):
-        Device.__init__(self,name,parent_device,connection)
+    def __init__(self, name, parent_device, connection, freq_limits = None, freq_conv_class = None,freq_conv_params = {}, **kwargs):
+        Device.__init__(self,name,parent_device,connection, **kwargs)
         self.frequency = StaticAnalogQuantity(self.name+'_freq',self,'freq',freq_limits,freq_conv_class,freq_conv_params)
         self.frequency.default_value = 0.5e9
         self.gate = StaticDigitalOut(self.name+'_gate',self,'gate')
@@ -52,8 +52,8 @@ class PhaseMatrixQuickSyn(Device):
     generation = 0
 
     @set_passed_properties()
-    def __init__(self, name,com_port):
-        Device.__init__(self, name, None, None)
+    def __init__(self, name,com_port, **kwargs):
+        Device.__init__(self, name, None, None, **kwargs)
         self.BLACS_connection = com_port
         
     def quantise_freq(self, data, device):
