@@ -79,16 +79,12 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
 
         return names
 
-    def get_attribute(self, name, stream_map=False):
+    def get_attribute(self, name):
         """Return current values dictionary of attribute of the given name"""
-        #print('Getting attribute %s.' % name)
-        name = name.split('::')
+        return self._get_node_value(self.camera.GetNodeMap(), name)
 
-        if stream_map:
-            nodemap = self.camera.GetTLStreamNodeMap()
-        else:
-            nodemap = self.camera.GetNodeMap()
-        node = nodemap.GetNode(name[-1])
+    def _get_node_value(self, nodemap, name):
+        node = nodemap.GetNode(name.split('::')[-1])
 
         if PySpin.IsAvailable(node) and PySpin.IsReadable(node):
             if node.GetPrincipalInterfaceType() == PySpin.intfIInteger:
@@ -100,17 +96,14 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
             else:
                 return PySpin.CValuePtr(node).ToString()
 
+    def set_attribute(self, name, value):
+        self._set_node_value(self.camera.GetNodeMap(), name, value)
+
     def set_stream_attribute(self, name, value):
-        self.set_attribute(name, value, stream_map=True)
+        self._set_node_value(self.camera.GetTLStreamNodeMap(), name, value)
 
-    def set_attribute(self, name, value, stream_map=False):
-        #print('Setting attribute %s.' % name)
+    def _set_node_value(self, nodemap, name, value):
         name = name.split('::')
-
-        if stream_map:
-            nodemap = self.camera.GetTLStreamNodeMap()
-        else:
-            nodemap = self.camera.GetNodeMap()
         node = nodemap.GetNode(name[-1])
 
         if PySpin.IsAvailable(node) and PySpin.IsWritable(node):
@@ -127,7 +120,7 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
             # Sometimes this doesn't work, so let's check and print warnings if it
             # fails:
             name = '::'.join(name)
-            return_value = self.get_attribute(name, stream_map=stream_map)
+            return_value = self._get_node_value(nodemap, name)
             if return_value != value:
                 print('WARNING: setting attribute %s to %s failed. '%(name, str(value)) +
                       'Returned value %s instead'%str(return_value))
@@ -215,9 +208,10 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
 
         # This is supposed to provide debugging info, but as with most things
         # in PySpin, it appears to be completely useless:.
-        num_frames=self.get_attribute('StreamTotalBufferCount', stream_map=True)
-        failed_frames=self.get_attribute('StreamFailedBufferCount', stream_map=True)
-        underrun_frames=self.get_attribute('StreamBufferUnderrunCount', stream_map=True)
+        stream = self.camera.GetTLStreamNodeMap()
+        num_frames = self._get_node_value(stream, 'StreamTotalBufferCount')
+        failed_frames = self._get_node_value(stream, 'StreamFailedBufferCount')
+        underrun_frames = self._get_node_value(stream, 'StreamBufferUnderrunCount')
         print('Stream info: %s frames acquired, %s failed, %s underrun' %
               (str(num_frames), str(failed_frames), str(underrun_frames)))
 
