@@ -10,14 +10,10 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from labscript_devices import register_classes
 
-import labscript_devices
-
-labscript_device_name = 'RFBlaster'
-blacs_tab = 'labscript_devices.RFBlaster.blacs_tabs.RFBlasterTab'
-
-labscript_devices.register_classes(
-    labscript_device_name=labscript_device_name,
-    BLACS_tab=blacs_tab,
+register_classes(
+    'RFBlaster',
+    BLACS_tab='labscript_devices.RFBlaster.blacs_tabs.RFBlasterTab',
     runviewer_parser=None,
 )

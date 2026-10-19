@@ -10,14 +10,10 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-import labscript_devices
+from labscript_devices import register_classes
 
-labscript_device_name = 'DummyPseudoclock'
-blacs_tab = 'labscript_devices.DummyPseudoclock.blacs_tabs.DummyPseudoclockTab'
-parser = 'labscript_devices.DummyPseudoclock.runviewer_parsers.DummyPseudoclockParser'
-
-labscript_devices.register_classes(
-    labscript_device_name=labscript_device_name,
-    BLACS_tab=blacs_tab,
-    runviewer_parser=parser,
+register_classes(
+    'DummyPseudoclock',
+    BLACS_tab='labscript_devices.DummyPseudoclock.blacs_tabs.DummyPseudoclockTab',
+    runviewer_parser='labscript_devices.DummyPseudoclock.runviewer_parsers.DummyPseudoclockParser',
 )

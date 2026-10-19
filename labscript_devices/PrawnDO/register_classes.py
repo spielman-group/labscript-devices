@@ -21,6 +21,6 @@ register_classes(
 # private shim class necessary from runviewer parsing of shots
 register_classes(
     '_PrawnDOIntermediateDevice',
-    BLACS_tab='',
-    runviewer_parser='labscript_devices.PrawnDO.runviewer_parsers._PrawnDOIntermediateParser'
+    BLACS_tab=None,
+    runviewer_parser='labscript_devices.PrawnDO.runviewer_parsers._PrawnDOIntermediateParser',
 )

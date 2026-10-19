@@ -10,15 +10,10 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
+from labscript_devices import register_classes
 
-import labscript_devices
-
-labscript_device_name = 'NovaTechDDS9M'
-blacs_tab = 'labscript_devices.NovaTechDDS9M.blacs_tabs.NovaTechDDS9MTab'
-parser = 'labscript_devices.NovaTechDDS9M.runviewer_parsers.NovaTechDDS9MParser'
-
-labscript_devices.register_classes(
-    labscript_device_name=labscript_device_name,
-    BLACS_tab=blacs_tab,
-    runviewer_parser=parser,
+register_classes(
+    'NovaTechDDS9M',
+    BLACS_tab='labscript_devices.NovaTechDDS9M.blacs_tabs.NovaTechDDS9MTab',
+    runviewer_parser='labscript_devices.NovaTechDDS9M.runviewer_parsers.NovaTechDDS9MParser',
 )

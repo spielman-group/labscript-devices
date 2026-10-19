@@ -10,15 +10,10 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from labscript_devices import register_classes
 
-import labscript_devices
-
-labscript_device_name = 'PulseBlasterESRPro200'
-blacs_tab = 'labscript_devices.PulseBlasterESRPro200.blacs_tabs.PulseBlasterESRPro200Tab'
-parser = 'labscript_devices.PulseBlasterESRPro200.runviewer_parsers.PulseBlasterESRPro200Parser'
-
-labscript_devices.register_classes(
-    labscript_device_name=labscript_device_name,
-    BLACS_tab=blacs_tab,
-    runviewer_parser=parser,
+register_classes(
+    'PulseBlasterESRPro200',
+    BLACS_tab='labscript_devices.PulseBlasterESRPro200.blacs_tabs.PulseBlasterESRPro200Tab',
+    runviewer_parser='labscript_devices.PulseBlasterESRPro200.runviewer_parsers.PulseBlasterESRPro200Parser',
 )

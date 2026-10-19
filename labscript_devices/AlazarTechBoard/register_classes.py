@@ -4,13 +4,11 @@
 #
 # Copyright (c) Monash University 2017
 
-import labscript_devices
 
-labscript_device_name = 'AlazarTechBoard'
-blacs_tab = 'labscript_devices.AlazarTechBoard.blacs_tabs.AlazarTechBoardTab'
+from labscript_devices import register_classes
 
-labscript_devices.register_classes(
-    labscript_device_name=labscript_device_name,
-    BLACS_tab=blacs_tab,
+register_classes(
+    'AlazarTechBoard',
+    BLACS_tab='labscript_devices.AlazarTechBoard.blacs_tabs.AlazarTechBoardTab',
     runviewer_parser=None,
 )

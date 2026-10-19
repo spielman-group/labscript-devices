@@ -10,15 +10,10 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from labscript_devices import register_classes
 
-import labscript_devices
-
-labscript_device_name = 'PulseBlasterUSB'
-blacs_tab = 'labscript_devices.PulseBlasterUSB.blacs_tabs.PulseBlasterUSBTab'
-parser = 'labscript_devices.PulseBlasterUSB.runviewer_parsers.PulseBlasterUSBParser'
-
-labscript_devices.register_classes(
-    labscript_device_name=labscript_device_name,
-    BLACS_tab=blacs_tab,
-    runviewer_parser=parser,
+register_classes(
+    'PulseBlasterUSB',
+    BLACS_tab='labscript_devices.PulseBlasterUSB.blacs_tabs.PulseBlasterUSBTab',
+    runviewer_parser='labscript_devices.PulseBlasterUSB.runviewer_parsers.PulseBlasterUSBParser',
 )

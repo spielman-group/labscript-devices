@@ -10,15 +10,10 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
+from labscript_devices import register_classes
 
-import labscript_devices
-
-labscript_device_name = 'CiceroOpalKellyXEM3001'
-blacs_tab = 'labscript_devices.CiceroOpalKellyXEM3001.blacs_tabs.CiceroOpalKellyXEM3001Tab'
-parser = 'labscript_devices.CiceroOpalKellyXEM3001.runviewer_parsers.CiceroOpalKellyXEM3001Parser'
-
-labscript_devices.register_classes(
-    labscript_device_name=labscript_device_name,
-    BLACS_tab=blacs_tab,
-    runviewer_parser=parser,
+register_classes(
+    'CiceroOpalKellyXEM3001',
+    BLACS_tab='labscript_devices.CiceroOpalKellyXEM3001.blacs_tabs.CiceroOpalKellyXEM3001Tab',
+    runviewer_parser='labscript_devices.CiceroOpalKellyXEM3001.runviewer_parsers.CiceroOpalKellyXEM3001Parser',
 )

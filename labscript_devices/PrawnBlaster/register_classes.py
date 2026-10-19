@@ -10,14 +10,10 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-import labscript_devices
+from labscript_devices import register_classes
 
-labscript_device_name = 'PrawnBlaster'
-blacs_tab = 'labscript_devices.PrawnBlaster.blacs_tabs.PrawnBlasterTab'
-parser = 'labscript_devices.PrawnBlaster.runviewer_parsers.PrawnBlasterParser'
-
-labscript_devices.register_classes(
-    labscript_device_name=labscript_device_name,
-    BLACS_tab=blacs_tab,
-    runviewer_parser=parser,
+register_classes(
+    'PrawnBlaster',
+    BLACS_tab='labscript_devices.PrawnBlaster.blacs_tabs.PrawnBlasterTab',
+    runviewer_parser='labscript_devices.PrawnBlaster.runviewer_parsers.PrawnBlasterParser',
 )
