@@ -76,10 +76,10 @@ class TriggerableCameraInterface(object):
     # set_attribute or set_attributes; the two attribute readers are owed only
     # by a camera that inherits the composing `get_attributes_as_dict` below.
 
-    def set_attributes(self, attributes):
+    def set_attributes(self, attr_dict):
         """Program a dict of attribute names and values into the camera, one at
         a time unless the camera writes its own."""
-        for name, value in attributes.items():
+        for name, value in attr_dict.items():
             self.set_attribute(name, value)
 
     def set_attribute(self, name, value):
