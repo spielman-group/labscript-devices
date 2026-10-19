@@ -49,3 +49,7 @@ class DummyPseudoclockWorker(PseudoclockWorker):
 
     def abort_buffered(self):
         return self.transition_to_manual()
+
+    def abort_transition_to_buffered(self):
+        self.stop_time = None
+        return True

@@ -86,3 +86,6 @@ class TekScopeWorker(Worker):
     def abort_transition_to_buffered(self):
         print('abort_transition_to_buffered: ...')
         return self.abort()
+
+    def shutdown(self):
+        self.scope.close()
