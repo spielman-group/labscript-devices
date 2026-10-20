@@ -372,6 +372,10 @@ class PrawnDOWorker(PseudoclockWorker):
         Returns:
             bool: `True` is abort was successful.
         """
+        # The firmware refuses to abort a board that is not at run status 1 or 2,
+        # and such a board has nothing to abort.
+        if self.intf.status()[0] not in (1, 2):
+            return True
         self.intf.send_command_ok('abt')
         self.wait_for_end_of_shot(lambda: self.intf.status()[0] == 5)
         return True

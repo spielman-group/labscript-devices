@@ -545,10 +545,12 @@ class PrawnBlasterWorker(PseudoclockWorker):
         Returns:
             bool: `True` is abort is successful.
         """
-        if not self.is_master_pseudoclock:
-            # Only need to send abort signal if we have told the PrawnBlaster to wait
-            # for a hardware trigger. Otherwise it's just been programmed with
-            # instructions and there is nothing we need to do to abort.
+        # Only need to send abort signal if we have told the PrawnBlaster to wait
+        # for a hardware trigger. Otherwise it's just been programmed with
+        # instructions and there is nothing we need to do to abort. The firmware
+        # refuses to abort a board that is not at run status 1 or 2, and such a
+        # board has nothing to abort.
+        if not self.is_master_pseudoclock and self.read_status()[0] in (1, 2):
             self.conn.write(b"abort\r\n")
             assert self.conn.readline().decode() == "ok\r\n"
             self.wait_for_end_of_shot(lambda: self.read_status()[0] == 5)
