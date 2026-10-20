@@ -11,6 +11,7 @@
 #                                                                   #
 #####################################################################
 
+from labscript_devices.deadline import Deadline
 from labscript_devices.pseudoclock import PseudoclockWorker
 from labscript_utils.setup_logging import setup_logging
 
@@ -135,14 +136,16 @@ class RFBlasterWorker(PseudoclockWorker):
         while not response:
             try:
                 self.netlogger.info('Connection attempt %i.' % self._connection_attempt)
-                if form is not None:
-                    # For some reason the MultiPartForm object stored form_fields as a list of key,value tuples...
-                    # ... rather than a dict. No matter. it seems requests sucks this up anyway.
-                    # However we need to rearrange the file data into a nested tuple for requests. No big deal:
-                    filelist = [(field_name, (filename, bytes(body), content_type)) for field_name, filename, content_type, body in form.files]
-                    r = requests.post(self.address, data=form.form_fields, files=filelist, timeout=self.timeout) # Needs to actually send the form
-                else:
-                    r = requests.get(self.address, timeout=self.timeout)
+                deadline = Deadline(self.device_name, 'answer an HTTP request', self.timeout)
+                with deadline.timeout_for(requests.exceptions.Timeout) as timeout:
+                    if form is not None:
+                        # For some reason the MultiPartForm object stored form_fields as a list of key,value tuples...
+                        # ... rather than a dict. No matter. it seems requests sucks this up anyway.
+                        # However we need to rearrange the file data into a nested tuple for requests. No big deal:
+                        filelist = [(field_name, (filename, bytes(body), content_type)) for field_name, filename, content_type, body in form.files]
+                        r = requests.post(self.address, data=form.form_fields, files=filelist, timeout=timeout) # Needs to actually send the form
+                    else:
+                        r = requests.get(self.address, timeout=timeout)
                 r.raise_for_status() 
                 self.netlogger.info('Connected!')
                 break
