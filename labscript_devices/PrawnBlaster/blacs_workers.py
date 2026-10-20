@@ -10,10 +10,10 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-import time
 import labscript_utils.h5_lock
 import h5py
 import numpy as np
+from labscript_devices.deadline import Deadline
 from labscript_devices.pseudoclock import PseudoclockWorker
 from labscript import LabscriptError
 from labscript_utils import ensure_str
@@ -465,22 +465,20 @@ class PrawnBlasterWorker(PseudoclockWorker):
         self.logger.info("sending hwstart")
         self.send_command_ok("hwstart")
 
-        # The firmware arms in well under a second, so a board still arming after
-        # 5 s is stuck
-        deadline = time.monotonic() + 5
-        running = False
-        while not running:
+        def armed():
             run_status, clock_status = self.read_status()
-            # If we are running, great, the PrawnBlaster is waiting for a trigger
-            if run_status == 2:
-                running = True
             # if we are not in TRANSITION_TO_RUNNING, then something has gone wrong
             # and we should raise an exception
-            elif run_status != 1 or time.monotonic() > deadline:
+            if run_status not in (1, 2):
                 raise RuntimeError(
-                    f"Prawnblaster did not arm to wait for its trigger. Status was {run_status}"
+                    f"Prawnblaster did not return an expected status. Status was {run_status}"
                 )
-            time.sleep(0.01)
+            # If we are running, great, the PrawnBlaster is waiting for a trigger
+            return run_status == 2
+
+        # The firmware arms in well under a second, so a board still arming after
+        # 5 s is stuck
+        Deadline(self.device_name, 'arm to wait for its trigger', 5).wait(armed)
 
         # set started = True
         self.started = True
