@@ -149,11 +149,3 @@ class TekScope:
 
     def close(self):
         self.dev.close()
-
-if __name__ == '__main__':
-    scope = TekScope(addr='TCP?*::INSTR', timeout=10)
-    manufacturer, model, sn, revision = scope.idn.split(',')
-    assert manufacturer.lower() == 'tektronix', \
-        "Device is made by {:s}, not by Tektronix, and is actually a {:s}".format(manufacturer, model)
-    print('Connected to {} (SN: {})'.format(model, sn))
-
