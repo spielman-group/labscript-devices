@@ -265,8 +265,9 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
         return self.abort()
 
     def abort_transition_to_buffered(self):
+        # Nothing to undo here: blacs reprograms the board after a transition abort
         return True
-        
+
     def shutdown(self):
         #TODO: implement this
         pass
