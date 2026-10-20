@@ -11,10 +11,10 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-import time
-
 from blacs.device_base_class import DeviceTab
 from blacs.tab_base_classes import MODE_BUFFERED, MODE_MANUAL, Worker, define_state
+
+from .deadline import Deadline
 
 
 class PseudoclockWorker(Worker):
@@ -38,17 +38,9 @@ class PseudoclockWorker(Worker):
     def wait_for_end_of_shot(self, ended=None):
         """Wait until ``ended()``, :meth:`shot_finished` if not given, returns
         True. An abort passes its own test."""
-        ended = ended or self.shot_finished
         # Not a class attribute, which BLACS would not let a worker argument set:
         timeout = getattr(self, 'end_of_shot_timeout', 5)
-        deadline = time.monotonic() + timeout
-        while not ended():
-            if time.monotonic() > deadline:
-                raise TimeoutError(
-                    f"{self.device_name} had not ended the shot within its "
-                    f"end_of_shot_timeout of {timeout} s."
-                )
-            time.sleep(0.01)
+        Deadline(self.device_name, 'end the shot', timeout).wait(ended or self.shot_finished)
 
 
 class PseudoclockTab(DeviceTab):
