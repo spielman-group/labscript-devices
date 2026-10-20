@@ -69,7 +69,10 @@ Each stage's commits on `CodeHealth`, for review:
 - Step 2.4's build (Ian: "approve as proposed; for the old NI paths, do not
   remove them, and instead add the depriciation warnings there too"):
   `36a7a77..` `5400b1d`.
-- Step 2.5's table: the commit that records this line, a table only.
+- Step 2.5's table: `8028a2c`, a table only.
+- Step 2.5's build (Ian: "What is lightcrafter unused view? I approve all else";
+  then "delete the LightCrafter view and verify the PrawnDO bug now"):
+  `cd4713f..` the commit that records this line.
 
 ## The test contract
 
@@ -886,3 +889,34 @@ Possible improvements, as the page would word them:
   the module would end that.
 - j. **test_device's keyword.** `DoSomething` would be `do_something`, with the
   old name kept as a legacy keyword.
+
+### Built
+
+- Every row is done, row 13 too on Ian's second word.
+  - Row 13 was 10 commented lines in LightCrafterDMD's tab. They hid the image
+    widgets and drew the DMD on a `QGraphicsScene`, through two classes,
+    `SLMGraphicsView` and `ImageWrapperWidget`, that no repo has.
+  - No TODO is left in the package; atsapi's `TRIGGER_XXXXX` is a constant.
+- Row 1 changes runviewer: a secondary PineBlaster is drawn 350 ns after its
+  trigger, not 1 µs. Only the six triggered PineBlasters in the test shots
+  trace differently.
+- Row 2: RFBlaster's limits are the board's range, 0 to 350 MHz and amplitude 0
+  to 1. Its phase wraps, as NovaTechDDS9M's does, rather than being refused
+  past 360. Each test shot still compiles, and out-of-range values raise.
+- Row 7, verified on Ian's word: the PrawnDO's `trigger_delay` is applied once
+  per trigger, not twice. labscript subtracts it once per trigger, and the
+  firmware resumes from a wait as it starts.
+  - Probe: a PrawnBlaster master with one and three waits. Every PrawnDO change
+    lands on its script time, to a 10 ns tick.
+  - In its place, a known issue: PrawnDO's runviewer parser does not take its
+    master's tick after a wait, so its trace runs ahead by the master's
+    `wait_delay` each wait.
+- Shot files: every test shot is identical to `8028a2c`, or fails the same
+  way. Parsed traces are identical apart from row 1's. The docs build.
+- For other owners:
+  - labscript's `quantise_channel` wraps a phase before rounding it, so a phase
+    just under 360°, or a tiny negative one, reaches the device as one past the
+    top of its phase word (16384 of 14 bits on RFBlaster). NovaTechDDS9M has the
+    same edge.
+- Seen, not changed: PulseBlaster's compile code is written for two DDS, though
+  the deleted `n_dds` TODO read as done. The one DDS board has two.
