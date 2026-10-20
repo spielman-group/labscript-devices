@@ -68,7 +68,8 @@ Each stage's commits on `CodeHealth`, for review:
 - Step 2.4's table: `2443b93`, a table only.
 - Step 2.4's build (Ian: "approve as proposed; for the old NI paths, do not
   remove them, and instead add the depriciation warnings there too"):
-  `36a7a77..` the commit that records this line.
+  `36a7a77..` `5400b1d`.
+- Step 2.5's table: the commit that records this line, a table only.
 
 ## The test contract
 
@@ -816,3 +817,72 @@ AlazarTechBoard, Cicero, NI_DAQmx twice and PrawnBlaster.
     local and origin;
   - `maintenance/3.0.x` `080e054e266251c15f0bf4cf6a6373ad187a0f83`, origin;
   - `more-ni-daq-models` `ce82ea8ddab511138e378f0b8368232823c1a110`, origin.
+
+## Step 2.5: documents
+
+A table for Ian; nothing is changed until he decides. TODO lines are as of
+`5400b1d`. Commented-out runs keep step 2.4's numbers (row 19); 11 of the 59
+went with step 2.4's removals, and 48 runs, 305 lines, remain. Each "Possible
+improvements" item is worded below the table. That page would be new,
+`docs/source/improvements.rst`, in the index, as labscript and labscript-utils
+have it.
+
+| # | Item | File:line | Proposal | Reason | Size |
+| --- | --- | --- | --- | --- | --- |
+| 1 | TODO: PineBlaster's parser `trigger_delay` "find out what this actually is" | `PineBlaster/runviewer_parsers.py:22` | do it: the parser takes the class's measured 350 ns (`labscript_devices.py:26`), not 1 µs | the answer is already in the code; runviewer draws a secondary PineBlaster 650 ns late (an intended trace change) | 2 lines |
+| 2 | TODO: RFBlaster "bounds checking" | `RFBlaster/labscript_devices.py:92` | do it: give its three `quantise_channel` calls the limits its BLACS tab uses (350 MHz, amplitude 0 to 1, phase 0 to 360) | an out-of-range value is quantised into int32 without an error | 3 lines |
+| 3 | TODOs done already: PulseBlaster's parser trigger-delay offset, PulseBlaster's `n_dds`, QuickSyn's widget update | `PulseBlaster/runviewer_parsers.py:135`, `PulseBlaster/labscript_devices.py:631`, `PhaseMatrixQuickSyn/blacs_tabs.py:67` | delete | the next line, the DDS mixin with `num_dds`, and the code below each do what they ask | −3 |
+| 4 | TODOs the code answers: NovaTech's phase precision, RFBlaster's amplitude and phase precision | `NovaTechDDS9M/blacs_tabs.py:41`, `RFBlaster/blacs_tabs.py:50` | delete | each device's quantiser fixes it (NovaTech 45.51 steps a degree, 0.022°) | −2 |
+| 5 | TODOs not worth doing: two `shutdown`s, Zaber's smart programming, NovaTech's reprogram-only-changes, PulseBlaster's firmware checks, three Andor SDK notes, NI_DAQmx's AI "broker" (two) | `PulseBlaster/blacs_workers.py:272`, `RFBlaster/blacs_workers.py:207`, `ZaberStageController/blacs_tabs.py:53`, `NovaTechDDS9M/blacs_workers.py:128`, `PulseBlaster/labscript_devices.py:102`, `andor_solis.py:146`, `andor_utils.py:447, 473`, `NI_DAQmx/blacs_workers.py:479, 488` | delete, and reword `:488`'s docstring | the process's exit closes both boards; the rest no one has asked for, or names a server that does not exist | −10 |
+| 6 | TODOs saying "untested" | `NovaTechDDS9M/blacs_workers.py:267`, `RFBlaster/blacs_workers.py:115` | delete | hardware validation on Development is where untested code gets tested | −2 |
+| 7 | TODO: PrawnDO's `trigger_delay` "gets applied twice on waits" | `PrawnDO/labscript_devices.py:81` | a `KNOWN_ISSUES.md` line, unverified, in place of the TODO | a suspected bug, not an improvement | 1 line |
+| 8 | TODOs worth doing but larger, the three `program_manual`s' "return coerced/quantised values" among them | `NI_DAQmx/blacs_workers.py:136`, `PulseBlaster/blacs_workers.py:98, 336`; `PulseBlaster/labscript_devices.py:222, 252`, `AlazarTechBoard/labscript_devices.py:72`; `PineBlaster/labscript_devices.py:27`, `PineBlaster/runviewer_parsers.py:24`, `RFBlaster/labscript_devices.py:24`, `CiceroOpalKellyXEM3001/labscript_devices.py:46, 55`; `andor_utils.py:560`, `AndorSolis/blacs_workers.py:48`; `TekScope/blacs_workers.py:36`; `pseudoclock.py:55, 72` | move to Possible improvements (items a to g) | each is real, and needs more than a small change or a board to measure | −16 lines here |
+| 9 | Commented-out debug prints | B2-B4, B6-B11 (AlazarTechBoard), B39-B41, B43 (PulseBlaster parser, Python 2), B47 (RFBlaster, Python 2), B49 (Spinnaker) | delete | debugging left over; the Python 2 ones cannot even run | 15 runs, −16 |
+| 10 | Commented-out older forms of live code | B5, B13, B18, B21, B23, B36 with B44 (a slow-clock trace whose read is gone), B45 ("for history"), B50 | delete | each is replaced by the line beside it; git keeps the history | 9 runs, −22 |
+| 11 | Commented-out calls the code does without | B1, B12, B14, B16, B19, B24, B28, B29, B34, B46, B48, B51, B52 | delete | none is a behaviour anyone has asked for back; TekScope's `*RST` on abort and LightCrafterDMD's blank image at start are the nearest, and neither is wanted | 13 runs, −16 |
+| 12 | Cicero's design notes, with their pseudo-code (B17, B20) | `CiceroOpalKellyXEM3001/blacs_workers.py:196-216, 262-276` | delete | the code below them does what they plan; their one live point, missed close waits, goes to item f | −36 |
+| 13 | LightCrafterDMD's alternative view | B26, B27 (`LightCrafterDMD/blacs_tabs.py:38-50`) | delete | the tab places its widgets with `auto_place_widgets` | −10 |
+| 14 | AlazarTech wrappers commented out: DSP and OCT functions, and two `Board.__init__` lookups | B54-B59 (`atsapi.py:576-757, 802-806, 905-910, 919-959, 1165-1176`) | delete | AlazarTech ships the full `atsapi.py`, should a lab need them | −244 |
+| 15 | The commented `labscript_init` in DummyCamera's example | B22 (`DummyCamera/testing/test.py:22`) | keep | part of the documented example: it shows how to run the script outside runmanager | none |
+| 16 | Deferred (Ian, step 2.2): front-panel bit packing | DEEP_PASS step 2.2 | Possible improvements (item h) | the only near-duplicate step 2.2.1 did not resolve: quantisers, ticks, status monitors and camera defaults are each one implementation now | — |
+| 17 | Step 2.3's defers that are improvements: rows 18, 20 and 21 | `KNOWN_ISSUES.md` | move to Possible improvements (items b, i, j), and their known issues lines go | each is a better form of working code, not a fault; row 13, RFBlaster's missing readback, stays a known issue | −3 lines there |
+| 18 | `DEEP_PASS.md` | root | delete in the last commit before `CodeHealth` merges into `Development` | the campaign's record, spent at the merge; Codex and the master read it until then | −all |
+| 19 | `NI_DAQmx/models/README.txt` | `NI_DAQmx/models/` | keep | upstream's notice, beside the generated files, that they are regenerated | none |
+
+No other file is a document: the licences, workflows, `pyproject.toml`,
+`readthedocs.yaml` and `.ui` files are not.
+
+Possible improvements, as the page would word them:
+
+- a. **The values a manual program took.** NI_DAQmx's and PulseBlaster's
+  `program_manual` return nothing, so BLACS shows the values asked for, not
+  the ones the hardware took after quantising.
+- b. **Connections checked when they are made.** PulseBlaster checks its
+  outputs' connections, and that a board without DDS has no DDS on it, only
+  when the shot compiles. AlazarTechBoard does not check its inputs'
+  connections at all. Checking in `add_device` would put the error at the line
+  that connects.
+- c. **Measured delays.** PineBlaster's `wait_delay`, RFBlaster's
+  `trigger_delay` and `wait_delay`, and Cicero's `trigger_delay` and
+  `wait_delay` are estimates. Measuring each on a board would make the timing
+  exact.
+- d. **Andor acquisitions.** The worker waits for the camera to go idle, with a
+  timeout. Counting the frames acquired would end the wait sooner, and checking
+  for an abort during it would make an abort prompt.
+- e. **TekScope settings per shot.** The acquisition mode and channels are
+  fixed in the worker; the shot file could give them.
+- f. **Waits close together.** `PseudoclockTab` polls a board's status every
+  100 ms, and Cicero finds its waits from sample counts, so two waits closer
+  than a poll can be taken for one.
+- g. **Reporting a worker's failure.** `PseudoclockTab` tells BLACS that a shot
+  failed by faking a restart of the device. A BLACS call for it would be
+  plainer.
+- h. **Front-panel bit packing.** NI_DAQmx's worker and parser, and PrawnDO's
+  worker, each pack a port's line values into an integer and back. One helper
+  beside labscript's `bitfield` could serve all three.
+- i. **TekScope's module name.** The driver module `TekScope/TekScope.py` has
+  the class's name, so once a worker imports it,
+  `labscript_devices.TekScope.TekScope` is the module, not the class. Renaming
+  the module would end that.
+- j. **test_device's keyword.** `DoSomething` would be `do_something`, with the
+  old name kept as a legacy keyword.
