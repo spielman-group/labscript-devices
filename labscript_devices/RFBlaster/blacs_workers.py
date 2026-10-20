@@ -127,6 +127,7 @@ class RFBlasterWorker(PseudoclockWorker):
     def http_request(self, form=None): 
         """Make a HTTP request to the RFBlaster, optionally submitting a form"""
         import requests
+        from urllib3.exceptions import ReadTimeoutError
         from urllib.request import urlopen, Request
         from urllib.error import URLError, HTTPError 
     
@@ -138,14 +139,20 @@ class RFBlasterWorker(PseudoclockWorker):
                 self.netlogger.info('Connection attempt %i.' % self._connection_attempt)
                 deadline = Deadline(self.device_name, 'answer an HTTP request', self.timeout)
                 with deadline.timeout_for(requests.exceptions.Timeout, TimeoutError) as timeout:
-                    if form is not None:
-                        # For some reason the MultiPartForm object stored form_fields as a list of key,value tuples...
-                        # ... rather than a dict. No matter. it seems requests sucks this up anyway.
-                        # However we need to rearrange the file data into a nested tuple for requests. No big deal:
-                        filelist = [(field_name, (filename, bytes(body), content_type)) for field_name, filename, content_type, body in form.files]
-                        r = requests.post(self.address, data=form.form_fields, files=filelist, timeout=timeout) # Needs to actually send the form
-                    else:
-                        r = requests.get(self.address, timeout=timeout)
+                    try:
+                        if form is not None:
+                            # For some reason the MultiPartForm object stored form_fields as a list of key,value tuples...
+                            # ... rather than a dict. No matter. it seems requests sucks this up anyway.
+                            # However we need to rearrange the file data into a nested tuple for requests. No big deal:
+                            filelist = [(field_name, (filename, bytes(body), content_type)) for field_name, filename, content_type, body in form.files]
+                            r = requests.post(self.address, data=form.form_fields, files=filelist, timeout=timeout) # Needs to actually send the form
+                        else:
+                            r = requests.get(self.address, timeout=timeout)
+                    except requests.exceptions.ConnectionError as e:
+                        # requests reports a timeout while reading the body as a ConnectionError
+                        if e.args and isinstance(e.args[0], ReadTimeoutError):
+                            raise TimeoutError from e
+                        raise
                 r.raise_for_status() 
                 self.netlogger.info('Connected!')
                 break
