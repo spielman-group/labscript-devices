@@ -764,16 +764,19 @@ class NI_DAQmxWaitMonitorWorker(Worker):
         # that an abort is seen between them.
         end = None if timeout is None else time.monotonic() + timeout
         read_array = np.zeros(npts)
+        read = 0
         while True:
             if self.shutting_down:
                 raise RuntimeError('Stopped before expected number of samples acquired')
             left = None if end is None else max(end - time.monotonic(), 0)
             try:
                 self.CI_task.ReadCounterF64(
-                    npts, 0.2 if left is None else min(left, 0.2), read_array, npts,
-                    samples_read, None
+                    npts - read, 0.2 if left is None else min(left, 0.2),
+                    read_array[read:], npts - read, samples_read, None
                 )
             except SamplesNotYetAvailableError:
+                # A read that times out still returns the samples it got
+                read += samples_read.value
                 if left is None or left > 0.2:
                     continue
                 return None
