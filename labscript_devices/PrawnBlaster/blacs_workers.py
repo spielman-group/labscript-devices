@@ -465,6 +465,9 @@ class PrawnBlasterWorker(PseudoclockWorker):
         self.logger.info("sending hwstart")
         self.send_command_ok("hwstart")
 
+        # The firmware arms in well under a second, so a board still arming after
+        # 5 s is stuck
+        deadline = time.monotonic() + 5
         running = False
         while not running:
             run_status, clock_status = self.read_status()
@@ -473,7 +476,7 @@ class PrawnBlasterWorker(PseudoclockWorker):
                 running = True
             # if we are not in TRANSITION_TO_RUNNING, then something has gone wrong
             # and we should raise an exception
-            elif run_status != 1:
+            elif run_status != 1 or time.monotonic() > deadline:
                 raise RuntimeError(
                     f"Prawnblaster did not return an expected status. Status was {run_status}"
                 )
