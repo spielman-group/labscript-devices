@@ -316,13 +316,6 @@ def GetAcquiredData16(shape):
     check_status(result)
     return np.ctypeslib.as_array(arr).reshape(shape)
 
-def GetAcquiredFloatData(shape):
-    """ This function is reserved """
-    arr = (ctypes.c_float * shape[0] * shape[1])()
-    size = ctypes.c_ulong(shape[0] * shape[1])
-    pass
-
-
 def GetAcquisitionProgress():
     """ This function will return information on the progress 
         of the current acquisition. It can be called at any 
@@ -380,13 +373,6 @@ def GetAdjustedRingExposureTimes(inumTimes):
     check_status(result)
     return float(fptimes.value)
 
-def GetAllDMAData(shape):
-    """ This function is reserved. """
-    arr = (ctypes.c_float * shape[0] * shape[1])()
-    size = ctypes.c_ulong(shape[0] * shape[1])
-    pass
-
-
 def GetAmpDesc(index, char_length):
     """ This function will return a string with an amplifier 
         description. The amplifier is selected using the index. 
@@ -422,13 +408,6 @@ def GetAvailableCameras():
     result = andor_solis.GetAvailableCameras(ctypes.byref(totalCameras))
     check_status(result)
     return int(totalCameras.value)
-
-
-def GetBackground(shape):
-    """ This function is reserved. """
-    arr = (ctypes.c_float * shape[0] * shape[1])()
-    size = ctypes.c_ulong(shape[0] * shape[1])
-    pass
 
 
 def GetBaselineClamp():
@@ -562,13 +541,6 @@ def GetCurrentCamera():
     result = andor_solis.GetCurrentCamera(ctypes.byref(cameraHandle))
     check_status(result)
     return int(cameraHandle.value)
-
-
-def GetCYMGShift():
-    """ This function is reserved. """
-    iXShift = ctypes.POINTER(ctypes.c_int(iXShift))
-    iYShift = ctypes.POINTER(ctypes.c_int(iYShift))
-    pass
 
 
 def GetDDGExternalOutputEnabled(index):
