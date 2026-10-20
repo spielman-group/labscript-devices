@@ -16,3 +16,4 @@ from labscript_devices import lazy_attributes
 __getattr__ = lazy_attributes(
     __name__, {'labscript_devices.NI_DAQmx.labscript_devices': ['NI_USB_6343']}, legacy=True
 )
+__all__ = ['NI_USB_6343']
