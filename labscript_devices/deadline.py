@@ -27,31 +27,33 @@ class Deadline:
         self.seconds = seconds
         self.end = time.monotonic() + seconds
 
-    def check(self):
-        """Raise the TimeoutError if the deadline has passed."""
-        if time.monotonic() >= self.end:
-            raise TimeoutError(
-                f"{self.device_name} did not {self.what} within {self.seconds} s."
-            )
-
     def remaining(self):
-        """The seconds left, for a library call's own timeout. Checks first, as
-        a library takes a timeout of 0 as "do not wait", or as "wait forever"."""
-        self.check()
-        return max(self.end - time.monotonic(), 1e-3)
+        """The seconds left, for a library call's own timeout. Raises the
+        TimeoutError if none are, since a library takes a timeout of 0 as "do
+        not wait", or as "wait forever"."""
+        left = self.end - time.monotonic()
+        if left <= 0:
+            raise self._timed_out()
+        return left
 
-    def wait(self, done, interval=0.01):
-        """Poll ``done()`` every ``interval`` seconds until it returns True."""
+    def wait(self, done):
+        """Poll ``done()`` every 0.01 s until it returns True."""
         while not done():
-            time.sleep(min(interval, self.remaining()))
+            time.sleep(min(0.01, self.remaining()))
 
     @contextmanager
     def timeout_for(self, *library_errors):
         """Yield the seconds left for a library call's own timeout, and raise the
-        deadline's TimeoutError in place of the library's errors once it passes."""
+        deadline's TimeoutError in place of the library's timeout errors."""
         seconds = self.remaining()
         try:
             yield seconds
         except library_errors:
-            self.check()
-            raise
+            # The library's timeout was the deadline's, even if it ran out a
+            # moment early
+            raise self._timed_out() from None
+
+    def _timed_out(self):
+        return TimeoutError(
+            f"{self.device_name} did not {self.what} within {self.seconds} s."
+        )
