@@ -65,7 +65,10 @@ Each stage's commits on `CodeHealth`, for review:
   - The PulseBlaster and NI_DAQmx parsers know a trigger by its connection and
     by the devices it clocks, not by the class name `Trigger`, so runviewer
     shows the devices under a Trigger subclass.
-- Step 2.4's table: the commit that records this line, a table only.
+- Step 2.4's table: `2443b93`, a table only.
+- Step 2.4's build (Ian: "approve as proposed; for the old NI paths, do not
+  remove them, and instead add the depriciation warnings there too"):
+  `36a7a77..` the commit that records this line.
 
 ## The test contract
 
@@ -784,3 +787,32 @@ any public name, so a public row is kept unless Ian says otherwise.
 `CodeHealth` and the tiers are not decided here. Seen on the way, for step 6:
 five comments narrate history ("'S' rather than the 'a' this used to say"), in
 AlazarTechBoard, Cicero, NI_DAQmx twice and PrawnBlaster.
+
+### Built
+
+- Rows 7, 9, 11, 12 and 15 removed; rows 2 and 18 corrected, with
+  `generate_subclasses.py`'s own banner, which had the same wrong name, and the
+  warning's `AI_Term_Cfg` for `AI_term_cfg`. Row 19 goes to step 5. The rest
+  are kept.
+- Row 1, by Ian's decision: the old paths stay, and each import from one gives
+  the NI_DAQmx class itself, with a FutureWarning at the importing line naming
+  the NI_DAQmx path.
+  - `lazy_attributes` takes `legacy=True` for it. A module `__getattr__` runs in
+    the importing frame, so the warning points at that line on every supported
+    Python.
+  - `__all__` keeps a star import working.
+  - `labscript-utils`' `deprecated_import_alias` returned a wrapper function,
+    not the class, and warned only at the first call. These modules were its
+    last users in the suite.
+  - BLACS and runviewer find the three cards in the registry, so they never
+    import these modules and never warn.
+- Shot files: every test shot is identical to `2443b93`, or fails the same
+  way. A shot compiled through an old path is identical to one compiled
+  through the new path.
+- Branches: the deletions need Ian. Their tips:
+  - `spielman_merged/Numpy2Fixes` `a5ac8581d5c790b3f9a590516837c72a3750e11a`,
+    local and origin;
+  - `spielman_merged/Qt6Fixes` `3d3b3db8b4037ae356164f46811e8c11424bbb17`,
+    local and origin;
+  - `maintenance/3.0.x` `080e054e266251c15f0bf4cf6a6373ad187a0f83`, origin;
+  - `more-ni-daq-models` `ce82ea8ddab511138e378f0b8368232823c1a110`, origin.
