@@ -34,20 +34,7 @@ class LightCrafterDMDTab(DeviceTab):
         # Create the outputs and widgets and place the widgets in the UI
         self.create_image_outputs(image_properties)
         _,_,_,image_widgets = self.auto_create_widgets()
-        # hide the widget views
-        # for region, widget in image_widgets.items():
-            # widget._view.hide()
         self.auto_place_widgets(("DMD Image", image_widgets))
-        
-        # generate the better looking view
-        # self.scene = QGraphicsScene(0,0,self.width,self.height)
-        # self.view = SLMGraphicsView(regions, self.scene)
-        # self.wrapper_objects = {}
-        # for region in image_widgets:
-            # self.wrapper_objects[region] = ImageWrapperWidget(self.view, region)
-            # self._IMAGE[region].add_widget(self.wrapper_objects[region])
-        
-        # self.get_tab_layout().addWidget(self.view)
         
         self.supports_remote_value_check(False)        
         self.supports_smart_programming(True) 
