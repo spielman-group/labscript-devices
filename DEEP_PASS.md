@@ -603,9 +603,11 @@ Sources: `KNOWN_ISSUES.md`, the "seen, not changed" lists above, and the 25
 guards added since the fork, each traced to its cause. Ranked by Ian's rule,
 "can a reasonable sequence in his labs reach this?": his labs run PulseBlaster
 masters, NovaTech DDSs and NI cards (and spielman-devices' Arduinos, not this
-repo's). Nothing is built until Ian confirms the now, verify-first and defer
-groups; he has decided rows 5, 6, 17's second part and 19, as marked ("agree with
-your views on 5, 6, 17b and 19").
+repo's). Ian decided rows 5, 6, 17's second part and 19, as marked ("agree with
+your views on 5, 6, 17b and 19"), and confirmed the groups ("agree with fix now,
+verify first and defer groups. But remember we are only planning"): fix now 1,
+2, 4, 7, 8, 10, 11, 12, 14, 15, 16 and 17's first part; verify first 3 and 9;
+defer 13, 18, 20 and 21. This is a plan: nothing is built until the go.
 
 | Rank | Device, file:line | What goes wrong | Who reaches it | Cause | Fix at the cause, size | Now or defer |
 | --- | --- | --- | --- | --- | --- | --- |
