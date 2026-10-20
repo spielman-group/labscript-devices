@@ -53,6 +53,8 @@ Each stage's commits on `CodeHealth`, for review:
 - Codex's findings on it: `c005e01..` the commit that records this line, coupled
   with blacs `83fa555` (`front_panel_settings_file`).
 - Step 2.3's table: the commit that records this line, a table only.
+- Step 2.3's build (Ian: "go ahead with step 2.3"): `8c40fbf..` the commit
+  that records this line.
 
 ## The test contract
 
@@ -616,7 +618,7 @@ repo's). Ian decided rows 5, 6, 17's second part and 19, as marked ("agree with
 your views on 5, 6, 17b and 19"), and confirmed the groups ("agree with fix now,
 verify first and defer groups. But remember we are only planning"): fix now 1,
 2, 4, 7, 8, 10, 11, 12, 14, 15, 16 and 17's first part; verify first 3 and 9;
-defer 13, 18, 20 and 21. This is a plan: nothing is built until the go.
+defer 13, 18, 20 and 21. "Built" below says how each went.
 
 | Rank | Device, file:line | What goes wrong | Who reaches it | Cause | Fix at the cause, size | Now or defer |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -645,4 +647,41 @@ defer 13, 18, 20 and 21. This is a plan: nothing is built until the go.
 
 The other 21 guards are designed behaviour (deadlines, the camera contract,
 legacy paths, DummyCamera's checks), whose causes need no fix.
+
+### Built
+
+- One commit per row, each with a probe that fails before it, and one per
+  review finding (rows 4, 5 and 10 each needed a second).
+- Row 3: Linux's `libspinapi64.so` (spinapi 3.2.2) rounds to the nearest cycle,
+  so nothing changed. The labs' Windows `spinapi64.dll` is unchecked;
+  `KNOWN_ISSUES.md` says what settles it.
+- Row 9: both firmwares abort only at run status 1 or 2. Fixed.
+- Row 4: the wait monitor is stopped a second after the tasks stop. Its error
+  was reraised with a wrong call, and a failing monitor now tells NI's
+  acquisition worker, which waited for it with no timeout.
+- Row 5: blacs calls `abort_transition_to_buffered` only on the tab whose own
+  transition failed; the other tabs get `abort_buffered`, which already ran the
+  stop functions. So the row's case is a FunctionRunner whose own start
+  function raised.
+- Row 8: a 5 s deadline in the arming loop. `wait_for_end_of_shot` was not
+  used, because its error speaks of the shot's end.
+- Row 10: waits are now placed by clock ticks, which also fixes a second wait
+  landing one instruction late (as upstream).
+- Row 11: the DMD sends no second answer after System Busy (TI's DLPU007,
+  2.1.1), so the command is sent again, for up to 30 s.
+- Shot files against `a21e313`: 65 test shots identical, 31 failing the same
+  way. Intended differences:
+  - an AlazarTechBoard with two acquisitions compiles;
+  - PrawnDO ramps compile;
+  - a PrawnDO shot with two or more waits has a new PULSE_PROGRAM;
+  - new LabscriptErrors from LightCrafterDMD, PhaseMatrixQuickSyn and Cicero;
+  - LightCrafterDMD's two-ImageSet message is new.
+- The earlier rounds' sweeps compared a failed compile's partial shot file as
+  if it had compiled. Rerun, gated on exit status, over `e791c8d..a21e313`, they
+  missed only NovaTechDDS9M's `err2` message, which now names the renamed
+  connection.
+- Lab checks, on Development:
+  - row 4: an NI shot with waits still records every wait, and one with its
+    start pulse unplugged fails rather than hangs;
+  - row 3: the Windows DLL.
 
