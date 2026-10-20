@@ -62,6 +62,8 @@ class PhaseMatrixQuickSyn(Device):
         return device.quantise_channel('frequency', 1000, values=data, limits=(0.5e9, 10e9), dtype=np.uint64)
 
     def generate_code(self, hdf5_file):
+        if len(self.child_devices) != 1:
+            raise LabscriptError('%s %s needs one QuickSynDDS, and has %d' % (self.description, self.name, len(self.child_devices)))
         for output in self.child_devices:
             try:
                 prefix, channel = output.connection.split()
