@@ -6,7 +6,7 @@ To add support for a DAQmx device that is not yet supported, run get_capabilitie
 a computer with the device in question connected (or with a simulated device of the
 correct model configured in NI-MAX). This will introspect the capabilities of the device
 and add those details to capabilities.json. To generate labscript device classes for all
-devices whose capabilities are known, run generate_classes.py. Subclasses of NI_DAQmx
+devices whose capabilities are known, run generate_subclasses.py. Subclasses of NI_DAQmx
 will be made in this folder, and they can then be imported into labscript code with:
 
 from labscript_devices.NI_DAQmx.labscript_devices import NI_PCIe_6363

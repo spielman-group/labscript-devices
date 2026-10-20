@@ -236,7 +236,7 @@ class NI_DAQmx(IntermediateDevice):
                 AI_term_cfg = {f'ai{i:d}': ['RSE'] for i in range(num_AI)}
                 # warn user to update their local model specs
                 msg = """Model specifications for {} needs to be updated.
-                    Please run the `get_capabilites.py` and `generate_subclasses.py`
+                    Please run the `get_capabilities.py` and `generate_subclasses.py`
                     scripts or define the `AI_Term_Cfg` kwarg for your device.
                     """
                 warnings.warn(dedent(msg.format(self.description)), FutureWarning)
