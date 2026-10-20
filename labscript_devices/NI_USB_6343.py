@@ -10,9 +10,9 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from labscript_devices import deprecated_import_alias
+from labscript_devices import lazy_attributes
 
-# For backwards compatibility with old experiment scripts:
-NI_USB_6343 = deprecated_import_alias(
-    "labscript_devices.NI_DAQmx.labscript_devices.NI_USB_6343"
+# LEGACY NI_DAQMX IMPORT PATH COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+__getattr__ = lazy_attributes(
+    __name__, {'labscript_devices.NI_DAQmx.labscript_devices': ['NI_USB_6343']}, legacy=True
 )

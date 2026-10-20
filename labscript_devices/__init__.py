@@ -2,6 +2,7 @@
 import importlib
 import os
 import sys
+import warnings
 
 from labscript_utils.versions import package_version
 
@@ -10,7 +11,7 @@ __version__ = package_version(__package__)
 from labscript_utils.device_registry import *
 
 
-def lazy_attributes(package, names_by_submodule):
+def lazy_attributes(package, names_by_submodule, legacy=False):
     """Return a module ``__getattr__`` that imports each listed name from its
     submodule of ``package``, or from the module a dotted key names in full,
     only when it is first asked for.
@@ -19,6 +20,9 @@ def lazy_attributes(package, names_by_submodule):
     from the package without a compile importing BLACS::
 
         __getattr__ = lazy_attributes(__name__, {'blacs_tabs': ['MyTab']})
+
+    With ``legacy``, ``package`` is an old path, and each import from it warns,
+    at the importing line, that it will be removed.
     """
     submodules = {
         name: submodule
@@ -32,6 +36,11 @@ def lazy_attributes(package, names_by_submodule):
         module = submodules[name]
         if '.' not in module:
             module = f'{package}.{module}'
+        if legacy:
+            warnings.warn(
+                f"{package} will be removed; import {name} from {module}.",
+                FutureWarning, stacklevel=2,
+            )
         return getattr(importlib.import_module(module), name)
 
     return __getattr__
