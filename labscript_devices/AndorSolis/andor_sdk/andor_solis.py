@@ -143,10 +143,6 @@ def DemosaicImage():
     """ Demosaics an image taken with a CYMG CCD into 
         RGB using the parameters stored in info. """
 
-    # TODO:
-    # Probably needs to set the info _fields_,
-    # e.g. "info.iAlgorithm = arg_example"
-
     info = ColorDemosaicInfo()
     andor_solis.DemosaicImage.restype = ctypes.c_uint
     result = andor_solis.DemosaicImage(ctypes.wintypes.WORD(grey),

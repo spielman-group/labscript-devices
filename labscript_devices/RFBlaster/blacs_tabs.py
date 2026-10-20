@@ -47,7 +47,6 @@ class RFBlasterTab(DeviceTab):
         self.base_min =       {'freq':500000,      'amp':0.0,         'phase':0}
         self.base_max =       {'freq':350000000.0, 'amp':0.9999389648, 'phase':360}
         self.base_step =      {'freq':1000000,     'amp':0.01,        'phase':1}
-        #TODO: Find out what the amp and phase precision is
         self.base_decimals =  {'freq':1,           'amp':5,           'phase':3}
         self.num_DDS = 2  
 

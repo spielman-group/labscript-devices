@@ -64,7 +64,6 @@ class PhaseMatrixQuickSynTab(DeviceTab):
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
     def update_status(self):
         self.status = yield(self.queue_work(self._primary_worker,'check_status'))
-        #TODO: update some widgets to reflect the current state
         self.status_ui.temperature_label.setText(str(self.status['temperature']))
         
         if self.status['freqlock']:

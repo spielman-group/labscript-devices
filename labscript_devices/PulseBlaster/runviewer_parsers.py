@@ -132,7 +132,6 @@ class PulseBlasterBaseParser:
                 t+= self._duration(row)
             
                 if row['inst'] == 8 and clock is not None: #WAIT
-                    #TODO: Offset next time by trigger delay is not master pseudoclock
                     t+= PulseBlasterBase.trigger_delay
                     
             

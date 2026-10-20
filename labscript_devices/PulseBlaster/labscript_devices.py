@@ -99,7 +99,6 @@ class PulseBlasterBase(PseudoclockDevice):
                  time_based_stop_workaround=False, time_based_stop_workaround_extra_time=0.5, **kwargs):
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.BLACS_connection = board_number
-        # TODO: Implement capability checks based on firmware revision of PulseBlaster
         self.firmware_version = firmware
         
         # time_based_stop_workaround is for old pulseblaster models which do
@@ -628,7 +627,6 @@ class PulseBlaster(DDSPulseBlasterMixin, PulseBlasterBase):
     description = 'PB-DDSII-300'
     clock_limit = 8.3e6 # Slight underestimate I think.
     clock_resolution = 26.6666666666666666e-9
-    # TODO: Add n_dds and generalise code
     n_flags = 12
     clock_frequency = 75e6
 

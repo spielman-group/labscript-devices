@@ -269,7 +269,6 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
         return True
 
     def shutdown(self):
-        #TODO: implement this
         pass
 
 

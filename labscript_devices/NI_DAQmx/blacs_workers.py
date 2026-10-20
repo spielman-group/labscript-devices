@@ -475,9 +475,6 @@ class NI_DAQmxAcquisitionWorker(Worker):
             if self.buffered_mode:
                 # Append to the list of acquired data:
                 self.acquired_data.append(data)
-            else:
-                # TODO: Send it to the broker thingy.
-                pass
         return 0
 
     def start_task(self, chans, rate):
@@ -485,8 +482,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
         MAX_READ_INTERVAL seconds, whichever is faster. NI DAQmx calls callbacks in a
         separate thread, so this method returns, but data acquisition continues until
         stop_task() is called. Data is appended to self.acquired_data if
-        self.buffered_mode=True, or (TODO) sent to the [whatever the AI server broker is
-        called] if self.buffered_mode=False."""
+        self.buffered_mode=True, and discarded otherwise."""
 
         if self.task is not None:
             raise RuntimeError('Task already running')

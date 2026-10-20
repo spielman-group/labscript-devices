@@ -444,9 +444,6 @@ class AndorCam(object):
 
         edge_modes = {'rising': 0, 'falling': 1}
 
-        # TODO: Maybe check the self.trig_caps attribute here 
-        # before attempting to set a trigger mode that may not 
-        # even be present.
         SetTriggerMode(modes[attrs['trigger']])
 
         # Specify edge if invertible trigger capability is present
@@ -469,8 +466,6 @@ class AndorCam(object):
         }
 
         shutter_outputs = {'low': 0, 'high': 1}
-
-        # TODO: Add SetShutterEX support for labscript
 
         SetShutter(
             shutter_outputs[attrs['shutter_output']],

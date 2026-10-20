@@ -125,7 +125,6 @@ class NovaTechDDS9MWorker(Worker):
         return results
         
     def program_manual(self,front_panel_values):
-        # TODO: Optimise this so that only items that have changed are reprogrammed by storing the last programmed values
         # For each DDS channel,
         for i in range(4):    
             # and for each subchnl in the DDS,
@@ -264,7 +263,6 @@ class NovaTechDDS9MWorker(Worker):
         return self.abort()
         
     def abort_buffered(self):
-        # TODO: untested
         return self.abort()
     
     def transition_to_manual(self):

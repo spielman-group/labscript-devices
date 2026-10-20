@@ -112,7 +112,6 @@ class RFBlasterWorker(PseudoclockWorker):
         return True
 
     def abort_transition_to_buffered(self):
-        # TODO: untested (this is probably wrong...)
         return self.abort()
 
     def abort_buffered(self):
@@ -204,5 +203,4 @@ class RFBlasterWorker(PseudoclockWorker):
         return self.get_web_values(self.http_request())
         
     def shutdown(self):
-        # TODO: implement this?
         pass

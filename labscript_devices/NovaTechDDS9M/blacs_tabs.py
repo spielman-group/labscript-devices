@@ -38,7 +38,7 @@ class NovaTechDDS9MTab(DeviceTab):
         self.base_min =      {'freq':0.0,           'amp':0,       'phase':0}
         self.base_max =      {'freq':170.0*10.0**6, 'amp':1,       'phase':360}
         self.base_step =     {'freq':10**6,         'amp':1/1023., 'phase':1}
-        self.base_decimals = {'freq':1,             'amp':4,       'phase':3} # TODO: find out what the phase precision is!
+        self.base_decimals = {'freq':1,             'amp':4,       'phase':3}
         self.num_DDS = 4
         
         self.upgrade_front_panel(self.settings)
