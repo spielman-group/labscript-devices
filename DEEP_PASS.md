@@ -72,7 +72,15 @@ Each stage's commits on `CodeHealth`, for review:
 - Step 2.5's table: `8028a2c`, a table only.
 - Step 2.5's build (Ian: "What is lightcrafter unused view? I approve all else";
   then "delete the LightCrafter view and verify the PrawnDO bug now"):
-  `cd4713f..` the commit that records this line.
+  `cd4713f..` `30c7658`.
+- PrawnDO's parser drift (Ian: "fix the PrawnDO parser drift now"): the commit
+  that records this line. After each wait a secondary PrawnDO is drawn from its
+  master's resume tick, so its traces in shots with waits move by the master's
+  `wait_delay`, 40 ns a wait behind a PrawnBlaster; every other trace is
+  unchanged.
+  - Coupled with labscript `06820ed`, where `quantise_channel` rounds a phase
+    before it wraps it. RFBlaster's phase (row 2 of step 2.5) and
+    NovaTechDDS9M's rely on it.
 
 ## The test contract
 

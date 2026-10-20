@@ -57,14 +57,16 @@ class PrawnDOParser(object):
         time_deltas_table[0] += t
         # re-add wait delays (ignoring final one, which is from the 1st part of stop command)
         wait_idxs = np.nonzero(pulse_program['reps']==0)[0][:-1]
-        for wait_idx in wait_idxs:
-            if clock is not None:
-                t = self.trigger_delay
-            else:
-                t = self.wait_delay
-            time_deltas_table[wait_idx] += t
+        if clock is None:
+            time_deltas_table[wait_idxs] += self.wait_delay
         # insert t=0 for cumsum, remove final value (from stop instruction)
         times_table = np.cumsum(np.insert(time_deltas_table,0,0.0))[:-1]
+        if clock is not None:
+            # After each wait, resume a trigger delay after the master's first tick
+            # since the wait began, as the master is drawn
+            for wait_idx in wait_idxs:
+                tick = clock_ticks[np.searchsorted(clock_ticks, times_table[wait_idx])]
+                times_table[wait_idx + 1:] += tick + self.trigger_delay - times_table[wait_idx + 1]
 
         
         # convert bit sets back to individual bits for each output
