@@ -137,7 +137,7 @@ class RFBlasterWorker(PseudoclockWorker):
             try:
                 self.netlogger.info('Connection attempt %i.' % self._connection_attempt)
                 deadline = Deadline(self.device_name, 'answer an HTTP request', self.timeout)
-                with deadline.timeout_for(requests.exceptions.Timeout) as timeout:
+                with deadline.timeout_for(requests.exceptions.Timeout, TimeoutError) as timeout:
                     if form is not None:
                         # For some reason the MultiPartForm object stored form_fields as a list of key,value tuples...
                         # ... rather than a dict. No matter. it seems requests sucks this up anyway.
@@ -149,7 +149,9 @@ class RFBlasterWorker(PseudoclockWorker):
                 r.raise_for_status() 
                 self.netlogger.info('Connected!')
                 break
-            except (URLError, HTTPError, TimeoutError, ConnectionError) as e:
+            # Not the Deadline's TimeoutError, so a board that stops answering fails
+            # in one timeout
+            except (URLError, HTTPError, ConnectionError) as e:
                 self.netlogger.warning(str(e))
                 if self._connection_attempt < self.retries:
                     self.netlogger.info('Connection failed. Trying again (%i more attempts remain).' % (self.retries - self._connection_attempt))
