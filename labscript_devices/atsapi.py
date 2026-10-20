@@ -446,21 +446,6 @@ GET_CHANNELS_PER_BOARD         = 0x10000070
 ASOPC_TYPE                     = 0x1000002C
 
 
-def enter_pressed():
-    try:
-        from msvcrt import getch
-        from msvcrt import kbhit
-        while kbhit():
-            c = getch()
-            if c == b'\n' or c == b'\r':
-                return True
-        return False
-    except ImportError:
-        import sys, select
-        if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
-            return True
-        return False
-
 class NPTFooter(Structure):
     _fields_ = [("trigger_timestamp", c_uint64),
                 ("record_number", c_uint32),
