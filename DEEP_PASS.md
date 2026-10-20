@@ -48,6 +48,10 @@ Each stage's commits on `CodeHealth`, for review:
   example and tests use the new names).
 - Codex's findings on the device differences, and Ian's decision on the third:
   `b3a1880..` the commit that records this line.
+- The legacy-file round: `12c9632..1bd2216`, coupled with labscript-utils
+  `019113b` (`warn_legacy_file`).
+- Codex's findings on it: `c005e01..` the commit that records this line, coupled
+  with blacs `83fa555` (`front_panel_settings_file`).
 - Step 2.3's table: the commit that records this line, a table only.
 
 ## The test contract
@@ -534,8 +538,13 @@ Public:
 7. PrawnDO's dataset is `PULSE_PROGRAM`, as on the other pseudoclocks
    (`01a5da5`); its worker and parser still read `pulse_program`, warning once
    for each such file that it may not be readable in future (`4eca405`,
-   `510428c`, Ian).
-   NovaTech's parser warns the same for a file connected as `'channel n'`.
+   `510428c`, `1bd2216`, Ian), through labscript-utils' `warn_legacy_file`.
+   Every other read of a legacy file warns the same way (`ab52f2f`, `10a1596`,
+   `f742f10`, `f580eb5`): NovaTech's `'channel n'` connections; a connection
+   table without NovaTech's or PulseBlaster's newer properties, or with
+   NovaTech's phase_mode `'default'`; NI_DAQmx's old model specification; a
+   `'Vpp'` calibration; the test device's old class name; and a front panel
+   with NovaTech's old names or RFBlaster's `%`.
 8. The test device's class is `TestDevice`; `test_device` still works
    (`7d278ce`). Its package keeps its name.
 
