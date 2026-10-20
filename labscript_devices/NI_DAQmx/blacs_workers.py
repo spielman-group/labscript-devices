@@ -860,12 +860,16 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                 # This will cause the wait_monitor thread to raise an exception within a
                 # short time, allowing us to join it before it would otherwise be done.
                 self.shutting_down = True
+            # The shot is over, so an edge not seen by now will not come: give the
+            # thread a second for the last ones, then stop it the same way.
+            self.wait_monitor_thread.join(1)
+            self.shutting_down = True
             self.wait_monitor_thread.join()
             self.wait_monitor_thread = None
             self.shutting_down = False
             if not abort and self.wait_monitor_thread_exception is not None:
                 # Raise any unexpected errors from the wait monitor thread:
-                _reraise(*self.wait_monitor_thread_exception)
+                _reraise(self.wait_monitor_thread_exception)
             self.wait_monitor_thread_exception = None
             if not abort:
                 # Don't want errors about incomplete task to be raised if we are aborting:
