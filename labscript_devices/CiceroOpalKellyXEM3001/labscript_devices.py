@@ -35,7 +35,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
         "connection_table_properties": ["reference_clock", "clock_frequency", "trigger_debounce_clock_ticks"],
         "device_properties": ["trigger_delay", "wait_delay"]}
         )    
-    def __init__(self, name, trigger_device=None, trigger_connection=None, serial_number='', reference_clock='internal', clock_frequency=100e6, use_wait_monitor=True, trigger_debounce_clock_ticks=10, **kwargs):
+    def __init__(self, name, trigger_device=None, trigger_connection=None, serial_number='', reference_clock='internal', clock_frequency=100e6, use_wait_monitor=None, trigger_debounce_clock_ticks=10, **kwargs):
         # LEGACY SERIAL KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
         serial_number = renamed_keyword(kwargs, 'serial', 'serial_number', serial_number, 'CiceroOpalKellyXEM3001', stacklevel=4)
         # set device properties based on clock frequency
@@ -70,8 +70,13 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
         # Create internal devices for connecting to a wait monitor
         self.__wait_monitor_intermediate_device = internal_wait_monitor_outputs(self)
         
-        # Only the master pseudoclock's board times the waits, as on the PrawnBlaster
-        if use_wait_monitor and self.is_master_pseudoclock:
+        # Only the master pseudoclock's board times the waits, as on the PrawnBlaster,
+        # so by default only a master has the wait monitor
+        if use_wait_monitor is None:
+            use_wait_monitor = self.is_master_pseudoclock
+        elif use_wait_monitor and not self.is_master_pseudoclock:
+            raise LabscriptError('The %s %s is a secondary pseudoclock, so cannot have the wait monitor: only the master times the waits'%(self.description, self.name))
+        if use_wait_monitor:
             WaitMonitor('%s__wait_monitor'%name, self.internal_wait_monitor_outputs, 'internal', self.internal_wait_monitor_outputs, 'internal', self.internal_wait_monitor_outputs, 'internal')
         
     @property
