@@ -208,8 +208,8 @@ class PulseBlasterBaseParser:
                                 clocklines_and_triggers[channel_name] = to_return[channel.parent_port]
                                 add_trace(channel_name, to_return[channel.parent_port], parent_device_name, channel.parent_port)
                             else:
-                                # A DDS of any class, by its sub-channels
-                                if channel.child_list:
+                                # A DDS of any class, by its 'dds n' connection
+                                if channel.parent_port.split()[0] == 'dds':
                                     for subchnl_name, subchnl in channel.child_list.items():
                                         connection = '%s_%s'%(channel.parent_port, subchnl.parent_port)
                                         if connection in to_return:
