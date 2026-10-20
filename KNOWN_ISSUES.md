@@ -8,4 +8,4 @@
 - `PulseBlaster/labscript_devices.py`: every board's direct outputs accept DDS children, so a DDS on a board without DDS is refused when the shot compiles, not when it is connected. Deferred: it is already an error.
 - `TekScope/TekScope.py`: the driver module has the class's name, so once a worker imports it, `labscript_devices.TekScope.TekScope` is the module, not the class. Deferred: no caller imports both in one process.
 - `test_device/labscript_devices.py`: the `DoSomething` keyword is CamelCase, as upstream's test fixture has it. Deferred: nothing uses it.
-- `PrawnBlaster/runviewer_parsers.py`: a triggered secondary's parser takes the closing reps-0 instruction of its pulse program for a wait, and looks up one more trigger than its clock trace has, so runviewer cannot show a PrawnBlaster secondary (IndexError; seen with no waits).
+- `PrawnBlaster/runviewer_parsers.py`: after a wait the parser skips the next row. That row is the second half of an indefinite wait, but for a master with its wait monitor, whose waits are one row, it is a real instruction, so runviewer drops it and draws everything after each wait early by its length (0.1 s in a test shot).

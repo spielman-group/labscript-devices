@@ -88,6 +88,10 @@ class PrawnBlasterParser(object):
 
             last_instruction_was_wait = False
             for row in pulse_program:
+                # As in the firmware, a zero half_period and reps is the stop, and
+                # reps 0 alone a wait
+                if row["reps"] == 0 and row["half_period"] == 0:
+                    break
                 if row["reps"] == 0 and not last_instruction_was_wait:  # WAIT
                     last_instruction_was_wait = True
                     if clock is not None:
