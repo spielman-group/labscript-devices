@@ -45,7 +45,6 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
     def grab_multiple(self, n_images, images):
         """Grab n_images into images array during buffered acquistion."""
     
-        # TODO: Catch timeout errors, check if abort, else keep trying.
         print(f"Camera configured in {self.camera.acquisition_mode} mode.")
         print(f"Actual readout time is {self.camera.readout_time} s.")
         print(f"Keep clean cycle time is {self.camera.keepClean_time} s.")

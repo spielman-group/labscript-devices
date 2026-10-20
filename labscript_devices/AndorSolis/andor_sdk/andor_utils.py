@@ -552,8 +552,6 @@ class AndorCam(object):
             start_wait = time.time()
             while self.acquisition_status != 'DRV_IDLE':
                 self.acquisition_status = GetStatus()
-                # TODO: Also count the number of acquired (buffered) images and
-                # stop when it matches the expected number of frames. 
                 t0 = time.time() - start_wait
                 if t0 > acquisition_timeout * ms:
                     rich_print(

@@ -43,17 +43,10 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
         self.clock_resolution = 1/clock_frequency
         # We'll set this to be 2x the debounce count
         self.trigger_minimum_duration = 2*trigger_debounce_clock_ticks/clock_frequency
-        # Todo: confirm this.
-        #       It should only be 5 clock cycles + the debounce_clock_ticks
-        #       as I think it takes 3 clock cycles to propagate to the state
-        #       machine of the FPGA code (due to the three uses of the non-blocking <= verilog operator
-        #       in the debounce code) and then another 2 cycles before the output goes high
-        #       (one to move out of the wait for retrigger code and then one because the update of the
-        #        output state is non-blocking)\
-        #
+        # An estimate, not measured: 3 clock cycles through the FPGA's debounce
+        # code (three non-blocking <=), then 2 before the output goes high
         self.trigger_delay = (5+trigger_debounce_clock_ticks)/clock_frequency
-        # Todo: confirm this
-        #       I believe it is 1 clock cycle
+        # An estimate, not measured
         self.wait_delay = self.clock_resolution
         
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)

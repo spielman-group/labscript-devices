@@ -69,8 +69,6 @@ class AlazarTechBoard(Device):
         self.BLACS_connection = server
 
     def add_device(self, output):
-        # TODO: check there are no duplicates, check that connection
-        # string is formatted correctly.
         Device.add_device(self, output)
 
     # Has no children for now so hopefully does nothing

@@ -52,7 +52,6 @@ class PseudoclockTab(DeviceTab):
     def start_run(self, notify_queue):
         """Start the device, and tell BLACS through ``notify_queue`` when the
         shot is over."""
-        # TODO: This 100ms (+ overhead) limits the minimum time you can have between 2 consecutive wait commands in labscript. Anything faster than this will not be detected properly.
         self.statemachine_timeout_add(100, self.status_monitor, notify_queue)
         yield(self.queue_work(self.primary_worker, 'start_run'))
 
@@ -69,9 +68,7 @@ class PseudoclockTab(DeviceTab):
             self.statemachine_timeout_remove(self.status_monitor)
             self.shot_over()
         elif status is None:
-            # The worker failed. TODO: This is a bit of a hack. We fake a restart
-            # in order to notify the queue that something went wrong and that it
-            # should abort the shot.
+            # The worker failed. A faked restart tells the queue to abort the shot.
             self.statemachine_timeout_remove(self.status_monitor)
             for f in self._restart_receiver:
                 try:

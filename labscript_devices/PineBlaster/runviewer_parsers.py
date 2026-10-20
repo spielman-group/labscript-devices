@@ -22,7 +22,6 @@ class PineBlasterParser(object):
     clock_resolution = 25e-9
     clock_type = 'fast clock'
     trigger_delay = PineBlaster.trigger_delay
-    # Todo: find out what this actually is:
     wait_delay = 2.5e-6
     
     def __init__(self, path, device):

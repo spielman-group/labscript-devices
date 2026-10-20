@@ -95,7 +95,6 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
         # without a reprogramming of the first two lines:
         self.smart_cache['ready_to_go'] = False
         
-        # TODO: return coerced/quantised values
         return {}
         
     def start_run(self):
@@ -332,7 +331,6 @@ class DDSPulseBlasterWorkerMixin:
         # without a reprogramming of the first two lines:
         self.smart_cache['ready_to_go'] = False
         
-        # TODO: return coerced/quantised values
         return {}
         
     def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):

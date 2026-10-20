@@ -21,7 +21,6 @@ class RFBlaster(PseudoclockDevice):
     allowed_children = [Pseudoclock]
     max_pseudoclocks = 1
     
-    # TODO: find out what these actually are!
     trigger_delay = 873.75e-6
     wait_delay = trigger_delay
     

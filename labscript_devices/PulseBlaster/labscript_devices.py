@@ -218,7 +218,6 @@ class PulseBlasterBase(PseudoclockDevice):
         return False
             
     def get_flag_number(self, connection):
-        # TODO: Error checking
         prefix, connection = connection.split()
         return int(connection)
     
@@ -248,7 +247,6 @@ class PulseBlasterBase(PseudoclockDevice):
                     raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
                                          'Format must be \'flag n\' with n an integer less than %d, or \'dds n\' with n less than 2.'%self.n_flags)
                 # run checks on the connection string to make sure it is valid
-                # TODO: Most of this should be done in add_device() No?
                 if prefix == 'flag' and not self.flag_valid(connection):
                     raise LabscriptError('%s is set as connected to flag %d of %s. '%(output.name, connection, self.name) +
                                          'Output flag number must be a integer from 0 to %d.'%(self.n_flags-1))

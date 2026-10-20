@@ -24,7 +24,6 @@ class PineBlaster(PseudoclockDevice):
     clock_type = 'fast clock'
     # Measured by Phil Starkey on 2015/9/24
     trigger_delay = 350e-9
-    # Todo: find out what this actually is:
     wait_delay = 2.5e-6
     allowed_children = [Pseudoclock]
     max_pseudoclocks = 1

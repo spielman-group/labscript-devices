@@ -133,7 +133,6 @@ class NI_DAQmxWorker(Worker):
             self.DO_task.WriteDigitalU32(
                 1, True, 10.0, DAQmx_Val_GroupByChannel, DO_data, written, None
             )
-        # TODO: return coerced/quantised values
         return {}
 
     def get_output_tables(self, h5_file, device_name):

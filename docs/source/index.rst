@@ -14,6 +14,7 @@ In particular, this code provides the interface between **labscript** high-level
    user_devices
    ex_conn_tables
    adding_devices
+   improvements
 
 .. toctree::
    :maxdepth: 2
