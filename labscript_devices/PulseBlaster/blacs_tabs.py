@@ -20,8 +20,8 @@ from labscript_devices.pseudoclock import PseudoclockTab
 from qtutils import UiLoader
 import qtutils.icons
 import os
-import warnings
 
+from labscript_utils.file_utils import warn_legacy_file
 from labscript_utils.unitconversions import get_unit_conversion_class
 
 # We can't import * from QtCore & QtGui, as one of them has a function called bin() which overrides the builtin
@@ -207,9 +207,10 @@ class DDSPulseBlasterTabMixin:
             except (ImportError, AttributeError, KeyError):
                 return 'Arb'
             if cls.base_unit == 'Vpp':
-                warnings.warn(
-                    f"{cls.__name__}'s base_unit 'Vpp' will be removed for a "
-                    "PulseBlaster DDS amplitude; use 'Arb'.", FutureWarning
+                warn_legacy_file(
+                    self.settings['connection_table'].filepath,
+                    f"gives a PulseBlaster DDS amplitude {cls.__name__}, a calibration "
+                    "in 'Vpp', not 'Arb'",
                 )
                 return 'Vpp'
         return 'Arb'

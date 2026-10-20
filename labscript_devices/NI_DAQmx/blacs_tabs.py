@@ -13,11 +13,11 @@
 import labscript_utils.h5_lock
 import h5py
 from labscript_utils import dedent
+from labscript_utils.file_utils import warn_legacy_file
 
 from blacs.device_base_class import DeviceTab
 from .utils import split_conn_AO, split_conn_DO
 from . import models
-import warnings
 
 
 class NI_DAQmxTab(DeviceTab):
@@ -124,10 +124,11 @@ class NI_DAQmxTab(DeviceTab):
             # new code being run on older model specification file
             # assume legacy behavior, warn user to update
             AI_chans = [f'ai{i:d}' for i in range(num_AI)]
-            msg = """Connection table was compiled with old model specifications for {0}.
-                     Please recompile the connection table.
-                  """
-            warnings.warn(dedent(msg.format(properties['MAX_name'])), FutureWarning)
+            warn_legacy_file(
+                connection_table.filepath,
+                f"was compiled from {properties['MAX_name']}'s old model specification, "
+                "without the AI_chans a recompile writes",
+            )
         num_CI = properties['num_CI']
         clock_terminal = properties['clock_terminal']
         clock_mirror_terminal = properties['clock_mirror_terminal']
