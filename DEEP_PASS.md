@@ -65,6 +65,7 @@ Each stage's commits on `CodeHealth`, for review:
   - The PulseBlaster and NI_DAQmx parsers know a trigger by its connection and
     by the devices it clocks, not by the class name `Trigger`, so runviewer
     shows the devices under a Trigger subclass.
+- Step 2.4's table: the commit that records this line, a table only.
 
 ## The test contract
 
@@ -732,3 +733,54 @@ legacy paths, DummyCamera's checks), whose causes need no fix.
   records every wait. This also confirms that PyDAQmx takes the array slice a
   partial read continues into.
 
+## Step 2.4: dead code and compatibility leftovers
+
+A table for Ian; nothing is changed until he decides. A name counts as unused
+when `git -C <repo> grep -n -w -I` finds only its definition in every one of
+the 16 repos: labscript, labscript-utils, labscript-devices, blacs, runmanager,
+lyse, runviewer, zprocess, labscript-suite, labscript-optimization,
+labscript-agents, spielman-devices, hyde, labscript-digilock, desktop-app and
+labscript-c-extensions. Docs and the `.tex` guides are part of each repo's
+search, and strings count as uses, since BLACS and runviewer look classes up by
+name.
+
+The sweep covered 1,541 definitions with 15,968 searches, and none of them
+broke.
+- Control: `PseudoclockWorker` was found in all 9 files that use it.
+- Control: a scratch module with 7 injected names flagged exactly the 6 unused
+  ones.
+- The 12 NI_DAQmx model classes that only a computed name loads
+  (`models/__init__.py`) were taken out by hand.
+
+The LEGACY paths this pass added, each with its FutureWarning, stay by decision
+and are not listed. Experiment scripts and lab code outside these repos can call
+any public name, so a public row is kept unless Ian says otherwise.
+
+| # | Item | File:line | Evidence | Public? | Proposal | Size |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | `NI_PCI_6733.py`, `NI_PCIe_6363.py`, `NI_USB_6343.py`: the pre-NI_DAQmx import paths | `labscript_devices/NI_*.py:13-18` | no repo imports `labscript_devices.NI_PCIe_6363` and the others; control: the current path is found in labscript's `example.py:30` and `docs/source/devices/ni_daqs.rst:34` | yes: upstream's, for old experiment scripts | keep; on Ian's word they go, and a script that uses an old path breaks | 3 files |
+| 2 | NI_DAQmx's model spec without `AI_term_cfg`, read as RSE with a FutureWarning | `NI_DAQmx/labscript_devices.py:234-242` | every bundled model with AI inputs gives `AI_term_cfg` (11 in `capabilities.json`); only a lab's own older model spec reaches it | yes: upstream's | keep; its warning names `get_capabilites.py`, a misspelling, to correct | 1 line |
+| 3 | A camera without the interface, under a lab's `IMAQdxCameraWorker` subclass | `IMAQdxCamera/blacs_workers.py:169-195` | no suite worker uses it, spielman-devices included; `OldStyleCameraTests` tests it; `triggerablecamera.rst:19` documents it | yes: upstream's way to add a camera | keep | none |
+| 4 | `expose(name, t)` taken in the old argument order | `TriggerableCamera/labscript_devices.py:198-206` | upstream's (IMAQdxCamera) | yes | keep | none |
+| 5 | NovaTech's `com_port,baud_rate` connection | `NovaTechDDS9M/blacs_tabs.py:93-99` | not a leftover: the labscript class still writes it (`labscript_devices.py:70, 72`) | n/a | keep | none |
+| 6 | AlazarTech SDK constants, 158 unused | `atsapi.py` | definition only | yes: the vendor wrapper | keep | none |
+| 7 | `atsapi.enter_pressed`, a keyboard poll from AlazarTech's samples | `atsapi.py:449-462` | definition only | exposed, not documented | remove | −14 |
+| 8 | Andor SDK wrappers, 11 unused, and `at_64` | `AndorSolis/andor_sdk/andor_solis.py` | definition only | yes: the SDK wrapper | keep | none |
+| 9 | Four "reserved" Andor stubs: `GetAcquiredFloatData`, `GetAllDMAData`, `GetBackground`, `GetCYMGShift` | `andor_solis.py:319, 383, 427, 567` | definition only; each body ends in `pass`; `GetCYMGShift` reads `iXShift` before setting it, a NameError if called | exposed, does nothing | remove | about −30 |
+| 10 | `ImageSet.set_array`, `PulseBlasterDDS.hold_phase` and `release_phase`, and TekScope's `save_screenshot`, `set_date_time` and `get_acquire_state` | `LightCrafterDMD/labscript_devices.py:54`, `PulseBlaster/labscript_devices.py:58, 61`, `TekScope/TekScope.py:120, 127, 143` | no caller in the suite | yes: for experiment scripts, in the autodoc pages | keep | none |
+| 11 | PulseBlaster parser profiling: `profile` (a decorator that returns its function unchanged), `start_profile`, `stop_profile` and `profiles` | `PulseBlaster/runviewer_parsers.py:22-61`; `@profile` at :224, :235 | `start_profile` and `stop_profile` are called only in commented-out lines (:147-168); re-exported by `PulseBlaster/__init__.py:38` | exposed as upstream's module names, not documented | remove, with its commented calls and its exports | about −50 |
+| 12 | `testing/` scripts: FunctionRunner's `test.py`, IMAQdxCamera's `test.py`, NI_DAQmx's `test_NI_DAQmx_labscript.py` and ZaberStageController's `test.py` | `<device>/testing/` | not imported or run in any repo; no docs | internal: not packages | remove | −160 |
+| 13 | DummyCamera's `testing/test.py`, the fork's | `DummyCamera/testing/test.py` | `dummycamera.rst:77` points to it as the working example | documented | keep | none |
+| 14 | PylonCamera's `testing/ExposureTiming.py` | `PylonCamera/testing/ExposureTiming.py` | `pylon.rst:103-123` documents it as a utility | documented | keep | none |
+| 15 | `__main__` demos: TekScope's, and Andor's `if __name__ in '__main__': pass` with 48 commented lines | `TekScope/TekScope.py:153-159`, `andor_utils.py:665-715` | not referenced | internal | remove | −57 |
+| 16 | `__main__` tools: `daqmx_utils.py`, `generate_subclasses.py`, `get_capabilities.py`, and the package `__init__.py`'s self-import guard | `NI_DAQmx/daqmx_utils.py:139-150` and the rest | the model tools are documented (`ni_daqs.rst:22-29`); `daqmx_utils.py`'s is a card diagnostic | yes | keep | none |
+| 17 | `test_device`, upstream's do-nothing test device | `test_device/` | `testdevice.rst` documents it | yes | keep | none |
+| 18 | `models/README.txt` names `generate_classes.py`, which does not exist (as upstream) | `NI_DAQmx/models/README.txt:9` | the file is `generate_subclasses.py` | docs | correct | 1 line |
+| 19 | Commented-out code: 59 runs, 58 of them upstream's. The largest are `atsapi.py:591-772` and `:934-974` (vendor DSP wrappers), `andor_utils.py:668-715` (row 15), LightCrafterDMD `blacs_tabs.py:43-50`, and 10 AlazarTech debug prints | across the package | none of it runs | internal | step 5 decides it, with the 36 TODOs; proposal: remove all | about −420 |
+| 20 | `spielman_merged/Numpy2Fixes` (`a5ac858`) and `spielman_merged/Qt6Fixes` (`3d3b3db`), local and on origin | branches | no commit outside `Development`; `git cherry` is empty for both | n/a | delete, local and origin | 4 refs |
+| 21 | `maintenance/3.0.x` (`080e054`) and `more-ni-daq-models` (`ce82ea8`), on origin | branches | identical to upstream's own; lyse and runviewer deleted their copies | n/a | delete from origin; upstream keeps them | 2 refs |
+
+`DummyCamera`, upstream pull request #148's head, stays. `UpstreamBugFixes`,
+`CodeHealth` and the tiers are not decided here. Seen on the way, for step 6:
+five comments narrate history ("'S' rather than the 'a' this used to say"), in
+AlazarTechBoard, Cicero, NI_DAQmx twice and PrawnBlaster.
