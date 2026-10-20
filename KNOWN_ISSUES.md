@@ -4,7 +4,6 @@
 - `FlyCapture2Camera/blacs_workers.py`: `_send_format7_config` skips Format7 settings that fail validation without saying so.
 - `PulseBlaster/labscript_devices.py`, `PulseBlaster_No_DDS/labscript_devices.py`: each delay reaches SpinAPI as float nanoseconds (`delaydouble`), which for about 9% of step lengths sits ~1e-12 cycles below a whole core cycle; if SpinAPI truncates, every repetition of such a looped step runs one cycle short, compounding over a ramp (about 39 µs over 2,905 steps). Unverified: settle it from SpinAPI's source or by timing a long looped ramp.
 - `LightCrafterDMD/blacs_workers.py`: `receive` retries a "System Busy" reply every 5 s with no limit, so a DMD that stays busy hangs every transition and abort.
-- `PrawnDO/labscript_devices.py` generate_code: `np.asarray(output.timeseries, dtype=np.uint16)` fails on a function instruction, so `repeat_pulse_sequence` (and any future digital ramp) on a PrawnDO output does not compile; use `output.raw_output`.
 - `RFBlaster/blacs_workers.py`: `http_request` calls `requests.get` and `requests.post` with no timeout, so an RFBlaster that stops answering hangs its worker.
 - `CiceroOpalKellyXEM3001/labscript_devices.py`: `trigger_debounce_clock_ticks` is checked only against 65535, so a negative value compiles, though the error message says 0 to 65535.
 - `PhaseMatrixQuickSyn/labscript_devices.py`: `generate_code` raises UnboundLocalError for a QuickSyn with no DDS connected; with two connected, it uses only the last.

@@ -247,9 +247,8 @@ class PrawnDO(PseudoclockDevice):
         # as the output word for the pins; an unused pin stays low
         bits = [np.zeros(len(times), dtype=np.uint16)] * 16
         for output in outputs:
-            output.make_timeseries(times)
             chan = int(output.connection.split('do')[-1])
-            bits[chan] = np.asarray(output.timeseries, dtype = np.uint16)
+            bits[chan] = np.asarray(output.raw_output, dtype = np.uint16)
         # Merge list of lists into an array with a single 16 bit integer column
         bit_sets = np.array(bitfield(bits, dtype=np.uint16))
 
