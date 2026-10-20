@@ -89,10 +89,10 @@ class RFBlaster(PseudoclockDevice):
         quantised_data['time'] = np.array(c.tT*1e6*data['time']+0.5)
         for dds in self.direct_outputs.child_devices:
             prefix, connection = dds.connection.split()
-            # TODO: bounds checking
-            quantised_data['freq%s'%connection], _ = dds.quantise_channel('frequency', c.fF*1e-6, dtype=np.int32)
-            quantised_data['amp%s'%connection], _ = dds.quantise_channel('amplitude', 2**c.bitsA - 1, dtype=np.int32)
-            quantised_data['phase%s'%connection], _ = dds.quantise_channel('phase', c.pP, dtype=np.int32)
+            # The limits its BLACS tab sets, and a phase wrapped as NovaTechDDS9M's is
+            quantised_data['freq%s'%connection], _ = dds.quantise_channel('frequency', c.fF*1e-6, limits=(0, 350e6), dtype=np.int32)
+            quantised_data['amp%s'%connection], _ = dds.quantise_channel('amplitude', 2**c.bitsA - 1, limits=(0, 1), dtype=np.int32)
+            quantised_data['phase%s'%connection], _ = dds.quantise_channel('phase', c.pP, period=360, dtype=np.int32)
         group.create_dataset('QUANTISED_DATA',compression=compiler.compression, data=quantised_data)
         # Generate some assembly code and compile it to machine code:
         assembly_group = group.create_group('ASSEMBLY_CODE')
