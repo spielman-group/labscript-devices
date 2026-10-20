@@ -478,7 +478,7 @@ class PrawnBlasterWorker(PseudoclockWorker):
             # and we should raise an exception
             elif run_status != 1 or time.monotonic() > deadline:
                 raise RuntimeError(
-                    f"Prawnblaster did not return an expected status. Status was {run_status}"
+                    f"Prawnblaster did not arm to wait for its trigger. Status was {run_status}"
                 )
             time.sleep(0.01)
 
@@ -545,11 +545,8 @@ class PrawnBlasterWorker(PseudoclockWorker):
         Returns:
             bool: `True` is abort is successful.
         """
-        # Only need to send abort signal if we have told the PrawnBlaster to wait
-        # for a hardware trigger. Otherwise it's just been programmed with
-        # instructions and there is nothing we need to do to abort. The firmware
-        # refuses to abort a board that is not at run status 1 or 2, and such a
-        # board has nothing to abort.
+        # Only a secondary told to wait for its trigger needs an abort, and the
+        # firmware aborts only a board at run status 1 or 2
         if not self.is_master_pseudoclock and self.read_status()[0] in (1, 2):
             self.conn.write(b"abort\r\n")
             assert self.conn.readline().decode() == "ok\r\n"
