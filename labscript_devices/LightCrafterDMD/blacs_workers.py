@@ -17,6 +17,7 @@ import time
 import labscript_utils.h5_lock, h5py
 from blacs.tab_base_classes import Worker
 
+from ..deadline import Deadline
 from .labscript_devices import BLANK_BMP
 
 
@@ -80,17 +81,16 @@ class LightCrafterDMDWorker(Worker):
         packet = b''.join([type,command,self.flag['complete'],struct.pack('<H',len(data)),data])
         packet += struct.pack('<B',sum(bytearray(packet)) % 256) # add the checksum
         # A busy DMD answers with a System Busy packet and does not run the command
-        # (TI's DLPU007, 2.1.1), so the command is sent again, for up to 30 s
-        deadline = time.monotonic() + 30
-        self.sock.send(packet)
-        recv = self._receive()
-        while recv['type'] == "System Busy":
-            if time.monotonic() > deadline:
-                raise RuntimeError('The LightCrafter DMD stayed busy for 30 s')
-            time.sleep(5)
-            self.sock.send(packet)
-            recv = self._receive()
-        return self.receive(recv)
+        # (TI's DLPU007, 2.1.1), so the command is sent again every 5 s
+        deadline = Deadline(self.device_name, 'answer a command', 30)
+        while True:
+            with deadline.timeout_for(socket.timeout) as timeout:
+                self.sock.settimeout(timeout)
+                self.sock.send(packet)
+                recv = self._receive()
+            if recv['type'] != "System Busy":
+                return self.receive(recv)
+            time.sleep(min(5, deadline.remaining()))
         
     def _receive(self):
         # This function assumes that we are getting a fresh packet, i.e. there is nothing waiting in the buffer

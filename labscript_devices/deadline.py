@@ -49,8 +49,9 @@ class Deadline:
     def timeout_for(self, *library_errors):
         """Yield the seconds left for a library call's own timeout, and raise the
         deadline's TimeoutError in place of the library's errors once it passes."""
+        seconds = self.remaining()
         try:
-            yield self.remaining()
+            yield seconds
         except library_errors:
             self.check()
             raise
