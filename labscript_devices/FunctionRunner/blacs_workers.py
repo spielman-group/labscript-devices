@@ -109,4 +109,8 @@ class FunctionRunnerWorker(Worker):
         return self.abort()
 
     def abort_transition_to_buffered(self):
-        return True
+        # The start functions may have run, so the stop functions do too. A start
+        # function that raised leaves the ones after it, which do not run.
+        if self.function_table:
+            self.function_table = [row for row in self.function_table if row[0] == 'stop']
+        return self.abort()
