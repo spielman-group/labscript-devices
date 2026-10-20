@@ -56,12 +56,12 @@ Usage
 
 	from labscript import *
 
-	from labscript_devices.PulseBlaster import PulseBlaster
+	from labscript_devices.PulseBlaster_No_DDS import PulseBlaster_No_DDS
 
-	PulseBlaster(name='pb',board_number=0,programming_scheme='pb_start/BRANCH')
+	PulseBlaster_No_DDS(name='pb',board_number=0,programming_scheme='pb_start/BRANCH')
 
-	Clockline(name='pb_clockline_fast', pseudoclock=pb.pseudoclock,connection='flag 0')
-	Clockline(name='pb_clockline_slow', pseudoclock=pb.pseudoclock,connection='flag 1')
+	ClockLine(name='pb_clockline_fast', pseudoclock=pb.pseudoclock,connection='flag 0')
+	ClockLine(name='pb_clockline_slow', pseudoclock=pb.pseudoclock,connection='flag 1')
 
 	DigitalOut(name='pb_0',parent_device=pb.direct_outputs,connection='flag 2')
 

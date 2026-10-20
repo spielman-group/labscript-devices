@@ -14,4 +14,3 @@
 - `LightCrafterDMD/blacs_workers.py`: `transition_to_buffered` leaves `table_data` unbound when the shot has no IMAGE_TABLE, and `program_manual` uses only the last region and leaves `data` unbound when given none. Read, not run.
 - `AlazarTechBoard/labscript_devices.py`: `generate_code` calls `init_device_group` inside its loop over acquisitions, so a board with two or more acquisitions does not compile (ValueError, name already exists).
 - `AlazarTechBoard/blacs_workers.py`: the worker keeps `sys.exc_info()` and later raises that tuple, a TypeError, and an unknown `chA_input_range` or `chB_input_range` is printed and then used unbound. Read, not run.
-- `docs/source/devices/pulseblaster_no_dds.rst`: the Usage example makes a `PulseBlaster`, the DDS board, rather than a `PulseBlaster_No_DDS`, and calls `Clockline`, which labscript does not define (it is `ClockLine`).
