@@ -9,4 +9,3 @@
 - `PulseBlaster/labscript_devices.py`: every board's direct outputs accept DDS children, so a DDS on a board without DDS is refused when the shot compiles, not when it is connected. Deferred: it is already an error.
 - `TekScope/TekScope.py`: the driver module has the class's name, so once a worker imports it, `labscript_devices.TekScope.TekScope` is the module, not the class. Deferred: no caller imports both in one process.
 - `test_device/labscript_devices.py`: the `DoSomething` keyword is CamelCase, as upstream's test fixture has it. Deferred: nothing uses it.
-- `NI_DAQmx/blacs_workers.py`: the acquisition worker waits for `wait_durations_analysed` with no timeout, and only NI's own wait monitor posts that it failed, so a PrawnBlaster or Cicero wait monitor whose transition to manual raises before posting leaves it waiting.

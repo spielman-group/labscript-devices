@@ -641,9 +641,13 @@ class NI_DAQmxAcquisitionWorker(Worker):
     def extract_measurements(self, raw_data, waits_in_use):
         self.logger.debug('extract_measurements')
         if waits_in_use:
-            # There were waits in this shot. We need to wait until the other process has
-            # determined their durations before we proceed:
-            if self.wait_durations_analysed.wait(self.h5_file) == 'failed':
+            # There were waits in this shot, so wait for the other process to determine
+            # their durations. It posts within seconds of the shot's end; the deadline
+            # only keeps a lost post from hanging BLACS.
+            deadline = Deadline(self.device_name, 'hear the wait durations from the wait monitor', 30)
+            with deadline.timeout_for(TimeoutError) as timeout:
+                analysed = self.wait_durations_analysed.wait(self.h5_file, timeout=timeout)
+            if analysed == 'failed':
                 raise RuntimeError('The wait monitor failed, so the durations of the waits, which divide up the acquisitions, are unknown')
 
         with h5py.File(self.h5_file, 'a') as hdf5_file:
@@ -958,51 +962,51 @@ class NI_DAQmxWaitMonitorWorker(Worker):
         self.logger.debug('transition_to_manual')
         try:
             self.stop_tasks(abort)
+            if not abort and self.wait_table is not None:
+                # Let's work out how long the waits were. The absolute times of each edge on
+                # the wait monitor were:
+                edge_times = np.cumsum(self.semiperiods)
+                # Now there was also a rising edge at t=0 that we didn't measure:
+                edge_times = np.insert(edge_times, 0, 0)
+                # Ok, and the even-indexed ones of these were rising edges.
+                rising_edge_times = edge_times[::2]
+                # Now what were the times between rising edges?
+                periods = np.diff(rising_edge_times)
+                # How does this compare to how long we expected there to be between the
+                # start of the experiment and the first wait, and then between each pair of
+                # waits? The difference will give us the waits' durations.
+                resume_times = self.wait_table['time']
+                # Again, include the start of the experiment, t=0:
+                resume_times = np.insert(resume_times, 0, 0)
+                run_periods = np.diff(resume_times)
+                wait_durations = periods - run_periods
+                waits_timed_out = wait_durations > self.wait_table['timeout']
+
+                # Work out how long the waits were, save them, post an event saying so:
+                # 'S' rather than the 'a' this used to say: 'a' was only ever an
+                # alias for it, and numpy 2.0 removed the alias. Same bytes on
+                # disk, so shot files written by earlier versions still read back.
+                dtypes = [
+                    ('label', 'S256'),
+                    ('time', float),
+                    ('timeout', float),
+                    ('duration', float),
+                    ('timed_out', bool),
+                ]
+                data = np.empty(len(self.wait_table), dtype=dtypes)
+                data['label'] = self.wait_table['label']
+                data['time'] = self.wait_table['time']
+                data['timeout'] = self.wait_table['timeout']
+                data['duration'] = wait_durations
+                data['timed_out'] = waits_timed_out
+                with h5py.File(self.h5_file, 'a') as hdf5_file:
+                    hdf5_file.create_dataset('/data/waits', data=data)
+                self.wait_durations_analysed.post(self.h5_file)
         except Exception:
             # An acquisition worker waits for the wait durations: tell it none will come
             if not abort and self.wait_table is not None:
                 self.wait_durations_analysed.post(self.h5_file, data='failed')
             raise
-        if not abort and self.wait_table is not None:
-            # Let's work out how long the waits were. The absolute times of each edge on
-            # the wait monitor were:
-            edge_times = np.cumsum(self.semiperiods)
-            # Now there was also a rising edge at t=0 that we didn't measure:
-            edge_times = np.insert(edge_times, 0, 0)
-            # Ok, and the even-indexed ones of these were rising edges.
-            rising_edge_times = edge_times[::2]
-            # Now what were the times between rising edges?
-            periods = np.diff(rising_edge_times)
-            # How does this compare to how long we expected there to be between the
-            # start of the experiment and the first wait, and then between each pair of
-            # waits? The difference will give us the waits' durations.
-            resume_times = self.wait_table['time']
-            # Again, include the start of the experiment, t=0:
-            resume_times = np.insert(resume_times, 0, 0)
-            run_periods = np.diff(resume_times)
-            wait_durations = periods - run_periods
-            waits_timed_out = wait_durations > self.wait_table['timeout']
-
-            # Work out how long the waits were, save them, post an event saying so:
-            # 'S' rather than the 'a' this used to say: 'a' was only ever an
-            # alias for it, and numpy 2.0 removed the alias. Same bytes on
-            # disk, so shot files written by earlier versions still read back.
-            dtypes = [
-                ('label', 'S256'),
-                ('time', float),
-                ('timeout', float),
-                ('duration', float),
-                ('timed_out', bool),
-            ]
-            data = np.empty(len(self.wait_table), dtype=dtypes)
-            data['label'] = self.wait_table['label']
-            data['time'] = self.wait_table['time']
-            data['timeout'] = self.wait_table['timeout']
-            data['duration'] = wait_durations
-            data['timed_out'] = waits_timed_out
-            with h5py.File(self.h5_file, 'a') as hdf5_file:
-                hdf5_file.create_dataset('/data/waits', data=data)
-            self.wait_durations_analysed.post(self.h5_file)
 
         self.h5_file = None
         self.semiperiods = None
