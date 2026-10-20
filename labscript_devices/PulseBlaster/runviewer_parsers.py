@@ -11,54 +11,10 @@
 #                                                                   #
 #####################################################################
 
-import time
-
 import numpy as np
 import labscript_utils.h5_lock, h5py
 
 from .labscript_devices import PulseBlasterBase
-
-
-profiles = {}
-def profile(funct):
-    func = funct.__name__
-    if func not in profiles:
-        profiles[func] = {'total_time':0, 'min':None, 'max':0, 'num_calls':0, 'average_time_per_call':0}
-    
-    def new_func(*args,**kwargs):
-        start_time = time.time()
-        ret = funct(*args,**kwargs)
-        runtime = time.time()-start_time
-        profiles[func]['total_time'] += runtime
-        profiles[func]['num_calls'] += 1
-        profiles[func]['min'] = profiles[func]['min'] if profiles[func]['min'] is not None and profiles[func]['min'] < runtime else runtime
-        profiles[func]['max'] = profiles[func]['max'] if profiles[func]['max'] > runtime else runtime
-        profiles[func]['average_time_per_call'] = profiles[func]['total_time']/profiles[func]['num_calls']
-        
-        return ret
-    # return new_func
-    return funct
-    
-def start_profile(name):
-    if name not in profiles:
-        profiles[name] = {'total_time':0, 'min':None, 'max':0, 'num_calls':0, 'average_time_per_call':0}
-        
-    if 'start_time' in profiles[name]:
-        raise Exception('You cannot call start_profile for %s without first calling stop_profile'%name)
-        
-    profiles[name]['start_time'] = time.time()
-    
-def stop_profile(name):
-    if name not in profiles or 'start_time' not in profiles[name]:
-        raise Exception('You must first call start_profile for %s before calling stop_profile')
-        
-    runtime = time.time()-profiles[name]['start_time']
-    del profiles[name]['start_time']
-    profiles[name]['total_time'] += runtime
-    profiles[name]['num_calls'] += 1
-    profiles[name]['min'] = profiles[name]['min'] if profiles[name]['min'] is not None and profiles[name]['min'] < runtime else runtime
-    profiles[name]['max'] = profiles[name]['max'] if profiles[name]['max'] > runtime else runtime
-    profiles[name]['average_time_per_call'] = profiles[name]['total_time']/profiles[name]['num_calls']
 
 
 class PulseBlasterBaseParser:
@@ -144,7 +100,6 @@ class PulseBlasterBaseParser:
                         row = pulse_program[j]
                         # buffer the index of traces used for this instruction
                         # Cuts the runtime down by ~60%
-                        # start_profile('loop_contents')
                         if j not in buffer:
                             times.append(t)
                             self._add_pulse_program_row_to_traces(traces, row, dds)
@@ -152,9 +107,7 @@ class PulseBlasterBaseParser:
                         else:                            
                             times.append(t)
                             self._add_pulse_program_row_from_buffer(traces, buffer[j])
-                        # stop_profile('loop_contents')
                             
-                        # start_profile('end_of_loop')
                         t+= self._duration(row)
                         
                         if row['inst'] == 3: # END_LOOP
@@ -165,7 +118,6 @@ class PulseBlasterBaseParser:
                         else:
                             # print 'in loop. j=%d, t=%.7f'%(j,t)
                             j+=1
-                        # stop_profile('end_of_loop')
                     loops -= 1
                     
                 i = j
@@ -221,7 +173,6 @@ class PulseBlasterBaseParser:
             
         return clocklines_and_triggers
     
-    @profile
     def _add_pulse_program_row_from_buffer(self, traces, index):
         for i in range(self.num_flags):
             traces[self.flag_strings[i]].append(traces[self.flag_strings[i]][index])
@@ -232,7 +183,6 @@ class PulseBlasterBaseParser:
             traces[current_strings['ddsphase']].append(traces[current_strings['ddsphase']][index])
             traces[current_strings['ddsamp']].append(traces[current_strings['ddsamp']][index])
             
-    @profile            
     def _add_pulse_program_row_to_traces(self, traces, row, dds, flags = None):
         # add flags
         if flags is None:
