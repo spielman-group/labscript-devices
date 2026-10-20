@@ -640,9 +640,8 @@ _SUITE = (
 )
 
 
-def _constructing(frame, device):
-    """Whether `frame` is one of `device`'s constructors or their wrappers: its
-    first argument is the device."""
+def _takes_first(frame, device):
+    """Whether `frame`'s function was given `device` as its first argument."""
     code = frame.f_code
     if code.co_argcount:
         return frame.f_locals.get(code.co_varnames[0]) is device
@@ -662,11 +661,19 @@ class PulseBlasterDirectOutputs(IntermediateDevice):
         # LEGACY VPP AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
         conversion = getattr(getattr(device, 'amplitude', None), 'unit_conversion_class', None)
         if getattr(conversion, 'base_unit', None) == 'Vpp':
-            # Warn at the line that made or added the DDS: past the suite's code
-            # and the DDS's own constructors and their wrappers. Never raise.
+            # Warn at the line that made or added the DDS: past the suite's code,
+            # the DDS's own __init__s and the wrappers that called them, which take
+            # the DDS first. A function that only adds it is the line. Never raise.
             try:
-                stacklevel, frame = 2, sys._getframe(1)
-                while frame.f_code.co_filename.startswith(_SUITE) or _constructing(frame, device):
+                stacklevel, frame, constructing = 2, sys._getframe(1), False
+                while True:
+                    takes_dds = _takes_first(frame, device)
+                    constructor = takes_dds and frame.f_code.co_name == '__init__'
+                    wrapper = takes_dds and constructing
+                    in_suite = frame.f_code.co_filename.startswith(_SUITE)
+                    if not (in_suite or constructor or wrapper):
+                        break
+                    constructing = constructor or wrapper or (in_suite and constructing)
                     stacklevel, frame = stacklevel + 1, frame.f_back
             except Exception:
                 stacklevel = 2
