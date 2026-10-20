@@ -38,7 +38,8 @@ class NovaTechDDS9MParser(object):
                 table_data = hdf5_file['devices/%s/TABLE_DATA' % self.name][:]
                 connection_table_properties = labscript_utils.properties.get(hdf5_file, self.name, 'connection_table_properties')
                 # LEGACY CONNECTION TABLE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-                if not {'update_mode', 'synchronous_first_line_repeat'} <= set(connection_table_properties):
+                saved = {'update_mode', 'synchronous_first_line_repeat'}
+                if not saved <= set(connection_table_properties):
                     warn_legacy_file(
                         self.path,
                         "lacks the NovaTechDDS9M's update_mode or "

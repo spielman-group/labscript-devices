@@ -9,3 +9,4 @@ class TestDeviceParser(object):
 class test_deviceParser(TestDeviceParser):
     def __init__(self, path, device):
         warn_legacy_file(path, "names the test device's class test_device, not TestDevice")
+        super().__init__(path, device)

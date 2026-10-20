@@ -74,10 +74,10 @@ class NovaTechDDS9MTab(DeviceTab):
         # LEGACY CONNECTION TABLE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
         # A table compiled before these properties were saved, or with the
         # phase_mode 'default', which did what 'continuous' does.
-        missing = [
-            name for name in ('com_port', 'baud_rate', 'default_baud_rate', 'update_mode', 'phase_mode')
-            if name not in connection_table_properties
-        ]
+        saved = (
+            'com_port', 'baud_rate', 'default_baud_rate', 'update_mode', 'phase_mode',
+        )
+        missing = [name for name in saved if name not in connection_table_properties]
         if missing:
             warn_legacy_file(
                 self.settings['connection_table'].filepath,
