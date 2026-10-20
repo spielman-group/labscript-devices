@@ -87,7 +87,8 @@ class RFBlaster(PseudoclockDevice):
         quantised_data['time'] = np.array(c.tT*1e6*data['time']+0.5)
         for dds in self.direct_outputs.child_devices:
             prefix, connection = dds.connection.split()
-            # The limits its BLACS tab sets, and a phase wrapped as NovaTechDDS9M's is
+            # The board's range: 0 Hz off to 350 MHz, and amplitude to its full code;
+            # a phase wraps, as NovaTechDDS9M's does
             quantised_data['freq%s'%connection], _ = dds.quantise_channel('frequency', c.fF*1e-6, limits=(0, 350e6), dtype=np.int32)
             quantised_data['amp%s'%connection], _ = dds.quantise_channel('amplitude', 2**c.bitsA - 1, limits=(0, 1), dtype=np.int32)
             quantised_data['phase%s'%connection], _ = dds.quantise_channel('phase', c.pP, period=360, dtype=np.int32)
