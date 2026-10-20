@@ -302,7 +302,7 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         try:
             chA_range_id = atsRanges[device_properties['chA_input_range']]
         except KeyError:
-            print("Voltage setting {:d}mV for Channel A is not recognised in atsapi. Make sure you use millivolts.".format(
+            raise LabscriptError("Voltage setting {:d}mV for Channel A is not recognised in atsapi. Make sure you use millivolts.".format(
                 device_properties['chA_input_range']))
         self.board.inputControl(
             ats.CHANNEL_A, device_properties['chA_coupling_id'], chA_range_id, device_properties['chA_impedance_id'])
@@ -313,7 +313,7 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         try:
             chB_range_id = atsRanges[device_properties['chB_input_range']]
         except KeyError:
-            print("Voltage setting {:d}mV for Channel B is not recognised in atsapi. Make sure you use millivolts.".format(
+            raise LabscriptError("Voltage setting {:d}mV for Channel B is not recognised in atsapi. Make sure you use millivolts.".format(
                 device_properties['chB_input_range']))
         self.board.inputControl(
             ats.CHANNEL_B, device_properties['chB_coupling_id'], chB_range_id, device_properties['chB_impedance_id'])
@@ -417,13 +417,13 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
                 errstring, funcname, arguments, retCode, retText = e.args
                 print("\n\nAPI error string is: {:s}".format(errstring))
                 # Even if in an abort, we still process this exception up to the main thread via shared state
-                self.acquisition_exception = sys.exc_info()
+                self.acquisition_exception = e
                 print("acquisition thread: acquisition_exception is {}".format(
                     self.acquisition_exception))
                 continue  # Next iteration of the infinite loop, wait for next acquisition, or have the main thread decide to die
             except Exception as e:
                 print("Got some other exception {}".format(e))
-                self.acquisition_exception = sys.exc_info()
+                self.acquisition_exception = e
                 continue  # Next iteration of the infinite loop, wait for next acquisition, or have the main thread decide to die
             finally:
                 self.board.abortAsyncRead()

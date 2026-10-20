@@ -99,8 +99,8 @@ class AlazarTechBoard(Device):
             len(acquisitions), dtype=acquisitions_table_dtypes)
         for i, acq in enumerate(acquisitions):
             acquisition_table[i] = acq
-            grp = self.init_device_group(hdf5_file)
         if len(acquisition_table):  # Table must be non empty
+            grp = self.init_device_group(hdf5_file)
             grp.create_dataset(
                 'ACQUISITIONS', compression=compiler.compression, data=acquisition_table)
             self.set_property('analog_in_channels', ', '.join(

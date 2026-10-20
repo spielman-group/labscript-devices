@@ -8,5 +8,4 @@
 - `PhaseMatrixQuickSyn/labscript_devices.py`: `generate_code` raises UnboundLocalError for a QuickSyn with no DDS connected; with two connected, it uses only the last.
 - `LightCrafterDMD/labscript_devices.py`: `generate_code` raises IndexError for a DMD with no ImageSet, and `ImageSet.set_image` raises struct.error, not LabscriptError, for raw bytes that start with BM but are under 30 bytes long.
 - `LightCrafterDMD/blacs_workers.py`: `transition_to_buffered` leaves `table_data` unbound when the shot has no IMAGE_TABLE, and `program_manual` uses only the last region and leaves `data` unbound when given none. Read, not run.
-- `AlazarTechBoard/labscript_devices.py`: `generate_code` calls `init_device_group` inside its loop over acquisitions, so a board with two or more acquisitions does not compile (ValueError, name already exists).
-- `AlazarTechBoard/blacs_workers.py`: the worker keeps `sys.exc_info()` and later raises that tuple, a TypeError, and an unknown `chA_input_range` or `chB_input_range` is printed and then used unbound. Read, not run.
+- `AlazarTechBoard/blacs_workers.py`: `find_nearest_internal_clock` makes a 0-d array of the `dict_keys` it is given, so `transition_to_buffered` with the default `INTERNAL_CLOCK` raises TypeError (as upstream).
