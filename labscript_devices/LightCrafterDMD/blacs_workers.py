@@ -132,9 +132,9 @@ class LightCrafterDMDWorker(Worker):
     
     
     def program_manual(self, front_panel_values):
-        for region, value in front_panel_values.items():
-            data = value
-            data = base64.b64decode(data)
+        # One ImageSet, so one region
+        (value,) = front_panel_values.values()
+        data = base64.b64decode(value)
         # Replace empty data with the black picture
         if not data:
             data = BLANK_BMP
@@ -149,35 +149,33 @@ class LightCrafterDMDWorker(Worker):
         return {}
         
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
+        # Every shot the device compiles has an IMAGE_TABLE: it has one ImageSet
         with h5py.File(h5_file, 'r') as hdf5_file:
-            group = hdf5_file['/devices/'+device_name]
-            if 'IMAGE_TABLE' in group:
-                table_data = group['IMAGE_TABLE'][:]
+            table_data = hdf5_file['/devices/'+device_name]['IMAGE_TABLE'][:]
         
         
-        if table_data is not None:
-            oldtable = self.smart_cache['IMAGE_TABLE']
-            self.send(self.send_packet_type['write'], self.command['display_mode'], self.display_mode['pattern'])
-            num_of_patterns = len(table_data)
-            # We will pad the images we send up to a multiple of four:
-            padded_num_of_patterns = num_of_patterns + (-num_of_patterns % 4)
+        oldtable = self.smart_cache['IMAGE_TABLE']
+        self.send(self.send_packet_type['write'], self.command['display_mode'], self.display_mode['pattern'])
+        num_of_patterns = len(table_data)
+        # We will pad the images we send up to a multiple of four:
+        padded_num_of_patterns = num_of_patterns + (-num_of_patterns % 4)
+        
+        # bit depth, number of patterns, invert patterns?, trigger type, trigger delay (4 bytes), trigger period (4 bytes), exposure time (4 bytes), led select
+        self.send(self.send_packet_type['write'], self.command['sequence_setting'],  struct.pack('<BBBBiiiB',1,padded_num_of_patterns,0,2,0,0,0,0))
+        if fresh or len(oldtable)!=len(table_data) or (oldtable != table_data).any():
+            for i in range(padded_num_of_patterns):
+                if i < num_of_patterns:
+                    im = table_data[i]
+                else:
+                    # Padding uses the final image:
+                    im = table_data[-1]
+                self.send(self.send_packet_type['write'], self.command['pattern_definition'], struct.pack('<B',i) + im.tobytes())
             
-            # bit depth, number of patterns, invert patterns?, trigger type, trigger delay (4 bytes), trigger period (4 bytes), exposure time (4 bytes), led select
-            self.send(self.send_packet_type['write'], self.command['sequence_setting'],  struct.pack('<BBBBiiiB',1,padded_num_of_patterns,0,2,0,0,0,0))
-            if fresh or len(oldtable)!=len(table_data) or (oldtable != table_data).any():
-                for i in range(padded_num_of_patterns):
-                    if i < num_of_patterns:
-                        im = table_data[i]
-                    else:
-                        # Padding uses the final image:
-                        im = table_data[-1]
-                    self.send(self.send_packet_type['write'], self.command['pattern_definition'], struct.pack('<B',i) + im.tobytes())
-                
-            self.send(self.send_packet_type['write'], self.command['display_pattern'], struct.pack('<H',0))
-            self.send(self.send_packet_type['write'], self.command['start_pattern_sequence'], struct.pack('<B',1))
-            self.smart_cache['IMAGE_TABLE'] = table_data
-            
-            
+        self.send(self.send_packet_type['write'], self.command['display_pattern'], struct.pack('<H',0))
+        self.send(self.send_packet_type['write'], self.command['start_pattern_sequence'], struct.pack('<B',1))
+        self.smart_cache['IMAGE_TABLE'] = table_data
+        
+        
         # if response != 'ok':
             # raise Exception('Failed to transition to manual. Message from server was: %s'%response)
             

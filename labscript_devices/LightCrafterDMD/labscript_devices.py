@@ -67,8 +67,9 @@ class ImageSet(Output):
                 raise LabscriptError('Error loading image for DMD output %s: The image does not appear to be in bmp format(path: %s) Length: %s, end: %s'%(self.name, path, len(path),path[-4:] ))
             with open(path, 'rb') as f:
                 raw_data = f.read()
-        # Check that the image is a BMP, first two bytes should be "BM"
-        if raw_data[0:2] != b"BM":
+        # Check that the image is a BMP, first two bytes should be "BM", and its
+        # header long enough to hold the checks below
+        if raw_data[0:2] != b"BM" or len(raw_data) < 30:
             raise LabscriptError('Error loading image for DMD output %s: The image does not appear to be in bmp format(path: %s)'%(self.name, path))
         # Check the dimensions match the device, these are stored in bytes 18-21 and 22-25
         width = struct.unpack("<i",raw_data[18:22])[0]
@@ -124,8 +125,8 @@ class LightCrafterDMD(IntermediateDevice):
                 
     def generate_code(self, hdf5_file):
        
-        if len(self.child_devices) > 1:
-            raise LabscriptError("More than one set of images attached to the LightCrafter")
+        if len(self.child_devices) != 1:
+            raise LabscriptError("The LightCrafter %s needs one set of images, and has %d" % (self.name, len(self.child_devices)))
         output = self.child_devices[0]
         if len(output.raw_output) > self.max_instructions:
             raise LabscriptError("Too many images for the LightCrafter. Your shot contains %s images"%len(output.raw_output))
