@@ -94,8 +94,13 @@ class PulseBlasterBaseParser:
         
             
         
-    def get_traces(self, add_trace, parent=None):
-        if parent is None:
+    def _duration(self, row):
+        # A LONG_DELAY runs its length as many times as its data says
+        repeats = row['inst_data'] if row['inst'] == 7 else 1
+        return repeats * row['length'] * 1.0e-9
+
+    def get_traces(self, add_trace, clock=None):
+        if clock is None:
             # we're the master pseudoclock, software triggered. So we don't have to worry about trigger delays, etc
             pass
             
@@ -109,7 +114,7 @@ class PulseBlasterBaseParser:
                 for reg in ['FREQ', 'AMP', 'PHASE']:
                     dds[i][reg] = f['devices/%s/DDS%d/%s_REGS'%(self.name, i, reg)][:]
         
-        clock = []
+        times = []
         traces = {}
         for i in range(self.num_flags):
             traces['flag %d'%i] = []
@@ -118,7 +123,7 @@ class PulseBlasterBaseParser:
                 traces['dds %d_%s'%(i,sub_chnl)] = []   
         
         # now build the traces
-        t = 0. if parent is None else PulseBlasterBase.trigger_delay # Offset by initial trigger of parent
+        t = 0. if clock is None else PulseBlasterBase.trigger_delay # Offset by the initial trigger from the parent's clock
         i = 0
         while i < len(pulse_program):
             # ignore the first 2 instructions, they are dummy instructions for BLACS
@@ -141,16 +146,16 @@ class PulseBlasterBaseParser:
                         # Cuts the runtime down by ~60%
                         # start_profile('loop_contents')
                         if j not in buffer:
-                            clock.append(t)
+                            times.append(t)
                             self._add_pulse_program_row_to_traces(traces, row, dds)
-                            buffer[j] = len(clock)-1
+                            buffer[j] = len(times)-1
                         else:                            
-                            clock.append(t)
+                            times.append(t)
                             self._add_pulse_program_row_from_buffer(traces, buffer[j])
                         # stop_profile('loop_contents')
                             
                         # start_profile('end_of_loop')
-                        t+= row['length']*1.0e-9
+                        t+= self._duration(row)
                         
                         if row['inst'] == 3: # END_LOOP
                             looping = False
@@ -170,11 +175,11 @@ class PulseBlasterBaseParser:
                 if row['inst'] == 8: #WAIT
                     print('Wait at %.9f'%t)
                     pass
-                clock.append(t)
+                times.append(t)
                 self._add_pulse_program_row_to_traces(traces,row,dds)
-                t+= row['length']*1.0e-9
+                t+= self._duration(row)
             
-                if row['inst'] == 8 and parent is not None: #WAIT
+                if row['inst'] == 8 and clock is not None: #WAIT
                     #TODO: Offset next time by trigger delay is not master pseudoclock
                     t+= PulseBlasterBase.trigger_delay
                     
@@ -184,9 +189,9 @@ class PulseBlasterBaseParser:
         print('Stop time: %.9f'%t)
         # now put together the traces
         to_return = {}
-        clock = np.array(clock, dtype=np.float64)
+        times = np.array(times, dtype=np.float64)
         for name, data in traces.items():
-            to_return[name] = (clock, np.array(data))
+            to_return[name] = (times, np.array(data))
             
         
         # if slow_clock_flag is not None:
