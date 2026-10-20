@@ -758,13 +758,15 @@ class NI_DAQmxWaitMonitorWorker(Worker):
 
     def read_edges(self, npts, timeout=None):
         """Wait up to the given timeout in seconds for an edge on the wait monitor and
-        and return the duration since the previous edge. Return None upon timeout."""
+        and return the duration since the previous edge. Return None upon timeout,
+        keeping any edges read for the next call."""
         samples_read = int32()
         # Read in chunks of at most 0.2 s, until the timeout if there is one, so
         # that an abort is seen between them.
         end = None if timeout is None else time.monotonic() + timeout
         read_array = np.zeros(npts)
-        read = 0
+        read = len(self.partial_edges)
+        read_array[:read] = self.partial_edges
         while True:
             if self.shutting_down:
                 raise RuntimeError('Stopped before expected number of samples acquired')
@@ -779,7 +781,10 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                 read += samples_read.value
                 if left is None or left > 0.2:
                     continue
+                # A pulse that straddles the timeout keeps its first edge
+                self.partial_edges = read_array[:read]
                 return None
+            self.partial_edges = read_array[:0]
             return read_array
 
     def wait_monitor(self):
@@ -947,6 +952,7 @@ class NI_DAQmxWaitMonitorWorker(Worker):
 
         # An array to store the results of counter acquisition:
         self.semiperiods = []
+        self.partial_edges = np.zeros(0)
         self.wait_monitor_thread = threading.Thread(target=self.wait_monitor)
         # Not a daemon thread, as it implements wait timeouts - we need it to stay alive
         # if other things die.
