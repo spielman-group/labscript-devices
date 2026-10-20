@@ -79,8 +79,18 @@ class LightCrafterDMDWorker(Worker):
     def send(self, type, command, data):
         packet = b''.join([type,command,self.flag['complete'],struct.pack('<H',len(data)),data])
         packet += struct.pack('<B',sum(bytearray(packet)) % 256) # add the checksum
+        # A busy DMD answers with a System Busy packet and does not run the command
+        # (TI's DLPU007, 2.1.1), so the command is sent again, for up to 30 s
+        deadline = time.monotonic() + 30
         self.sock.send(packet)
-        return self.receive()
+        recv = self._receive()
+        while recv['type'] == "System Busy":
+            if time.monotonic() > deadline:
+                raise RuntimeError('The LightCrafter DMD stayed busy for 30 s')
+            time.sleep(5)
+            self.sock.send(packet)
+            recv = self._receive()
+        return self.receive(recv)
         
     def _receive(self):
         # This function assumes that we are getting a fresh packet, i.e. there is nothing waiting in the buffer
@@ -95,14 +105,8 @@ class LightCrafterDMDWorker(Worker):
         body = body[:-1]
         return {'header' : header, 'type' : pkt_type, 'command' : command, 'flag' : flag, 'length' : length, 'body' : body, 'checksum' : checksum}
         
-    def receive(self):
-        recv = self._receive()
+    def receive(self, recv):
         # Check the type
-        while recv['type'] == "System Busy":
-            # the system is busy, guess we should try again in 5 seconds?
-            time.sleep(5)
-            recv = self._receive()
-            
         if recv['type'] == "Error":
             # We have an error
             errors = ""
