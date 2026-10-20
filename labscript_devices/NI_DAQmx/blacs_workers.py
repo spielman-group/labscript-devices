@@ -642,7 +642,8 @@ class NI_DAQmxAcquisitionWorker(Worker):
         if waits_in_use:
             # There were waits in this shot. We need to wait until the other process has
             # determined their durations before we proceed:
-            self.wait_durations_analysed.wait(self.h5_file)
+            if self.wait_durations_analysed.wait(self.h5_file) == 'failed':
+                raise RuntimeError('The wait monitor failed, so the durations of the waits, which divide up the acquisitions, are unknown')
 
         with h5py.File(self.h5_file, 'a') as hdf5_file:
             if waits_in_use:
@@ -860,8 +861,8 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                 # This will cause the wait_monitor thread to raise an exception within a
                 # short time, allowing us to join it before it would otherwise be done.
                 self.shutting_down = True
-            # The shot is over, so an edge not seen by now will not come: give the
-            # thread a second for the last ones, then stop it the same way.
+            # The tasks stop after the shot, so an edge not seen by now will not
+            # come: give the thread a second for the last ones, then stop it.
             self.wait_monitor_thread.join(1)
             self.shutting_down = True
             self.wait_monitor_thread.join()
@@ -952,7 +953,13 @@ class NI_DAQmxWaitMonitorWorker(Worker):
 
     def _return_to_manual(self, abort):
         self.logger.debug('transition_to_manual')
-        self.stop_tasks(abort)
+        try:
+            self.stop_tasks(abort)
+        except Exception:
+            # An acquisition worker waits for the wait durations: tell it none will come
+            if not abort and self.wait_table is not None:
+                self.wait_durations_analysed.post(self.h5_file, data='failed')
+            raise
         if not abort and self.wait_table is not None:
             # Let's work out how long the waits were. The absolute times of each edge on
             # the wait monitor were:
