@@ -90,8 +90,8 @@ class NovaTechDDS9M(IntermediateDevice):
         if device.connection.startswith('channel '):
             connection = 'dds ' + device.connection.split()[-1]
             warnings.warn(
-                f"{device.name}'s connection {device.connection!r} will be removed; "
-                f"use {connection!r}.", FutureWarning, stacklevel=4
+                f"{device.name} connects as {device.connection!r}, not {connection!r}. "
+                "That legacy form will be removed.", FutureWarning, stacklevel=4
             )
             device.connection = connection
         Device.add_device(self, device)

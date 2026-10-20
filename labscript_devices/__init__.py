@@ -2,7 +2,6 @@
 import importlib
 import os
 import sys
-import warnings
 
 from labscript_utils.versions import package_version
 
@@ -36,20 +35,6 @@ def lazy_attributes(package, names_by_submodule):
         return getattr(importlib.import_module(module), name)
 
     return __getattr__
-
-
-_legacy_reads = set()
-
-
-def warn_legacy_shot_file(path, legacy):
-    """Warn, once for each shot file and `legacy`, that the file is read through
-    a legacy name, so it may not be readable once that reading is removed."""
-    if (path, legacy) not in _legacy_reads:
-        _legacy_reads.add((path, legacy))
-        warnings.warn(
-            f"{path} {legacy}. Reading that legacy form will be removed, so the "
-            "file may not be readable in future.", FutureWarning, stacklevel=2
-        )
 
 
 if __name__ == '__main__':

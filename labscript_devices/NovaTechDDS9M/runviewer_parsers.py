@@ -14,7 +14,7 @@
 import numpy as np
 import labscript_utils.h5_lock, h5py
 import labscript_utils.properties
-from labscript_devices import warn_legacy_shot_file
+from labscript_utils.file_utils import warn_legacy_file
 from labscript_devices.runviewer_parsing import rising_edge_times
 
 
@@ -60,7 +60,7 @@ class NovaTechDDS9MParser(object):
             # LEGACY 'channel n' CONNECTION COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
             # Shot files compiled before the DDSs were connected as 'dds n'.
             if channel.parent_port.startswith('channel '):
-                warn_legacy_shot_file(
+                warn_legacy_file(
                     self.path, "connects the NovaTechDDS9M's DDSs as 'channel n', not 'dds n'"
                 )
             port = 'dds ' + channel.parent_port.split()[-1]

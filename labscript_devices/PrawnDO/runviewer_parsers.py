@@ -15,7 +15,7 @@ import h5py
 import numpy as np
 
 import labscript_utils.properties as properties
-from labscript_devices import warn_legacy_shot_file
+from labscript_utils.file_utils import warn_legacy_file
 from labscript_devices.runviewer_parsing import rising_edge_times
 
 class PrawnDOParser(object):
@@ -43,7 +43,7 @@ class PrawnDOParser(object):
             # Shot files compiled before the dataset's name was upper case.
             dataset = 'PULSE_PROGRAM' if 'PULSE_PROGRAM' in group else 'pulse_program'
             if 'pulse_program' in group:
-                warn_legacy_shot_file(
+                warn_legacy_file(
                     self.path, "names the PrawnDO's pulse program pulse_program, not PULSE_PROGRAM"
                 )
             pulse_program = group[dataset][()]
