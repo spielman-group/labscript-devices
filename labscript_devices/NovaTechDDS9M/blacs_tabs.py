@@ -16,15 +16,20 @@ from labscript_utils.file_utils import warn_legacy_file
 
 class NovaTechDDS9MTab(DeviceTab):
     # LEGACY 'channel n' NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-    def upgrade_front_panel(self, saved):
+    def upgrade_front_panel(self, settings):
         """Rename the outputs of a front panel saved before the channels were
         named 'dds n'."""
+        saved = settings.setdefault('front_panel_settings', {})
         for name in list(saved):
             if name.startswith('channel '):
+                warn_legacy_file(
+                    settings['front_panel_settings_file'],
+                    "names the NovaTechDDS9M's channels 'channel n', not 'dds n'",
+                )
                 saved.setdefault('dds ' + name[len('channel '):], saved.pop(name))
 
     def update_from_settings(self, settings):
-        self.upgrade_front_panel(settings.setdefault('front_panel_settings', {}))
+        self.upgrade_front_panel(settings)
         super().update_from_settings(settings)
 
     def initialise_GUI(self):        
@@ -36,7 +41,7 @@ class NovaTechDDS9MTab(DeviceTab):
         self.base_decimals = {'freq':1,             'amp':4,       'phase':3} # TODO: find out what the phase precision is!
         self.num_DDS = 4
         
-        self.upgrade_front_panel(self.settings.setdefault('front_panel_settings', {}))
+        self.upgrade_front_panel(self.settings)
 
         # Create DDS Output objects
         dds_prop = {}
