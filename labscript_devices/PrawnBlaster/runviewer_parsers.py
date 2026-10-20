@@ -99,10 +99,9 @@ class PrawnBlasterParser(object):
                         trigger_index += 1
                     else:
                         t += self.wait_delay
-                elif last_instruction_was_wait:
-                    # two waits in a row means an indefinite wait, so we just skip this
-                    # instruction.
-                    last_instruction_was_wait = False
+                elif row["reps"] == 0:
+                    # As in the firmware, waits in a row are one wait: two make it
+                    # indefinite, so we just skip this instruction.
                     continue
                 else:
                     last_instruction_was_wait = False
