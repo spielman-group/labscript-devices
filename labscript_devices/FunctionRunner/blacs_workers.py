@@ -57,18 +57,18 @@ class FunctionRunnerWorker(Worker):
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         rich_print(f"====== new shot: {os.path.basename(h5_file)} ======", color=GREEN)
+        # Until the shot's table and context are both read, an abort runs nothing
+        self.function_table = None
         with h5py.File(h5_file, 'r') as f:
             group = f[f'devices/{self.device_name}']
             if 'FUNCTION_TABLE' not in group:
-                self.function_table = None
                 rich_print("[no functions]", color=GREY)
                 return {}
             function_table = group['FUNCTION_TABLE'][:]
 
-        self.function_table = deserialise_function_table(
-            function_table, self.device_name
-        )
+        function_table = deserialise_function_table(function_table, self.device_name)
         self.shot_context = ShotContext(h5_file, self.device_name)
+        self.function_table = function_table
         if self.function_table[0][0] != 'start':
             rich_print("no start functions", color=GREY)
             return {}
