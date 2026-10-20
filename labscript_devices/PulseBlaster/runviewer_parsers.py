@@ -140,7 +140,6 @@ class PulseBlasterBaseParser:
             to_return[name] = (times, np.array(data))
             
         
-            
         clocklines_and_triggers = {}
         for pseudoclock_name, pseudoclock in self.device.child_list.items():
             for clock_line_name, clock_line in pseudoclock.child_list.items():
@@ -182,7 +181,6 @@ class PulseBlasterBaseParser:
         for i in range(self.num_flags):
             traces[self.flag_strings[i]].append(int(flags[i]))
         
-            
        
         # note that we are looking up keys for the traces dictionary and row array in self.dds_strings
         # Doing this reduces the runtime (of the below block) by 25%

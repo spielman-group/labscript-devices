@@ -74,7 +74,6 @@ class LightCrafterDMDWorker(Worker):
         
         
         
-        
     
     def send(self, type, command, data):
         packet = b''.join([type,command,self.flag['complete'],struct.pack('<H',len(data)),data])
@@ -176,9 +175,6 @@ class LightCrafterDMDWorker(Worker):
         self.send(self.send_packet_type['write'], self.command['display_pattern'], struct.pack('<H',0))
         self.send(self.send_packet_type['write'], self.command['start_pattern_sequence'], struct.pack('<B',1))
         self.smart_cache['IMAGE_TABLE'] = table_data
-        
-        
-            
         
         self.final_value = {"None" : base64.b64encode(table_data[-1].tobytes())}
         

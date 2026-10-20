@@ -604,7 +604,6 @@ class AndorCam(object):
         else:
             shape = (N, self.image_shape[0], self.image_shape[1])
 
-
         # Lets see what we have in memory
         available_images = GetNumberAvailableImages()
         if self.chatty:
@@ -631,7 +630,6 @@ class AndorCam(object):
                 {available_images}, expecting: {N}."""
             )
             data = np.zeros(shape)
-
 
         return data
 

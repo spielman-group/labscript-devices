@@ -573,7 +573,6 @@ def getSystemHandle(sid):
     ats.AlazarGetSystemHandle.argtypes = [U32]
     return ats.AlazarGetSystemHandle(sid)
 
-
 #RETURN_CODE EXPORT AlazarGetSDKVersion(U8 *Major, U8 *Minor, U8 *Revision);
 ats.AlazarGetSDKVersion.restype = U32
 ats.AlazarGetSDKVersion.argtypes = [c_void_p, c_void_p, c_void_p]
@@ -717,14 +716,12 @@ class Board:
         '''Configures the auxiliary output.'''
         ats.AlazarConfigureAuxIO(self.handle, mode, parameter)
 
-
     ats.AlazarConfigureRecordAverage.restype = U32
     ats.AlazarConfigureRecordAverage.argtypes = [U32, U32, U32, U32, U32]
     ats.AlazarConfigureRecordAverage.errcheck = returnCodeCheck
     def configureRecordAverage(self, mode, samplesPerRecord, recordsPerAverage, options):
         '''Co-add ADC samples into accumulator record.'''
         ats.AlazarConfigureRecordAverage(self.handle, mode, samplesPerRecord, recordsPerAverage, options)
-
 
     ats.AlazarForceTrigger.restype = U32
     ats.AlazarForceTrigger.argtypes = [U32]
@@ -927,6 +924,3 @@ class Board:
     def waitNextAsyncBufferComplete(self, buffer, bytes_to_copy, timeout_ms):
         '''Blocks until the board confirms that buffer is filled with data.'''
         ats.AlazarWaitNextAsyncBufferComplete(self.handle, buffer, bytes_to_copy, timeout_ms)
-
-
-
