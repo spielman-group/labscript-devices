@@ -31,6 +31,7 @@ from labscript_utils import ensure_str
 
 from blacs.tab_base_classes import Worker
 
+from ..deadline import Deadline
 from .utils import split_conn_port, split_conn_DO, split_conn_AI
 from .daqmx_utils import incomplete_sample_detection
 
@@ -755,22 +756,21 @@ class NI_DAQmxWaitMonitorWorker(Worker):
         """Wait up to the given timeout in seconds for an edge on the wait monitor and
         and return the duration since the previous edge. Return None upon timeout."""
         samples_read = int32()
-        # If no timeout, call read repeatedly with a 0.2 second timeout to ensure we
-        # don't block indefinitely and can still abort.
-        if timeout is None:
-            read_timeout = 0.2
-        else:
-            read_timeout = timeout
+        # Read in chunks of at most 0.2 s, until the timeout if there is one, so
+        # that an abort is seen between them.
+        end = None if timeout is None else time.monotonic() + timeout
         read_array = np.zeros(npts)
         while True:
             if self.shutting_down:
                 raise RuntimeError('Stopped before expected number of samples acquired')
+            left = None if end is None else max(end - time.monotonic(), 0)
             try:
                 self.CI_task.ReadCounterF64(
-                    npts, read_timeout, read_array, npts, samples_read, None
+                    npts, 0.2 if left is None else min(left, 0.2), read_array, npts,
+                    samples_read, None
                 )
             except SamplesNotYetAvailableError:
-                if timeout is None:
+                if left is None or left > 0.2:
                     continue
                 return None
             return read_array
@@ -865,7 +865,10 @@ class NI_DAQmxWaitMonitorWorker(Worker):
             # come: give the thread a second for the last ones, then stop it.
             self.wait_monitor_thread.join(1)
             self.shutting_down = True
-            self.wait_monitor_thread.join()
+            # It reads in chunks of 0.2 s, so sees that within one
+            Deadline(self.device_name, 'stop its wait monitor thread', 2).wait(
+                lambda: not self.wait_monitor_thread.is_alive()
+            )
             self.wait_monitor_thread = None
             self.shutting_down = False
             if not abort and self.wait_monitor_thread_exception is not None:
