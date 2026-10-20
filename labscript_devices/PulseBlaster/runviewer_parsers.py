@@ -204,18 +204,17 @@ class PulseBlasterBaseParser:
                     parent_device_name = '%s.direct_outputs'%self.name
                     for internal_device_name, internal_device in clock_line.child_list.items():
                         for channel_name, channel in internal_device.child_list.items():
-                            if channel.device_class == 'Trigger':
-                                clocklines_and_triggers[channel_name] = to_return[channel.parent_port]
-                                add_trace(channel_name, to_return[channel.parent_port], parent_device_name, channel.parent_port)
+                            # A DDS of any class, by its 'dds n' connection
+                            if channel.parent_port.split()[0] == 'dds':
+                                for subchnl_name, subchnl in channel.child_list.items():
+                                    connection = '%s_%s'%(channel.parent_port, subchnl.parent_port)
+                                    if connection in to_return:
+                                        add_trace(subchnl.name, to_return[connection], parent_device_name, connection)
                             else:
-                                # A DDS of any class, by its 'dds n' connection
-                                if channel.parent_port.split()[0] == 'dds':
-                                    for subchnl_name, subchnl in channel.child_list.items():
-                                        connection = '%s_%s'%(channel.parent_port, subchnl.parent_port)
-                                        if connection in to_return:
-                                            add_trace(subchnl.name, to_return[connection], parent_device_name, connection)
-                                else:
-                                    add_trace(channel_name, to_return[channel.parent_port], parent_device_name, channel.parent_port)
+                                # A flag that triggers devices, a Trigger of any class, clocks them
+                                if channel.child_list:
+                                    clocklines_and_triggers[channel_name] = to_return[channel.parent_port]
+                                add_trace(channel_name, to_return[channel.parent_port], parent_device_name, channel.parent_port)
                 else:
                     clocklines_and_triggers[clock_line_name] = to_return[clock_line.parent_port]
                     add_trace(clock_line_name, to_return[clock_line.parent_port], self.name, clock_line.parent_port)

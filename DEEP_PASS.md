@@ -56,7 +56,15 @@ Each stage's commits on `CodeHealth`, for review:
 - Step 2.3's build (Ian: "go ahead with step 2.3"): `8c40fbf..` the commit
   that records this line.
 - Codex's findings on step 2.3 (Ian: "yes send the fixes to
-  labscript-devices"): `a407b55..` the commit that records this line.
+  labscript-devices"): `a407b55..ff741e4`.
+- Ian's decisions on that round ("Fix the fragile name issue and do not have
+  RFBlaster retry"): the commit that records this line.
+  - **Outcome:** RFBlaster does not retry. A request that times out raises the
+    Deadline's TimeoutError at once, and requests' other errors do too, since
+    the request loop's retry catches none of them.
+  - The PulseBlaster and NI_DAQmx parsers know a trigger by its connection and
+    by the devices it clocks, not by the class name `Trigger`, so runviewer
+    shows the devices under a Trigger subclass.
 
 ## The test contract
 
@@ -714,7 +722,7 @@ legacy paths, DummyCamera's checks), whose causes need no fix.
   - a chunk could lose an edge;
   - one timeout per attempt let a LightCrafterDMD answer take 60 s;
   - RFBlaster retried a timeout and restarted kloned. That behaviour change is
-    undone, and the question is left open in `KNOWN_ISSUES.md`.
+    undone, as Ian then decided.
 - Rule 6 forbids timeout machinery around ZMQ calls. Ian's plan gives the
   acquisition worker's wait the deadline, and it passes the time left to
   zprocess's own `Event.wait(timeout=)`.

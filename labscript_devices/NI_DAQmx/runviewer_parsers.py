@@ -68,7 +68,8 @@ class NI_DAQmxParser(object):
         for channel_name, channel in self.device.child_list.items():
             if channel.parent_port in traces:
                 trace = traces[channel.parent_port]
-                if channel.device_class == 'Trigger':
+                # A line that triggers devices, a Trigger of any class, clocks them
+                if channel.child_list:
                     triggers[channel_name] = trace
                 add_trace(channel_name, trace, self.name, channel.parent_port)
 
