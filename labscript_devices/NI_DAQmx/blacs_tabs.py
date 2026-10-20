@@ -121,8 +121,9 @@ class NI_DAQmxTab(DeviceTab):
         try:
             AI_chans = properties['AI_chans']
         except KeyError:
-            # new code being run on older model specification file
-            # assume legacy behavior, warn user to update
+            # LEGACY MODEL SPECIFICATION COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+            # A table compiled from an older model specification file, without
+            # AI_chans: assume the old behaviour, and warn.
             AI_chans = [f'ai{i:d}' for i in range(num_AI)]
             warn_legacy_file(
                 connection_table.filepath,
