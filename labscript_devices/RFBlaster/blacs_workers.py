@@ -140,9 +140,9 @@ class RFBlasterWorker(PseudoclockWorker):
                     # ... rather than a dict. No matter. it seems requests sucks this up anyway.
                     # However we need to rearrange the file data into a nested tuple for requests. No big deal:
                     filelist = [(field_name, (filename, bytes(body), content_type)) for field_name, filename, content_type, body in form.files]
-                    r = requests.post(self.address, data=form.form_fields, files=filelist) # Needs to actually send the form
+                    r = requests.post(self.address, data=form.form_fields, files=filelist, timeout=self.timeout) # Needs to actually send the form
                 else:
-                    r = requests.get(self.address)
+                    r = requests.get(self.address, timeout=self.timeout)
                 r.raise_for_status() 
                 self.netlogger.info('Connected!')
                 break
