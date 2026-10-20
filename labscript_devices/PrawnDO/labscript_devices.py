@@ -240,8 +240,16 @@ class PrawnDO(PseudoclockDevice):
             # no instructions, so return
             return
 
-        # get where wait instructions should be added from clock instructions
-        wait_idxs = [i for i,instr in enumerate(instructions) if instr=='WAIT']
+        # get where wait instructions should be added from clock instructions:
+        # each goes before the tick it resumes on, counted in times, where a
+        # ramp's instruction is many ticks and a wait none
+        wait_idxs = []
+        ticks = 0
+        for instr in instructions:
+            if instr == 'WAIT':
+                wait_idxs.append(ticks)
+            else:
+                ticks += instr['reps']
 
         # Retrieving the time series of each DigitalOut to be stored
         # as the output word for the pins; an unused pin stays low
