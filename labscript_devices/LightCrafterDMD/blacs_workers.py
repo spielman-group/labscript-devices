@@ -72,7 +72,6 @@ class LightCrafterDMDWorker(Worker):
         # Initialise it to a static image display
         self.send(self.send_packet_type['write'], self.command['display_mode'], self.display_mode['static'])
         
-        # self.program_manual({"None" : base64.b64encode(blank_bmp)})
         
         
         
@@ -179,8 +178,6 @@ class LightCrafterDMDWorker(Worker):
         self.smart_cache['IMAGE_TABLE'] = table_data
         
         
-        # if response != 'ok':
-            # raise Exception('Failed to transition to manual. Message from server was: %s'%response)
             
         
         self.final_value = {"None" : base64.b64encode(table_data[-1].tobytes())}

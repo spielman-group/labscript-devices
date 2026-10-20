@@ -72,7 +72,6 @@ class DummyIntermediateDevice(IntermediateDevice):
         pseudoclock = clockline.parent_device
         times = pseudoclock.times[clockline]
 
-        # out_table = np.empty((len(times),len(self.child_devices)), dtype=np.float32)
         # determine dtypes
         dtypes = []
         for device in self.child_devices:

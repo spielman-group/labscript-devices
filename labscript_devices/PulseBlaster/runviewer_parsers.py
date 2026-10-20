@@ -63,7 +63,6 @@ class PulseBlasterBaseParser:
         # get the pulse program
         with h5py.File(self.path, 'r') as f:
             pulse_program = f['devices/%s/PULSE_PROGRAM'%self.name][:]
-            # slow_clock_flag = eval(f['devices/%s'%self.name].attrs['slow_clock'])
             dds = {}
             for i in range(self.num_dds):
                 dds[i] = {}
@@ -112,16 +111,12 @@ class PulseBlasterBaseParser:
                         
                         if row['inst'] == 3: # END_LOOP
                             looping = False
-                            # print 'end loop. j=%d, t=%.7f'%(j,t)
                             j = int(row['inst_data']) if loops > 1 else j
-                            # print 'setting j=%d'%j
                         else:
-                            # print 'in loop. j=%d, t=%.7f'%(j,t)
                             j+=1
                     loops -= 1
                     
                 i = j
-                # print 'i now %d'%i
                     
             else: # Continue
                 if row['inst'] == 8: #WAIT
@@ -145,8 +140,6 @@ class PulseBlasterBaseParser:
             to_return[name] = (times, np.array(data))
             
         
-        # if slow_clock_flag is not None:
-            # to_return['slow clock'] = to_return['flag %d'%slow_clock_flag[0]]
             
         clocklines_and_triggers = {}
         for pseudoclock_name, pseudoclock in self.device.child_list.items():
@@ -189,12 +182,6 @@ class PulseBlasterBaseParser:
         for i in range(self.num_flags):
             traces[self.flag_strings[i]].append(int(flags[i]))
         
-        # Below block saved for history. This is much slower compared to what is below!
-        # for i in range(self.num_dds):
-            # traces['dds %d_freq'%i].append(dds[i]['FREQ'][row['freq%d'%i]])
-            # traces['dds %d_phase'%i].append(dds[i]['PHASE'][row['phase%d'%i]])
-            # amp = dds[i]['AMP'][row['amp%d'%i]] if row['dds_en%d'%i] else 0
-            # traces['dds %d_amp'%i].append(amp)
             
        
         # note that we are looking up keys for the traces dictionary and row array in self.dds_strings

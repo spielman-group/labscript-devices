@@ -29,5 +29,4 @@ class TekScope(Device):
         assert preamble_string in ['WFMO', 'WFMP'], "preamble_string must be one of 'WFMO' or 'WFMP'"
 
     def generate_code(self, hdf5_file):
-        # group = self.init_device_name(hdf5_file)
         Device.generate_code(self, hdf5_file)

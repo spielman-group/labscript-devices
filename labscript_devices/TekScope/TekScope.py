@@ -87,7 +87,6 @@ class TekScope:
             'YUNIT'                                   # vertical units
             ]
 
-        # wfstr = self.dev.query(preamble_string + '?').split(';')    # waveform transmission and formatting parameters
         self.dev.write(';:'.join([preamble_string + ':' + k  + '?' for k in keys]))
         wfstr = self.dev.read().split(';')
 

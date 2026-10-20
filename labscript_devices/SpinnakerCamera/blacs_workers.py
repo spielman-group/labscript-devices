@@ -133,14 +133,12 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
     def snap(self):
         """Acquire a single image and return it"""
         self.configure_acquisition(continuous=False, buffer_count=1)
-        #self.trigger()
         image = self.grab()
         self.camera.EndAcquisition()
         return image
 
     def grab(self):
         """Grab and return single image during pre-configured acquisition."""
-        #print('Grabbing...')
         image_result = self.camera.GetNextImage(self.timeout)
         img = self._decode_image_data(image_result.GetData())
         image_result.Release()

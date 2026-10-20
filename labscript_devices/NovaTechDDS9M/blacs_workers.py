@@ -89,7 +89,6 @@ class NovaTechDDS9MWorker(Worker):
         if self.connection.readline() != b"OK\r\n":
             raise Exception('Error: Failed to execute command: "%s"'%self.phase_mode_command.decode('utf8'))
         
-        #return self.get_current_values()
         
     def check_connection(self):
         """Sends non-command and tests for correct response, returns True if connection

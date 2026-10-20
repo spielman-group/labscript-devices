@@ -63,7 +63,6 @@ def add_instruction_to_bytearray(data, instruction, on, off, reps):
 class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
     def init(self):
         global h5py; import labscript_utils.h5_lock, h5py
-        # global serial; import serial
         global time; import time
         global zprocess; import zprocess
         global ok; import ok # OpalKelly library
@@ -193,31 +192,7 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
         # update the status monitors
         self.dev.UpdateWireOuts()
                 
-        #   WAIT ANALYSIS CODE: 
-        #       If this device has a wait monitor attached
-        #       Read wires 22+23 (masterSamplesGenerated)
-        #                  24 (retriggerTimeoutCount)
-        #                  26+27 (retriggerWaitSamples)
-        #
-        #       find out if this device was the wait monitor by looking at 
-        #       hdf5_file['waits'].attrs['wait_monitor_acquisition_device']
-        #       and hdf5_file['waits'].attrs['wait_monitor_timeout_device']
-        #
-        #       To determine the length of waits. Note this is a bit tricky 
-        #       because if waits are close we might miss one (cicero must have
-        #       the same problem). You also need to reverse engineer the 
-        #       of the wait from the retriggerWaitSamples which appears to be
-        #       a cumulative total of wait samples. You could use 
-        #       masterSamplesGenerated to work out which wait just happened
-        #       based on the clock_resolution and the wait time in the 
-        #       "waits" table of the HDF5 file.
-        #       
-        #       send ZMQ all_waits_finished event when all waits have happened.
-        #       self.all_waits_finished.post(self.h5_file)
         if self.wait_table is not None and self.current_wait < len(self.wait_table):
-            # master_samples_generated_1 = self.dev.GetWireOutValue(0x22)
-            # master_samples_generated_2 = self.dev.GetWireOutValue(0x23)
-            # master_samples_generated = (master_samples_generated_2 << 16) + master_samples_generated_1
             
             master_samples_generated = bits_to_int(16, self.dev.GetWireOutValue(0x22), self.dev.GetWireOutValue(0x23))
             self.logger.debug('Master samples generated: %d'%master_samples_generated)
@@ -226,8 +201,6 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
 
             # find time of current wait
             wait_sample = int(self.wait_table[self.current_wait][1]*clock_frequency)
-            # for some reason this needs to be incremented by 1?
-            #wait_sample += 1
             self.logger.debug('Wait sample: %d'%wait_sample)
             if wait_sample < master_samples_generated:
                 # a wait has happened!
@@ -259,21 +232,6 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
         return status & 1		# finished
         
     def transition_to_manual(self):
-        #       Save wait data if there were waits and this was the wait monitor
-        #       find out if this device was the wait monitor by looking at 
-        #       hdf5_file['waits'].attrs['wait_monitor_acquisition_device']
-        #       and hdf5_file['waits'].attrs['wait_monitor_timeout_device']
-        #       
-        #       write the table to hdf5_file['/data/waits']. Columns are:
-        #           label: Same as hdf5_file['waits']['label']
-        #           time: Same as hdf5_file['waits']['time']
-        #           timeout: Same as hdf5_file['waits']['timeout']
-        #           duration: duration of the wait in seconds
-        #           timed_out: Boolean indicating if the wait timed out
-        #
-        #       Send ZMQ wait_durations_analysed event when the table has been
-        #       written
-        #       self.wait_durations_analysed.post(self.h5_file)
     
         # The master's tab has seen it finish already:
         if not self.is_master_pseudoclock:

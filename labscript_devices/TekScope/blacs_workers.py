@@ -75,7 +75,6 @@ class TekScopeWorker(Worker):
 
     def abort(self):
         print('aborting!')
-        # self.scope.write('*RST')
         return True
 
     def abort_buffered(self):

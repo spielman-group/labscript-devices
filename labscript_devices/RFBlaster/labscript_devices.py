@@ -59,7 +59,6 @@ class RFBlaster(PseudoclockDevice):
         import rfblaster.rfjuice.const as c
         from rfblaster.rfjuice.cython.make_diff_table import make_diff_table
         from rfblaster.rfjuice.cython.compile import compileD
-        # from rfblaster.rfjuice.compile import compileD
         import tempfile
         from subprocess import Popen, PIPE
         
@@ -168,8 +167,6 @@ class RFBlaster(PseudoclockDevice):
                 # Delete the temporary files:
                 os.remove(temp_assembly_filepath)
                 os.remove(temp_binary_filepath)
-                # print 'assembly:', temp_assembly_filepath
-                # print 'binary for dds %d on %s:'%(dds,self.name), temp_binary_filepath
 
                 
 class RFBlasterDirectOutputs(IntermediateDevice):

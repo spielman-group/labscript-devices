@@ -162,8 +162,6 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         system_id = 1
         board_id = 1
         self.board = board = ats.Board(systemId=system_id, boardId=board_id)
-        #self.driver_version = ats.getDriverVersion()
-        #self.driver_version_string = '.'.join(map(str, self.driver_version))
         self.driver_version_string = '(unknown)'
 
         self.board_name = ats.boardNames[self.board.type]
@@ -176,9 +174,6 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
               format(self.board_name, board.serial_number, system_id, board_id))
         print("Hardware revision {:s}, driver version {:s}, CPLD version {:s}.".
               format(board.revision_string, self.driver_version_string, board.cpld_version_string))
-        # For some reason can't make the API return these from queryCapability, but can get all the others.
-        # Particularly odd because it works in C!
-        #print("PCIe connection width {:d}, speed {:d}".format(board.pcie_link_speed, board.pcie_link_width))
         print("{:d} channels. Board memory {:d}, quantising {:d} bits per sample.".format(
             board.num_channels, board.memorysize_samples, board.bits_per_sample))
         board.abortAsyncRead()
@@ -291,13 +286,11 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         # LDT: We'll leave this set to zero for now. We timeout on the readout, not on the trigger.
         # But we should probably check if we ever got a trigger!
         self.board.setTriggerTimeOut(0)
-        #print("Trigger timeout set to infinity")
 
         # Configure AUX I/O connector.
         # By default this emits the sample clock; not sure if this is before or after decimation
         # Second param is a dummy value when AUX_OUT_TRIGGER
         self.board.configureAuxIO(ats.AUX_OUT_TRIGGER, 0)
-        #print("Aux output set to sample clock.")
 
         try:
             chA_range_id = atsRanges[device_properties['chA_input_range']]
@@ -329,7 +322,6 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         self.timeout = 60000
 
         # Check which channels we are acquiring
-        #channels = ats.CHANNEL_A | ats.CHANNEL_B
         self.channels = device_properties['channels']
         if not (self.channels & ats.CHANNEL_A or self.channels & ats.CHANNEL_B):
             raise LabscriptError(
@@ -368,12 +360,10 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         for i in range(self.buffersPerAcquisition):
             self.buffers.append(ats.DMABuffer(
                 sample_type, self.bytesPerBuffer))
-            #print('{:d} '.format(i),end="")
         print('done.')
 
         # This works but ADMA_ALLOC_BUFFERS is questionable because we have allocated the buffers (well atsapi.py buffer class has)
         acqflags = ats.ADMA_TRIGGERED_STREAMING | ats.ADMA_ALLOC_BUFFERS | ats.ADMA_FIFO_ONLY_STREAMING
-        #print("Acqflags in decimal: {:d}".format(acqflags))
 
         # This does not actually start the capture, it just sets it up
         self.board.beforeAsyncRead(self.channels,
@@ -392,7 +382,6 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         while True:
             command = self.acquisition_queue.get()
             assert command == 'start'
-            #print("acquisition thread: starting new acquisition")
             start = time.perf_counter()        # Keep track of when acquisition started
             # This is a fresh trip through the acquisition loop, no exception has occurred yet!
             self.acquisition_exception = None
@@ -409,7 +398,6 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
                         self.board.waitNextAsyncBufferComplete(
                             buffer.addr, self.bytesPerBuffer, timeout_ms=self.timeout)
                         buffersCompleted += 1
-                        #print(' {:d}'.format(buffersCompleted),end="")
                         pbar.update(1)
                         bytesTransferred += buffer.size_bytes
             except ats.AlazarException as e:
@@ -447,7 +435,6 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
             if not self.acquisition_done.wait(timeout=2) and not self.aborting:
                 raise Exception(
                     'Waiting for acquisition to complete timed out')
-            #print("acquisition_exception is {:s}".format(self.acquisition_exception))
             if self.acquisition_exception is not None and not self.aborting:
                 raise self.acquisition_exception
         finally:
@@ -457,7 +444,6 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
             self.acquisition_exception = None
 
     def transition_to_manual(self):
-        #print("transition_to_manual: using " + self.h5_file)
         # Waits on the acquisition thread, and manages the lock
         self.wait_acquisition_complete()
         # Write data to HDF5 file

@@ -367,7 +367,6 @@ class FlyCapture2CameraInterface(TriggerableCameraInterface):
         result = self.camera.retrieveBuffer()
         
         img = result.getData()
-        #result.ReleaseBuffer(), exists in documentation, not PyCapture2
         
         return self._decode_image_data(img)
 

@@ -41,8 +41,6 @@ class CiceroOpalKellyXEM3001Parser(object):
         time = []
         states = []
         trigger_index = 0
-        # t = 0 if clock is None else clock_ticks[trigger_index]+device_properties['trigger_delay']
-        # trigger_index += 1
         t = 0
                
         for row in pulse_program:

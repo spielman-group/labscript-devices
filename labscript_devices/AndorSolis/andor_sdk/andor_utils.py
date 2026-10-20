@@ -604,7 +604,6 @@ class AndorCam(object):
         else:
             shape = (N, self.image_shape[0], self.image_shape[1])
 
-        # self.abort_acquisition # This seems like a bad thing to do here...
 
         # Lets see what we have in memory
         available_images = GetNumberAvailableImages()
@@ -625,7 +624,6 @@ class AndorCam(object):
             else:
                 print("Shape passed to GetAcquiredData is", shape)
                 data = GetAcquiredData(shape)
-                # data = GetOldestImage16(shape)
                 print("Data shape and dtype is:", data.shape, data.dtype)
         else:
             print(
@@ -634,8 +632,6 @@ class AndorCam(object):
             )
             data = np.zeros(shape)
 
-        # Optional clear buffer
-        # FreeInternalMemory()
 
         return data
 
