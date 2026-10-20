@@ -82,24 +82,27 @@ class LightCrafterDMDWorker(Worker):
         packet += struct.pack('<B',sum(bytearray(packet)) % 256) # add the checksum
         # A busy DMD answers with a System Busy packet and does not run the command
         # (TI's DLPU007, 2.1.1), so the command is sent again every 5 s
-        deadline = Deadline(self.device_name, 'answer a command', 30)
+        deadline = Deadline(self.device_name, 'run a command', 30)
         while True:
-            with deadline.timeout_for(socket.timeout) as timeout:
-                self.sock.settimeout(timeout)
+            with deadline.timeout_for(socket.timeout):
+                self.sock.settimeout(deadline.remaining())
                 self.sock.send(packet)
-                recv = self._receive()
+                recv = self._receive(deadline)
             if recv['type'] != "System Busy":
                 return self.receive(recv)
             time.sleep(min(5, deadline.remaining()))
         
-    def _receive(self):
+    def _receive(self, deadline):
         # This function assumes that we are getting a fresh packet, i.e. there is nothing waiting in the buffer
         # First we get the header bits, to see how big the payload will be:
+        # Each read takes the time left, so the deadline bounds the whole packet
+        self.sock.settimeout(deadline.remaining())
         header = self.sock.recv(6)
         pkt_type = self.receive_packet_type[header[0:1]]
         command = header[1:3]
         flag = header[3:4]
         length = struct.unpack('<H',header[4:6])[0]
+        self.sock.settimeout(deadline.remaining())
         body = self.sock.recv(length + 1)
         checksum = body[-1:]
         body = body[:-1]
