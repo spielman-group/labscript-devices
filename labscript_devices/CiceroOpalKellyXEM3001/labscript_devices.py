@@ -59,7 +59,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.BLACS_connection = serial_number
         
-        if trigger_debounce_clock_ticks >= 2**16:
+        if not 0 <= trigger_debounce_clock_ticks < 2**16:
             raise LabscriptError('The %s %s trigger_debounce_clock_ticks parameter must be between 0 and 65535'%(self.description, self.name))
         
         # create Pseudoclock and clockline
