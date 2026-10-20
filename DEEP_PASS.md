@@ -55,6 +55,8 @@ Each stage's commits on `CodeHealth`, for review:
 - Step 2.3's table: the commit that records this line, a table only.
 - Step 2.3's build (Ian: "go ahead with step 2.3"): `8c40fbf..` the commit
   that records this line.
+- Codex's findings on step 2.3 (Ian: "yes send the fixes to
+  labscript-devices"): `a407b55..` the commit that records this line.
 
 ## The test contract
 
@@ -684,4 +686,41 @@ legacy paths, DummyCamera's checks), whose causes need no fix.
   - row 4: an NI shot with waits still records every wait, and one with its
     start pulse unplugged fails rather than hangs;
   - row 3: the Windows DLL.
+
+### Codex's findings
+
+- One `Deadline` (`labscript_devices/deadline.py`, named by the librarian)
+  polls until done and gives a library call the time left. It raises "<device>
+  did not <what> within <seconds> s.", also when the library's own timeout
+  runs out. These use it:
+  - PseudoclockWorker's end-of-shot wait;
+  - PrawnBlaster's arming;
+  - stopping NI's wait-monitor thread (2 s), and the acquisition worker's wait
+    for the wait durations (30 s);
+  - LightCrafterDMD's command (30 s);
+  - RFBlaster's requests.
+
+  PrawnBlaster's and LightCrafterDMD's timeouts used to raise RuntimeError.
+- 1: NI reads its counter in chunks of at most 0.2 s, within a wait's timeout,
+  and keeps the samples a timed-out chunk returns. A wait's own timeout is not
+  a `Deadline`, since when it runs out a resume pulse is sent, not an error.
+- 2: a failure anywhere up to writing the wait durations posts `'failed'`.
+- 3: LightCrafterDMD gives each socket operation and retry sleep the time left.
+- 4: no change, by Ian's decision.
+- 5: the PulseBlaster parser knows a DDS by its `dds n` connection.
+- The review found four faults, all fixed:
+  - `timeout_for` let zprocess's own error through when its timeout ran out a
+    moment early;
+  - a chunk could lose an edge;
+  - one timeout per attempt let a LightCrafterDMD answer take 60 s;
+  - RFBlaster retried a timeout and restarted kloned. That behaviour change is
+    undone, and the question is left open in `KNOWN_ISSUES.md`.
+- Rule 6 forbids timeout machinery around ZMQ calls. Ian's plan gives the
+  acquisition worker's wait the deadline, and it passes the time left to
+  zprocess's own `Event.wait(timeout=)`.
+- Shot files: every test shot is identical to `0c690fb`, or fails the same
+  way. No compile code changed after `c894f3e`.
+- Lab check, on Development: a shot with waits on NI's chunked counter reads
+  records every wait. This also confirms that PyDAQmx takes the array slice a
+  partial read continues into.
 

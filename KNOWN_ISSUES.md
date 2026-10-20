@@ -9,3 +9,4 @@
 - `PulseBlaster/labscript_devices.py`: every board's direct outputs accept DDS children, so a DDS on a board without DDS is refused when the shot compiles, not when it is connected. Deferred: it is already an error.
 - `TekScope/TekScope.py`: the driver module has the class's name, so once a worker imports it, `labscript_devices.TekScope.TekScope` is the module, not the class. Deferred: no caller imports both in one process.
 - `test_device/labscript_devices.py`: the `DoSomething` keyword is CamelCase, as upstream's test fixture has it. Deferred: nothing uses it.
+- `PulseBlaster/runviewer_parsers.py`: only a channel whose class is exactly `Trigger` joins the clock lines and triggers the parser returns, so runviewer shows none of the devices under a Trigger subclass.
