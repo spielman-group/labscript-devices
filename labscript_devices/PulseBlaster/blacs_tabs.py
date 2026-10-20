@@ -60,6 +60,12 @@ class PulseBlasterBaseTab(PseudoclockTab):
         # And which scheme we're using for buffered output programming and triggering:
         # (default values for backward compat with old connection tables)
         self.programming_scheme = connection_object.properties.get('programming_scheme', 'pb_start/BRANCH')
+        # LEGACY CONNECTION TABLE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        if 'programming_scheme' not in connection_object.properties:
+            warn_legacy_file(
+                self.settings['connection_table'].filepath,
+                "lacks the PulseBlaster's programming_scheme, which a recompile writes",
+            )
             
         
         # Set the capabilities of this device

@@ -64,10 +64,6 @@ class NovaTechDDS9MWorker(Worker):
             'continuous': b'm n',
         }
 
-        # Backward compat for shots compiled with phase_mode='default', which was based
-        # on a misunderstanding of the working of the device and never did anything.
-        phase_mode_commands['default'] = phase_mode_commands['continuous']
-
         self.phase_mode_command = phase_mode_commands[self.phase_mode]
 
         self.connection.write(b'e d\r\n')

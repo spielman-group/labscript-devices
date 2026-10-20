@@ -12,6 +12,7 @@
 #####################################################################
 
 from blacs.device_base_class import DeviceTab
+from labscript_utils.file_utils import warn_legacy_file
 
 class NovaTechDDS9MTab(DeviceTab):
     # LEGACY 'channel n' NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
@@ -64,6 +65,25 @@ class NovaTechDDS9MTab(DeviceTab):
         self.baud_rate = connection_table_properties.get('baud_rate', None)
         self.default_baud_rate = connection_table_properties.get('default_baud_rate', None)
         self.update_mode = connection_table_properties.get('update_mode', 'synchronous')
+
+        # LEGACY CONNECTION TABLE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        # A table compiled before these properties were saved, or with the
+        # phase_mode 'default', which did what 'continuous' does.
+        missing = [
+            name for name in ('com_port', 'baud_rate', 'default_baud_rate', 'update_mode', 'phase_mode')
+            if name not in connection_table_properties
+        ]
+        if missing:
+            warn_legacy_file(
+                self.settings['connection_table'].filepath,
+                f"lacks the NovaTechDDS9M's {', '.join(missing)}, which a recompile writes",
+            )
+        if self.phase_mode == 'default':
+            warn_legacy_file(
+                self.settings['connection_table'].filepath,
+                "gives the NovaTechDDS9M the phase_mode 'default', not 'continuous'",
+            )
+            self.phase_mode = 'continuous'
         
         # Backward compat:
         blacs_connection =  str(connection_object.BLACS_connection)
