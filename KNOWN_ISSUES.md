@@ -23,3 +23,5 @@
 - `TriggerableCamera/attributes_dialog.ui`, `blacs_tab.ui`: the text says IMAQdx, and tells every camera's users to pass the attributes as `imaqdx_attributes` to IMAQdxCamera; the keyword is `camera_attributes`.
 - `FlyCapture2Camera/blacs_workers.py`: `set_image_mode` rounds the width and height to the offset step sizes, not the image step sizes PyCapture2 also reports; unchecked against a camera.
 - `FlyCapture2Camera/blacs_workers.py`: `is_transient_grab_error` retries every Fc2error, so a fault that raises at once has `grab_multiple` retry it without pause until the shot ends.
+- `docs/source/devices/pylon.rst`: gives the usage as `python ExposureTiming.py [camera_sn]`, which the script's argparse refuses; it takes `-sn SERIAL`.
+- `PylonCamera/testing/ExposureTiming.py`: the last print labels `min_time_between_triggers` end-to-start, but when the exposure is at least the readout time it is start-to-start.

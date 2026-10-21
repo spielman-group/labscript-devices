@@ -13,8 +13,8 @@
 
 from labscript_devices.TriggerableCamera.blacs_tabs import TriggerableCameraTab
 
-class PylonCameraTab(TriggerableCameraTab):
-    
-    # override worker class
-    worker_class = 'labscript_devices.PylonCamera.blacs_workers.PylonCameraWorker'
 
+class PylonCameraTab(TriggerableCameraTab):
+    """TriggerableCameraTab with PylonCameraWorker as its worker."""
+
+    worker_class = 'labscript_devices.PylonCamera.blacs_workers.PylonCameraWorker'

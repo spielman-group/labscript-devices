@@ -20,84 +20,88 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
     TriggerableCameraWorker,
 )
 
-# Don't import the API yet so as not to throw an error: subclasses import this module
-# to inherit its classes, and doing so must not require the API
+# pylon and genicam are imported from pypylon when a PylonCameraInterface is created,
+# not here: a subclass imports this module for its classes, and that must not require
+# pypylon.
 pylon = None
 genicam = None
 
+
 class PylonCameraInterface(TriggerableCameraInterface):
+    """A Basler camera driven through pypylon, found by serial number."""
+
     def __init__(self, serial_number):
-        
         global pylon
         global genicam
         from pypylon import pylon, genicam
-        
+
         factory = pylon.TlFactory.GetInstance()
-        # Find and connect to camera:
         print("Connecting to camera...")
         sn = pylon.CDeviceInfo()
         sn.SetSerialNumber(str(serial_number))
         self.camera = pylon.InstantCamera(factory.CreateDevice(sn))
         self.camera.Open()
-        self.timeout = 1000 # in ms
-        self.camera.RegisterConfiguration(pylon.SoftwareTriggerConfiguration(),
-                        pylon.RegistrationMode_ReplaceAll, pylon.Cleanup_Delete)
+        self.timeout = 1000  # in ms
+        self.camera.RegisterConfiguration(
+            pylon.SoftwareTriggerConfiguration(),
+            pylon.RegistrationMode_ReplaceAll,
+            pylon.Cleanup_Delete,
+        )
         # Keep a nodeMap reference so we don't have to re-create a lot
         self.nodeMap = self.camera.GetNodeMap()
 
-
     def set_attributes(self, attributes):
-        """Sets all attributes in `attributes`.
-        Pylon cameras require that ROI settings be done in correct order,
-        so we do them separately."""
-        # make a copy of dict so we can pop off already handled values
+        # Work on a copy: the ROI values are popped off it as they are set.
         attributes = attributes.copy()
-        ROIx = ['Width','OffsetX']
-        ROIy = ['Height','OffsetY']
+        # Pylon cameras require the ROI settings to be done in the correct order. When
+        # given, Width with OffsetX and Height with OffsetY are set first: the offset
+        # ahead of the size if the current size fits at the new offset, else behind it.
+        ROIx = ['Width', 'OffsetX']
+        ROIy = ['Height', 'OffsetY']
         if set(ROIx).issubset(attributes):
-            if attributes['OffsetX'] <= (self.camera.WidthMax()-self.camera.Width()):
+            if attributes['OffsetX'] <= (self.camera.WidthMax() - self.camera.Width()):
                 ROIx.reverse()
             ROIx_settings = [attributes.pop(k) for k in ROIx]
-            for k,v in zip(ROIx,ROIx_settings):
+            for k, v in zip(ROIx, ROIx_settings):
                 self.set_attribute(k, v)
-        
+
         if set(ROIy).issubset(attributes):
-            if attributes['OffsetY'] <= (self.camera.HeightMax()-self.camera.Height()):
+            if attributes['OffsetY'] <= (self.camera.HeightMax() - self.camera.Height()):
                 ROIy.reverse()
             ROIy_settings = [attributes.pop(k) for k in ROIy]
-            for k,v in zip(ROIy,ROIy_settings):
+            for k, v in zip(ROIy, ROIy_settings):
                 self.set_attribute(k, v)
-        
+
         for k, v in attributes.items():
             self.set_attribute(k, v)
 
     def set_attribute(self, name, value):
-        """Set the value of the attribute of the given name to the given value"""
         try:
             self.nodeMap.GetNode(name).SetValue(value)
         except Exception as e:
-            # Add some info to the exception:
-            msg = f"failed to set attribute {name} to {value}"
+            msg = f"Failed to set attribute {name} to {value}"
             raise Exception(msg) from e
-        
+
     def get_attributes_as_dict(self, visibility_level, writeable_only=True):
-        """Return a dict of all attributes of readable attributes, for the given
-        visibility level. Optionally return only writeable attributes.
-        """
+        """Return the attributes at a visibility level; writeable ones by default."""
         visibilities = {
             'simple': ['Beginner'],
-            'intermediate': ['Beginner','Expert'],
-            'advanced': ['Beginner','Expert','Guru'],
+            'intermediate': ['Beginner', 'Expert'],
+            'advanced': ['Beginner', 'Expert', 'Guru'],
         }
         if writeable_only:
             modes = ['RW']
         else:
-            modes = ['RW','RO']
+            modes = ['RW', 'RO']
         visibility_level = visibilities[visibility_level.lower()]
         attributes = []
-        filters = [lambda n: n.GetNode().IsFeature(),
-                   lambda n:genicam.EVisibilityClass.ToString(n.GetNode().GetVisibility()) in visibility_level,
-                   lambda n:genicam.EAccessModeClass.ToString(n.GetNode().GetAccessMode()) in modes]
+        filters = [
+            lambda n: n.GetNode().IsFeature(),
+            lambda n: genicam.EVisibilityClass.ToString(n.GetNode().GetVisibility())
+            in visibility_level,
+            lambda n: genicam.EAccessModeClass.ToString(n.GetNode().GetAccessMode())
+            in modes,
+        ]
         params = filter(lambda n: all([f(n) for f in filters]), self.nodeMap.GetNodes())
         attributes = {}
         for n in params:
@@ -108,17 +112,13 @@ class PylonCameraInterface(TriggerableCameraInterface):
         return attributes
 
     def get_attribute(self, name):
-        """Return current value of attribute of the given name"""
         try:
             return self.nodeMap.GetNode(name).GetValue()
         except Exception as e:
-            # Add some info to the exception:
             raise Exception(f"Failed to get attribute {name}") from e
 
     def snap(self):
-        """Acquire a single image and return it"""
-        result = self.camera.GrabOne(self.timeout,
-                                     pylon.TimeoutHandling_ThrowException)
+        result = self.camera.GrabOne(self.timeout, pylon.TimeoutHandling_ThrowException)
         if result.GrabSucceeded():
             img = result.Array
             result.Release()
@@ -129,9 +129,7 @@ class PylonCameraInterface(TriggerableCameraInterface):
             )
 
     def configure_acquisition(self, continuous=True, buffer_count=None):
-        """Configure acquisition by calling StartGrabbing with appropriate
-        grab strategy: LatestImageOnly for continuous, OneByOne otherwise.
-        """
+        """Start grabbing with LatestImageOnly if continuous, else OneByOne."""
         if buffer_count is None:
             buffer_count = 10
         self.camera.MaxNumBuffer = buffer_count
@@ -141,10 +139,9 @@ class PylonCameraInterface(TriggerableCameraInterface):
             self.camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
 
     def grab(self):
-        """Grab single image during pre-configured acquisition."""
-            
-        result = self.camera.RetrieveResult(self.timeout,
-                                        pylon.TimeoutHandling_ThrowException)
+        result = self.camera.RetrieveResult(
+            self.timeout, pylon.TimeoutHandling_ThrowException
+        )
         if result.GrabSucceeded():
             img = result.Array
             result.Release()
@@ -166,9 +163,6 @@ class PylonCameraInterface(TriggerableCameraInterface):
 
 
 class PylonCameraWorker(TriggerableCameraWorker):
-    """Pylon API Camera Worker.
+    """Worker for PylonCameraInterface."""
 
-    Inherits from TriggerableCameraWorker. Defines interface_class."""
     interface_class = PylonCameraInterface
-
-

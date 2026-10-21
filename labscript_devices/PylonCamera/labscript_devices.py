@@ -13,6 +13,8 @@
 
 from labscript_devices.TriggerableCamera.labscript_devices import TriggerableCamera
 
-class PylonCamera(TriggerableCamera):
-    description = 'Pylon Camera'
 
+class PylonCamera(TriggerableCamera):
+    """A Basler camera driven through the Pylon API, using the pypylon wrapper."""
+
+    description = 'Pylon Camera'
