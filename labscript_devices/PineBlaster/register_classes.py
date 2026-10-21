@@ -10,6 +10,7 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
+
 from labscript_devices import register_classes
 
 register_classes(

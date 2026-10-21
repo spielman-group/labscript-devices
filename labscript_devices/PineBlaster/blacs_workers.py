@@ -21,88 +21,102 @@ class PineBlasterWorker(PseudoclockWorker):
         global serial; import serial
         global time; import time
         self.smart_cache = []
-    
+
         self.pineblaster = serial.Serial(self.com_port, 115200, timeout=1)
-        # Device has a finite startup time:
+        # Device has a finite startup time.
         time.sleep(5)
         self.pineblaster.write(b'hello\r\n')
         response = self.pineblaster.readline().decode()
-        
+
         if response == 'hello\r\n':
             return
         elif response:
-            raise Exception('PineBlaster is confused: saying %s instead of hello'%(repr(response)))
+            raise Exception(
+                f"PineBlaster on {self.com_port} answered 'hello' with {response!r}. "
+                "Check that com_port is the PineBlaster's."
+            )
         else:
-            raise Exception('PineBlaster is not saying hello back when greeted politely. How rude. Maybe it needs a reboot.')
-            
-            
+            raise Exception(
+                f"PineBlaster on {self.com_port} did not answer 'hello'. "
+                "Check its connection, or reboot it."
+            )
+
     def shutdown(self):
         self.pineblaster.close()
-        
-    def program_manual(self, front_panel_values):    
-        value = front_panel_values['internal'] # there is only one value
+
+    def program_manual(self, front_panel_values):
+        # 'internal', the clock line's output, is the only front panel value.
+        value = front_panel_values['internal']
         self.pineblaster.write(b'go high\r\n' if value else b'go low\r\n')
         response = self.pineblaster.readline().decode()
-        assert response == 'ok\r\n', 'PineBlaster said \'%s\', expected \'ok\''%repr(response)
+        assert response == 'ok\r\n', f"PineBlaster said {response!r}, expected 'ok'."
         return {}
-        
+
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         if fresh:
             self.smart_cache = []
-        self.program_manual({'internal':0})
-        
-        with h5py.File(h5_file,'r') as hdf5_file:
-            group = hdf5_file['devices/%s'%device_name]
+        self.program_manual({'internal': 0})
+
+        with h5py.File(h5_file, 'r') as hdf5_file:
+            group = hdf5_file[f'devices/{device_name}']
             pulse_program = group['PULSE_PROGRAM'][:]
-            device_properties = labscript_utils.properties.get(hdf5_file, device_name, 'device_properties')
+            device_properties = labscript_utils.properties.get(
+                hdf5_file, device_name, 'device_properties'
+            )
             self.is_master_pseudoclock = device_properties['is_master_pseudoclock']
-            
+
         for i, instruction in enumerate(pulse_program):
             if i == len(self.smart_cache):
-                # Pad the smart cache out to be as long as the program:
+                # Pad the smart cache out to be as long as the program.
                 self.smart_cache.append(None)
-                
-            # Only program instructions that differ from what's in the smart cache:
+
+            # Only program instructions that differ from what's in the smart cache.
             if self.smart_cache[i] != instruction:
-                self.pineblaster.write(b'set %d %d %d\r\n'%(i, instruction['period'], instruction['reps']))
+                self.pineblaster.write(
+                    b'set %d %d %d\r\n' % (i, instruction['period'], instruction['reps'])
+                )
                 response = self.pineblaster.readline().decode()
-                assert response == 'ok\r\n', 'PineBlaster said \'%s\', expected \'ok\''%repr(response)
+                assert response == 'ok\r\n', f"PineBlaster said {response!r}, expected 'ok'."
                 self.smart_cache[i] = instruction
-                
+
         if not self.is_master_pseudoclock:
-            # Get ready for a hardware trigger:
+            # Get ready for a hardware trigger.
             self.pineblaster.write(b'hwstart\r\n')
             response = self.pineblaster.readline().decode()
-            assert response == 'ok\r\n', 'PineBlaster said \'%s\', expected \'ok\''%repr(response)
-            
-        return {'internal':0} # always finish on 0
-            
+            assert response == 'ok\r\n', f"PineBlaster said {response!r}, expected 'ok'."
+
+        # Always finish on 0.
+        return {'internal': 0}
+
     def start_run(self):
-        # Start in software:
+        # BLACS starts only the master pseudoclock, in software; a secondary starts on
+        # its hardware trigger.
         self.pineblaster.write(b'start\r\n')
         response = self.pineblaster.readline().decode()
-        assert response == 'ok\r\n', 'PineBlaster said \'%s\', expected \'ok\''%repr(response)
-    
+        assert response == 'ok\r\n', f"PineBlaster said {response!r}, expected 'ok'."
+
     def shot_finished(self):
-        # Wait to see if it's done within the timeout:
+        # Wait for the board's 'done', for up to the serial timeout, 1 s.
         response = self.pineblaster.readline().decode()
         if response:
-            assert response == 'done\r\n'
+            assert response == 'done\r\n', (
+                f"PineBlaster said {response!r}, expected 'done'."
+            )
             return True
         return False
-        
+
     def transition_to_manual(self):
-        # The master's 'done' was read already, by its tab's status monitor:
+        # The master's 'done' was read already, by its tab's status monitor.
         if not self.is_master_pseudoclock:
             self.wait_for_end_of_shot()
         return True
-    
+
     def abort_buffered(self):
         return self.abort()
-    
+
     def abort_transition_to_buffered(self):
         return self.abort()
-    
+
     def abort(self):
         self.pineblaster.write(b'restart\r\n')
         time.sleep(5)
