@@ -146,7 +146,6 @@ class PhaseMatrixQuickSynWorker(Worker):
     def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):
         # Store the initial values in case we have to abort and restore them:
         self.initial_values = front_panel_values
-        self.final_values = {}
         with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['/devices/'+device_name]
             # STATIC_DATA has the frequency, in mHz, and the gate, from generate_code.
