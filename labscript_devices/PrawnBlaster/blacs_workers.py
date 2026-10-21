@@ -299,18 +299,25 @@ class PrawnBlasterWorker(PseudoclockWorker):
 
             if (fresh or self.smart_cache[pseudoclock] is None):
                 print('binary programming')
-                self.conn.write(b"setb %d %d %d\r\n" % (pseudoclock, 0, len(pulse_program)))
+                # setb refuses a block that reaches the end of the firmware's table,
+                # which a one-pseudoclock program can fill, so its last row goes by set
+                table = self.device_properties["max_instructions"] * self.num_pseudoclocks
+                binary = pulse_program[: table - 1]
+                self.conn.write(b"setb %d %d %d\r\n" % (pseudoclock, 0, len(binary)))
                 response = self.conn.readline().decode()
                 assert (
                     response == "ready\r\n"
                 ), f"PrawnBlaster said '{response}', expected 'ready'"
-                program_array = np.array([pulse_program['half_period'],
-                                          pulse_program['reps']], dtype='<u4').T
+                program_array = np.array([binary['half_period'],
+                                          binary['reps']], dtype='<u4').T
                 self.conn.write(program_array.tobytes())
                 response = self.conn.readline().decode()
                 assert (
                     response == "ok\r\n"
                 ), f"PrawnBlaster said '{response}', expected 'ok'"
+                for i in range(len(binary), len(pulse_program)):
+                    row = pulse_program[i]
+                    self.send_command_ok(f"set {pseudoclock} {i} {row['half_period']} {row['reps']}")
                 self.smart_cache[pseudoclock] = pulse_program
             else:
                 print('incremental programming')
