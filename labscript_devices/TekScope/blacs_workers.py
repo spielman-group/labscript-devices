@@ -7,6 +7,8 @@ import labscript_utils.properties
 
 
 class TekScopeWorker(Worker):
+    """Arms the scope for each shot, then saves its displayed channels to the shot file."""
+
     def init(self):
         global TekScope
         from .TekScope import TekScope
@@ -14,11 +16,10 @@ class TekScopeWorker(Worker):
         self.scope = TekScope(self.addr, termination=self.termination)
         manufacturer, model, sn, revision = self.scope.idn.split(',')
         assert manufacturer.lower() == 'tektronix', (
-            "Device is made by {:s}, not by Tektronix, and is actually a {:s}".format(
-                manufacturer, model
-            )
+            f"The device matching {self.addr} is a {model} made by {manufacturer}, not by "
+            "Tektronix. Set addr to the VISA address of a Tektronix scope."
         )
-        print('Connected to {} (SN: {})'.format(model, sn))
+        print(f'Connected to {model} (SN: {sn})')
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         self.h5_file = h5_file  # We'll need this in transition_to_manual
@@ -29,6 +30,7 @@ class TekScopeWorker(Worker):
                 hdf5_file, device_name, 'device_properties'
             )
 
+        # pyvisa's timeout is in milliseconds, and the device's in seconds.
         self.scope.dev.timeout = 1000 * self.device_properties.get('timeout', 5)
 
         self.scope.unlock()
@@ -54,7 +56,8 @@ class TekScopeWorker(Worker):
                 wtype.append((ch, 'float'))
                 print(wfmp[ch]['WFID'])
 
-        # Collate all data in a structured array
+        # Collate all data in a structured array, on the time axis of the last
+        # channel downloaded.
         data = np.empty(len(t), dtype=wtype)
         data['t'] = t
         for ch in vals:
@@ -65,8 +68,9 @@ class TekScopeWorker(Worker):
             grp = hdf_file.require_group('/data/traces')
             print('Saving traces...')
             dset = grp.create_dataset(self.device_name, data=data)
+            # ch is the last channel, so only its preamble is saved.
             dset.attrs.update(wfmp[ch])
-        
+
         print('Done!')
         return True
 

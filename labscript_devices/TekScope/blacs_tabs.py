@@ -1,6 +1,9 @@
 from blacs.device_base_class import DeviceTab
 
+
 class TekScopeTab(DeviceTab):
+    """A tab with no controls, whose one worker arms the scope and saves its traces."""
+
     def initialise_GUI(self):
         pass
 

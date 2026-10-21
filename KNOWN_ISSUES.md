@@ -42,3 +42,5 @@
 - `NI_DAQmx/blacs_workers.py`: `stop_task` passes the Task to `read`, which compares it with the integer task handle and returns at once, so the samples after the last full chunk of each analog input acquisition are never read.
 - `NI_DAQmx/labscript_devices.py`: `static_AO=False` is accepted on a device without `supports_buffered_AO` when it has buffered DO, so an `AnalogOut` it cannot clock compiles.
 - `NI_DAQmx/utils.py`: `split_conn_DO` names the reassigned connection in its error, so 'port0/line0 (foo)' is reported as 'port0/line0'.
+- `TekScope/TekScope.py`: `waveform` reads 16-bit points with datatype `'i'`, 4 bytes, so with `int16` each value joins two points and the trace is garbage; the "only every second pt" comment describes this.
+- `TekScope/blacs_workers.py`: with no channel displayed, `transition_to_manual` raises UnboundLocalError, as the time axis comes from the last channel downloaded.
