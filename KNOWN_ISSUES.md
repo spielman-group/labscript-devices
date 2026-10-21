@@ -35,3 +35,7 @@
 - `AndorSolis/blacs_workers.py`: `grab_multiple` never polls the abort flag, so after an abort ends one acquisition the loop starts the next and waits for its timeout, and the worker's `abort()` joins it without one.
 - `AndorSolis/blacs_workers.py`: the interface's `attributes` is AndorCam's `default_acquisition_attrs` dict itself, so `set_attribute` changes the defaults.
 - `AndorSolis/andor_sdk/andor_structures.py`: `AndorCapabilities` sets `ulSize` to `sys.getsizeof`, the Python object's size, not `ctypes.sizeof`, the structure's.
+- `AlazarTechBoard/blacs_workers.py`: `channels=ats.CHANNEL_B` alone passes the checks, but the worker takes a lone channel to be A, and `transition_to_manual` raises TypeError slicing B from a one-channel stream.
+- `AlazarTechBoard/blacs_workers.py`: the DMA buffers are freed only by a successful `transition_to_manual`; after an abort, a trigger timeout or a failure the next shot overwrites `self.buffers` and the memory leaks.
+- `AlazarTechBoard/blacs_workers.py`: with `ats.EXTERNAL_CLOCK_10MHz_REF` and the default `requested_acquisition_rate` of 0, the divider is 0 and the decimation -1, and the board acquires no samples without an error.
+- `docs/source/devices/alazartechboard.rst`: says atsapi.py must be installed separately; it ships as `labscript_devices/atsapi.py`.
