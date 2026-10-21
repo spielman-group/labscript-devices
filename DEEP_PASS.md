@@ -81,10 +81,10 @@ Each stage's commits on `CodeHealth`, for review:
   - Coupled with labscript `06820ed`, where `quantise_channel` rounds a phase
     before it wraps it. RFBlaster's phase (row 2 of step 2.5) and
     NovaTechDDS9M's rely on it.
-- Step 2.6's build, the style pass (Ian, through the master: "Do the rest of
-  step 2.6 the same way, Parameters blocks on __init__ included"; then "fix the
-  two PrawnBlaster bugs before the final validation"): `83b11ce..` the commit
-  that records this line.
+- Step 2.6's build, the style pass (Ian: "go ahead with the remaining
+  packages"; then "fix the two PrawnBlaster bugs before the final
+  validation"): `83b11ce..` `c2d217d`.
+- Codex's findings on step 2.6: `fd44105..` the commit that records this line.
 
 ## The test contract
 
@@ -963,13 +963,29 @@ one commit a package, the top-level modules last.
   and from the 19 generated models, one line each.
 - `e46f6c2`, the overall review: fix-its that could not work and sentences
   false of the code, corrected, and four more faults listed.
+- Codex's findings:
+  - `fd44105`: PrawnDO's parser resumes its nth wait on the master's tick at
+    the shot's nth wait time. It searched from its own wait time, which a
+    PrawnDO clock coarser than the master's rounds past the retrigger: at
+    5 MHz a wait at 10.12 µs starts at 10.2 µs, after the master's 10.16 µs
+    tick. A compiled shot showed it for a trigger connection (IndexError) and
+    a direct clock line (a later tick, 3.2 µs late); both now resume at
+    11.16 µs. The board itself is in its wait long before a real wait ends.
+  - `1b750c9`: docstrings and messages made true (`QuickSynDDS.disable`,
+    TekScope's `int16`, AndorSolis's EMCCD gain, `Deadline.wait`). The key
+    schemas of FlyCapture2's setters, and `TriggerableCameraInterface`'s
+    contracts for the cameras that implement it, are docstrings again. A
+    PrawnDO wait holding the value set at its time is documented behaviour
+    (`prawndo.rst`, Waits), so it is no longer a known issue.
+- Lab check, on Development: a one-pseudoclock PrawnBlaster program that
+  fills its table, for `setb`'s boundary, which no board has confirmed.
 - Shot files: every test shot is identical to `44d9251`, or fails the same way
   with its reworded message (NovaTechDDS9M_err1, PhaseMatrixQuickSyn_err3,
   PulseBlaster_err1 to 3, PulseBlaster_SP2_24_100_32k_err2, RFBlaster_err1 and
   2, LightCrafterDMD_err1 to 8, test_device_shot2,
   myshots_my_prawndo_repeat). Parsed traces are identical. The docs build adds
   no warning, and every `Parameters` block names its signature's arguments.
-- Faults found, listed in `KNOWN_ISSUES.md` and not fixed: 48 lines. Those an
+- Faults found, listed in `KNOWN_ISSUES.md` and not fixed: 47 lines. Those an
   ordinary setup meets:
   - NI_DAQmx's `stop_task` never reads the samples after the last full chunk
     of an analog input acquisition.
