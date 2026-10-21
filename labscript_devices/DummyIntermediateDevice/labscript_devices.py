@@ -23,7 +23,7 @@ Any number of :class:`~labscript.DigitalOut` and :class:`~labscript.AnalogOut`
 outputs, or subclasses of them, can be attached; a device of any other class
 raises ``LabscriptError`` when attached. The device writes the raw values of its
 outputs, one row for each clock tick, to the ``OUTPUTS`` table of its group in
-the shot file.
+the shot file; with no outputs it writes no table.
 
 Usage
 ~~~~~
@@ -101,6 +101,9 @@ class DummyIntermediateDevice(IntermediateDevice):
             elif isinstance(device, AnalogOut):
                 device_dtype = np.float64
             dtypes.append((device.name, device_dtype))
+        # HDF5 has no table of no columns.
+        if not dtypes:
+            return
 
         out_table = np.zeros(len(times), dtype=dtypes)
         for device in self.child_devices:
