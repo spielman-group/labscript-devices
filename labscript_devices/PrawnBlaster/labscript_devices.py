@@ -163,9 +163,10 @@ class PrawnBlaster(PseudoclockDevice):
                 f"for {self.pico_board}."
             )
         # The class-level timings are for a 100 MHz clock; scale them to this one.
+        # The clock limit is a rate, so it scales the other way.
         if self.clock_resolution != 2 / clock_frequency:
             factor = (2 / clock_frequency) / self.clock_resolution
-            self.clock_limit *= factor
+            self.clock_limit /= factor
             self.clock_resolution *= factor
             self.input_response_time *= factor
             self.trigger_delay *= factor
