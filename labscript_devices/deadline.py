@@ -18,8 +18,9 @@ import time
 class Deadline:
     """A limit on how long a worker waits for its device to do something.
 
-    Once it has passed, :meth:`remaining`, :meth:`wait` and :meth:`timeout_for`
-    raise a TimeoutError: "<device_name> did not <what> within <seconds> s."
+    Once it has passed, :meth:`remaining` and :meth:`timeout_for` raise a
+    TimeoutError, "<device_name> did not <what> within <seconds> s.", and so does
+    :meth:`wait` at its next poll that returns False.
     """
 
     def __init__(self, device_name, what, seconds):
