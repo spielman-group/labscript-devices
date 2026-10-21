@@ -1022,10 +1022,12 @@ one commit a package, the top-level modules last.
   (`fd44105`) ran time backward after four waits.
 - `e9d1a54`: one model, `PseudoclockParser` in `runviewer_parsing.py`, on the
   script's time, in which a wait takes no time.
-  - A master starts at 0 and resumes at each wait's time. A secondary starts
-    `trigger_delay` after the first edge of its clock, and resumes
-    `trigger_delay` after the first edge at or after each wait's time. That
-    holds for a trigger line and for a shared clock line alike.
+  - Each device resumes where its wait begins. A master's own program places
+    its waits, so it carries on from there. A secondary starts `trigger_delay`
+    after the first edge of its clock, and resumes `trigger_delay` after the
+    edge nearest each wait's time: labscript rounds a trigger to the nearest
+    tick of its clock and keeps the wait's time unrounded. That holds for a
+    trigger line and for a shared clock line alike, with no tolerance.
   - A class, not a pure function, as the parsers also shared the tick loop and
     the clock-line dict, four copies of each. The change is 79 lines shorter,
     the class included. pseudoclock.py imports BLACS, so the class lives with
@@ -1036,12 +1038,18 @@ one commit a package, the top-level modules last.
   - Labscript saving each pseudoclock's trigger times would make the
     retriggers exact; it is deferred, in `docs/source/improvements.rst`.
   - `tests/test_runviewer_waits.py`: a PrawnDO on a shared clock line and one
-    on a trigger line, over four waits with a shared tick at 39.9 µs, change
-    at their script times. It fails on `1fea8d6`.
+    on a trigger line, over four waits with a shared tick at 39.9 µs and two
+    off the master's grid, rounding down and up, change at their script times,
+    and no drawn time runs backward. It fails on `1fea8d6` and on `41ed060`.
+  - Codex's finding on `e9d1a54`, fixed in `9070de8`: a master
+    resumed at the unrounded wait time, before its own wait began, and a
+    secondary took the first edge at or after it, which misses a retrigger
+    rounded down.
 - Drawn traces, against `1fea8d6`: after wait n each moves earlier by n times
-  its master's `wait_delay`, onto script time: 40 ns on a PrawnBlaster, 2.5 µs
-  on a PineBlaster or DummyPseudoclock, 10 ns (a clock period) on a Cicero,
-  and 100 ns on a PulseBlaster. A wait row drawn at its own time moves less.
+  its master's `wait_delay`, onto script time: 40 ns on a PrawnBlaster, 50 ns
+  on a PrawnDO, 2.5 µs on a PineBlaster or DummyPseudoclock, 10 ns (a clock
+  period) on a Cicero, and 100 ns on a PulseBlaster. A wait row drawn at its
+  own time moves less.
   The two PulseBlaster secondaries of `plain_trigger_devices` start at their
   trigger, 0.74 µs, where they were drawn as if triggered at 0. No other trace
   moves.
