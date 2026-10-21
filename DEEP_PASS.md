@@ -88,8 +88,8 @@ Each stage's commits on `CodeHealth`, for review:
 - Runviewer's model of a triggered device (Ian: "agree with all three
   recommendations", "whichever is the cleanest should be accepted", "yes, drop
   the reader", then "yes, bring C forward now"): `1fea8d6..` the commit that
-  records this line. Coupled with labscript `4d88c40`, which saves the trigger
-  times the model reads.
+  records this line. Coupled with labscript `4d88c40..99b4f59`, which saves
+  the trigger times the model reads, in time order.
 
 ## The test contract
 
@@ -1026,9 +1026,10 @@ one commit a package, the top-level modules last.
   script's time, in which a wait takes no time.
   - Each device resumes where its wait begins. A master's own program places
     its waits, so it carries on from there. A secondary starts and resumes
-    `trigger_delay` after its trigger times, which labscript saves as it
-    rounded them (`4d88c40`, `0297dee`). That holds for a trigger line and for
-    a shared clock line alike.
+    `trigger_delay` after its trigger times, which labscript saves, in time
+    order, as it rounded them (`4d88c40`, `99b4f59`, `0297dee`). That holds
+    for a trigger line and for a shared clock line alike, and for waits called
+    out of time order.
   - A shot file compiled before `4d88c40` falls back, under a LEGACY marker, to
     the clock's first edge and then the edge nearest each wait's time:
     labscript rounds a trigger to the nearest tick and keeps the wait's time
@@ -1049,7 +1050,10 @@ one commit a package, the top-level modules last.
     off the master's grid, rounding down, up and from an exact tie, change at
     their script times, and no drawn time runs backward. It fails on `1fea8d6`
     and on `41ed060`. The nearest edge drew the tie the same, as the tie's
-    other neighbouring tick carries no edge.
+    other neighbouring tick carries no edge. One wait is called out of time
+    order: the test fails with labscript `4d88c40`, which saved trigger times
+    in call order, and passes through the fallback, as `/waits` is written
+    sorted.
   - Codex's finding on `e9d1a54`, fixed in `9070de8`: a master
     resumed at the unrounded wait time, before its own wait began, and a
     secondary took the first edge at or after it, which misses a retrigger
