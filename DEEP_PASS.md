@@ -84,7 +84,10 @@ Each stage's commits on `CodeHealth`, for review:
 - Step 2.6's build, the style pass (Ian: "go ahead with the remaining
   packages"; then "fix the two PrawnBlaster bugs before the final
   validation"): `83b11ce..` `c2d217d`.
-- Codex's findings on step 2.6: `fd44105..` the commit that records this line.
+- Codex's findings on step 2.6: `fd44105..` `828ab6c`.
+- Runviewer's model of a triggered device (Ian: "agree with all three
+  recommendations", "whichever is the cleanest should be accepted", then "yes,
+  drop the reader"): `1fea8d6..` the commit that records this line.
 
 ## The test contract
 
@@ -971,6 +974,7 @@ one commit a package, the top-level modules last.
     tick. A compiled shot showed it for a trigger connection (IndexError) and
     a direct clock line (a later tick, 3.2 µs late); both now resume at
     11.16 µs. The board itself is in its wait long before a real wait ends.
+    The shared model below replaces it.
   - `1b750c9`: docstrings and messages made true (`QuickSynDDS.disable`,
     TekScope's `int16`, AndorSolis's EMCCD gain, `Deadline.wait`). The key
     schemas of FlyCapture2's setters, and `TriggerableCameraInterface`'s
@@ -1007,3 +1011,37 @@ one commit a package, the top-level modules last.
   and `__file__` set to the device name, for `lyse.Run` to name its results
   group after the device, but lyse takes the group from
   `sys.modules['__main__'].__file__`.
+
+## Runviewer's model of a triggered device
+
+- Six parsers each timed a pseudoclock device's start and its resumes after
+  waits: PrawnBlaster, PrawnDO, PineBlaster, DummyPseudoclock, Cicero and
+  PulseBlaster. They held 28 cases, in three versions: counting edges,
+  searching by time, ignoring the clock. Masters drew each wait as lasting its
+  `wait_delay`, so traces after a wait left script time, and PrawnDO's search
+  (`fd44105`) ran time backward after four waits.
+- `e9d1a54`: one model, `PseudoclockParser` in `runviewer_parsing.py`, on the
+  script's time, in which a wait takes no time.
+  - A master starts at 0 and resumes at each wait's time. A secondary starts
+    `trigger_delay` after the first edge of its clock, and resumes
+    `trigger_delay` after the first edge at or after each wait's time. That
+    holds for a trigger line and for a shared clock line alike.
+  - A class, not a pure function, as the parsers also shared the tick loop and
+    the clock-line dict, four copies of each. The change is 79 lines shorter,
+    the class included. pseudoclock.py imports BLACS, so the class lives with
+    the other parser helpers.
+  - No shared reader of `/waits` (Ian: "yes, drop the reader"). labscript
+    writes the table already sorted, so a reader would only pass the column
+    through; the class reads `f['waits']['time']` itself.
+  - Labscript saving each pseudoclock's trigger times would make the
+    retriggers exact; it is deferred, in `docs/source/improvements.rst`.
+  - `tests/test_runviewer_waits.py`: a PrawnDO on a shared clock line and one
+    on a trigger line, over four waits with a shared tick at 39.9 µs, change
+    at their script times. It fails on `1fea8d6`.
+- Drawn traces, against `1fea8d6`: after wait n each moves earlier by n times
+  its master's `wait_delay`, onto script time: 40 ns on a PrawnBlaster, 2.5 µs
+  on a PineBlaster or DummyPseudoclock, 10 ns (a clock period) on a Cicero,
+  and 100 ns on a PulseBlaster. A wait row drawn at its own time moves less.
+  The two PulseBlaster secondaries of `plain_trigger_devices` start at their
+  trigger, 0.74 µs, where they were drawn as if triggered at 0. No other trace
+  moves.
