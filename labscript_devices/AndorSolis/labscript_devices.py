@@ -12,5 +12,8 @@
 #####################################################################
 from labscript_devices.TriggerableCamera.labscript_devices import TriggerableCamera
 
+
 class AndorSolis(TriggerableCamera):
+    """An Andor camera driven through its SDK; `serial_number` does not select it."""
+
     description = "Andor scientific camera"

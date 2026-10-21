@@ -29,3 +29,9 @@
 - `SpinnakerCamera/blacs_workers.py`: `_decode_image_data` reads every Mono format not ending in 8 as uint16, so a packed format such as Mono12Packed is misread.
 - `SpinnakerCamera/blacs_workers.py`: `get_attribute_names` ignores `visibility_level`, so `saved_attribute_visibility_level` saves every readable attribute.
 - `SpinnakerCamera/blacs_workers.py`: `grab` does not release the image if decoding it raises, and `__init__` does not release the camera list and system when it raises.
+- `AndorSolis/andor_sdk/andor_utils.py`: `enable_emccd` tests `emccd_gain in emccd_gain_range`, a (low, high) pair, so only the two ends pass and the default gain of 50 is refused.
+- `AndorSolis/andor_sdk/andor_utils.py`: `setup_acquisition` calls `enable_emccd`, which needs `self.cooling`, before `enable_cooldown` sets it, so the first setup with both `emccd` and `cooldown` True raises.
+- `AndorSolis/andor_sdk/andor_utils.py`: `enable_preamp` checks the gain against evenly spaced values from the range, not the camera's own gain list, so a camera with unevenly spaced gains has some refused.
+- `AndorSolis/blacs_workers.py`: `grab_multiple` never polls the abort flag, so after an abort ends one acquisition the loop starts the next and waits for its timeout, and the worker's `abort()` joins it without one.
+- `AndorSolis/blacs_workers.py`: the interface's `attributes` is AndorCam's `default_acquisition_attrs` dict itself, so `set_attribute` changes the defaults.
+- `AndorSolis/andor_sdk/andor_structures.py`: `AndorCapabilities` sets `ulSize` to `sys.getsizeof`, the Python object's size, not `ctypes.sizeof`, the structure's.

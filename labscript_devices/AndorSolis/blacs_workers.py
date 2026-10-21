@@ -10,6 +10,7 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+
 from zprocess import rich_print
 from labscript_devices.TriggerableCamera.blacs_workers import (
     DictAttributesMixin,
@@ -17,38 +18,43 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
     TriggerableCameraWorker,
 )
 
+
 class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
+    """An Andor camera driven through `AndorCam`."""
 
     def __init__(self):
+        # Imported here, not at the top: importing andor_utils loads Andor's SDK
+        # library, which importing this module must not require.
         global AndorCam
         from .andor_sdk.andor_utils import AndorCam
         self.camera = AndorCam()
         self.attributes = self.camera.default_acquisition_attrs
 
     def snap(self):
-        """Acquire a single image and return it"""
+        """Acquire one image and return it."""
         self.configure_acquisition()
         self.camera.acquire()
         images = self.camera.download_acquisition()
         print(f'Exposure time was {self.camera.exposure_time}')
-        return images # This may be a 3D array of several images
+        # A 3D array: the first axis holds the number_kinetics images.
+        return images
 
     def configure_acquisition(self, continuous=True, buffer_count=None):
+        """Set up and arm the camera with the attributes; the arguments are unused."""
         self.camera.setup_acquisition(self.attributes)
 
     def grab(self):
-        """ Grab last/single image """
-        img = self.snap()
+        """Return one image, acquired by `snap`."""
         # Consider using run til abort acquisition mode...
+        img = self.snap()
         return img
 
     def grab_multiple(self, n_images, images):
-        """Grab n_images into images array during buffered acquistion."""
-    
+        """Acquire as the acquisition mode says and add the images to `images`."""
         print(f"Camera configured in {self.camera.acquisition_mode} mode.")
         print(f"Actual readout time is {self.camera.readout_time} s.")
         print(f"Keep clean cycle time is {self.camera.keepClean_time} s.")
-        if 'kinetic_series' in self.camera.acquisition_mode: 
+        if 'kinetic_series' in self.camera.acquisition_mode:
             print(f"Kinetics number is {self.camera.default_acquisition_attrs['number_kinetics']}.")
             print(f"Actual kinetics period is {self.camera.kinetics_timing} s.")
         print(f"Actual exposure time is {self.camera.exposure_time} s.")
@@ -59,6 +65,8 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
             print(f"FK mode Kinetics Number is {self.camera.number_fast_kinetics}.")
         print(f"    ---> Attempting to grab {n_images} acquisition(s).")
 
+        # acquire() disarms the camera. The loops below arm it again after each
+        # download, for the next acquire(), and disarm it after the last.
         if 'single' in self.camera.acquisition_mode:
             for image_number in range(n_images):
                 self.camera.acquire()
@@ -78,9 +86,9 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
                 print(f"    {image_number}: Download complete")
                 images.extend(list(downloaded))
                 self.camera.armed = True
-            self.camera.armed = False # This last disarming may be redundant
-            print(f"Got {len(images)} images in {nacquisitions} FK series acquisition(s).")    
-        else: 
+            self.camera.armed = False
+            print(f"Got {len(images)} images in {nacquisitions} FK series acquisition(s).")
+        else:
             self.camera.acquire()
             print(f"    Acquire complete")
             downloaded = self.camera.download_acquisition()
@@ -88,25 +96,26 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
             images.extend(list(downloaded))
             self.camera.armed = False
             print(f"Got {len(images)} of {n_images} acquisition(s).")
-   
 
     def stop_acquisition(self):
+        """Do nothing; acquire() waits for each acquisition to end."""
         pass
 
     def abort_acquisition(self):
-        # The SDK call is what unblocks a download already in flight; the
-        # flag is what stops the loop between acquisitions.
+        # The SDK call ends an acquisition in progress. The base class's flag is set
+        # too, but grab_multiple here never polls it.
         self.camera.abort_acquisition()
         TriggerableCameraInterface.abort_acquisition(self)
 
     def close(self):
         self.camera.shutdown()
 
+
 class AndorSolisWorker(TriggerableCameraWorker):
+    """Worker for AndorSolisInterface."""
 
     interface_class = AndorSolisInterface
 
     def get_camera(self):
-        """ Andor cameras may not be specified by serial numbers"""
+        """Return the camera. Andor cameras may not be specified by serial numbers."""
         return self.interface_class()
-            

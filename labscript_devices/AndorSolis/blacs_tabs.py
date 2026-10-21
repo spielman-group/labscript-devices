@@ -13,6 +13,8 @@
 
 from labscript_devices.TriggerableCamera.blacs_tabs import TriggerableCameraTab
 
+
 class AndorSolisTab(TriggerableCameraTab):
+    """TriggerableCameraTab with AndorSolisWorker as its worker."""
 
     worker_class = 'labscript_devices.AndorSolis.blacs_workers.AndorSolisWorker'
