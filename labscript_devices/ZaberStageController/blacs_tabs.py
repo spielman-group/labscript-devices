@@ -43,7 +43,7 @@ class ZaberStageControllerTab(DeviceTab):
         self.child_connections = list(ao_prop.keys())
         self.create_analog_outputs(ao_prop)
         _, ao_widgets, _ = self.auto_create_widgets()
-        self.auto_place_widgets(("Zaber Stages", ao_widgets))
+        self.auto_place_widgets(("Zaber Stages", ao_widgets, get_device_number))
 
         self.supports_remote_value_check(True)
         self.supports_smart_programming(False)

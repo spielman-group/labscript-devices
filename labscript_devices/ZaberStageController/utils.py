@@ -21,7 +21,7 @@ def get_device_number(connection_str):
         num = int(num)
         if prefix != 'device' or num <= 0:
             raise ValueError
-    except (TypeError, ValueError):
+    except (AttributeError, TypeError, ValueError):
         msg = f"""Connection string '{connection_str}' is not of the form 'device <n>'
             with n > 0. Use a connection such as 'device 1'."""
         raise ValueError(dedent(msg)) from None
