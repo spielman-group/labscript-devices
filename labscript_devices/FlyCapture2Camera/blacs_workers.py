@@ -129,9 +129,12 @@ class FlyCapture2CameraInterface(TriggerableCameraInterface):
             else:
                 self.set_attribute(prop, vals)
 
-    # Allowed keys of trig_dict: 'onOff': bool, 'polarity': 0,1, 'source': int,
-    # 'mode': int.
     def set_trigger_mode(self, trig_dict):
+        """Set the trigger mode from `trig_dict`.
+
+        Its keys are any of ``'onOff'`` (bool), ``'polarity'`` (0 or 1),
+        ``'source'`` (int) and ``'mode'`` (int).
+        """
         trig_mode = self.camera.getTriggerMode()
         for k, v in trig_dict.items():
             setattr(trig_mode, k, v)
@@ -142,9 +145,13 @@ class FlyCapture2CameraInterface(TriggerableCameraInterface):
             msg = f"Failed to set the trigger mode to {trig_dict}"
             raise Exception(msg) from e
 
-    # Allowed keys of image_settings: 'pixelFormat': a pixel format name such as
-    # 'MONO8', 'offsetX': int, 'offsetY': int, 'width': int, 'height': int.
     def set_image_mode(self, image_settings):
+        """Set the Format7, Mode 0 region and pixel format from `image_settings`.
+
+        Its keys are any of ``'pixelFormat'``, a pixel format name such as
+        ``'MONO8'``, and ``'offsetX'``, ``'offsetY'``, ``'width'`` and ``'height'``
+        (int).
+        """
         image_info, supported = self.camera.getFormat7Info(0)
         Hstep = image_info.offsetHStepSize
         Vstep = image_info.offsetVStepSize
@@ -179,10 +186,14 @@ class FlyCapture2CameraInterface(TriggerableCameraInterface):
                 configuration, which the FlyCapture2Camera driver needs."""
             raise RuntimeError(dedent(msg))
 
-    # Allowed keys of value: 'onOff', 'autoManualMode', 'absControl', 'onePush' (bool),
-    # 'absValue' (float), 'valueA', 'valueB' (int). Generally absControl should be used
-    # to configure settings. Invalid settings tend to coerce instead of raising.
     def set_attribute(self, name, value):
+        """Set the property `name` from the dict `value`.
+
+        Its keys are any of ``'onOff'``, ``'autoManualMode'``, ``'absControl'`` and
+        ``'onePush'`` (bool), ``'absValue'`` (float), and ``'valueA'`` and
+        ``'valueB'`` (int). Generally ``absControl`` should be used to configure
+        settings. Invalid settings tend to coerce instead of raising.
+        """
         try:
             prop = self.camera.getProperty(getattr(PyCapture2.PROPERTY_TYPE, name))
 

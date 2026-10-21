@@ -50,7 +50,12 @@ class Deadline:
         return left
 
     def wait(self, done):
-        """Poll ``done()`` every 0.01 s until it is True, or raise the TimeoutError."""
+        """Poll ``done()`` every 0.01 s until it is True.
+
+        The deadline is checked only between polls that return False, so a True
+        poll returns even once it has passed; a False one after it raises the
+        TimeoutError.
+        """
         while not done():
             time.sleep(min(0.01, self.remaining()))
 

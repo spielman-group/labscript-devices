@@ -36,9 +36,9 @@ class TekScope(Device):
             Seconds to wait for the response to a query over the VISA interface; 5
             by default. Set per shot.
         int16 : bool, optional
-            Download waveform points as 16-bit integers, which returns half as many
-            points; ``False`` by default, which downloads 8-bit integers. Set per
-            shot.
+            Download waveform points as 16-bit integers; ``False`` by default, which
+            downloads 8-bit integers. Set per shot. True gives invalid traces at
+            present: see KNOWN_ISSUES.md.
         **kwargs
             Passed to :class:`~labscript.Device`.
         """

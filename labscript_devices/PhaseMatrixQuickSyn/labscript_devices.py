@@ -78,7 +78,10 @@ class QuickSynDDS(StaticDDS):
         self.gate.go_high()
 
     def disable(self):
-        """Set the gate low for the whole shot. Takes no `t`, unlike StaticDDS's."""
+        """Set the gate low for the whole shot. Takes no `t`, unlike StaticDDS's.
+
+        The worker does not apply the gate: it turns the output on for every shot.
+        """
         self.gate.go_low()
 
 

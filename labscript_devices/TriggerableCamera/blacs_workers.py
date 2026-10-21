@@ -58,10 +58,12 @@ class TriggerableCameraInterface:
         """Program one attribute; a camera writes this or `set_attributes`."""
         raise NotImplementedError(_unwritten(self, 'set_attribute'))
 
-    # This and get_attribute_names are not needed by a camera that overrides
-    # get_attributes_as_dict.
     def get_attribute(self, name):
-        """Return the current value of the named attribute."""
+        """Return the current value of the named attribute.
+
+        A camera that overrides `get_attributes_as_dict` need not write this or
+        `get_attribute_names`.
+        """
         raise NotImplementedError(_unwritten(self, 'get_attribute'))
 
     def get_attribute_names(self, visibility_level):
@@ -75,16 +77,21 @@ class TriggerableCameraInterface:
         self.stop_acquisition()
         return image
 
-    # The array returned must stay valid after the next grab, because grab_multiple
-    # accumulates them: a camera whose API reuses its buffer copies the image out.
     def grab(self):
-        """Return the next image of an acquisition already configured."""
+        """Return the next image of an acquisition already configured.
+
+        The array must stay valid after the next grab, as `grab_multiple` keeps
+        them: a camera whose API reuses its buffer copies the image out.
+        """
         raise NotImplementedError(_unwritten(self, 'grab'))
 
-    # The worker calls this with no arguments for manual-mode continuous acquisition,
-    # and with continuous=False and the shot's number of exposures for a buffered one.
     def configure_acquisition(self, continuous=True, buffer_count=None):
-        """Ready the camera to grab; `buffer_count` None leaves it to the camera."""
+        """Ready the camera to grab; `buffer_count` None leaves it to the camera.
+
+        The worker calls this with no arguments for manual-mode continuous
+        acquisition, and with ``continuous=False`` and the shot's number of
+        exposures for a buffered one.
+        """
         raise NotImplementedError(_unwritten(self, 'configure_acquisition'))
 
     def stop_acquisition(self):
@@ -95,38 +102,49 @@ class TriggerableCameraInterface:
         """Release the camera; the worker calls this when it shuts down."""
         raise NotImplementedError(_unwritten(self, 'close'))
 
-    # Reads the attributes back, for the shot file and the BLACS dialog. The default
-    # composes get_attribute_names and get_attribute; a camera whose API hands over
-    # every attribute at once overrides it.
     def get_attributes_as_dict(self, visibility_level):
-        """Return a dict of the attributes at a visibility level."""
+        """Return a dict of the attributes at a visibility level.
+
+        The worker reads them for the shot file and the BLACS dialog. This
+        composes `get_attribute_names` and `get_attribute`; a camera whose API
+        hands over every attribute at once overrides it.
+        """
         names = self.get_attribute_names(visibility_level)
         return {name: self.get_attribute(name) for name in names}
 
-    # grab_multiple asks again at once, so a camera that says True must have blocked for
-    # its own timeout in grab before raising, or the loop spins until it is aborted.
     def is_transient_grab_error(self, exception):
-        """Whether this exception from `grab` means "no frame yet, ask again"."""
+        """Whether this exception from `grab` means "no frame yet, ask again".
+
+        `grab_multiple` asks again at once, so a camera that says True must have
+        blocked for its own timeout in `grab` before raising, or the loop spins
+        until it is aborted.
+        """
         return False
 
-    # With exception_on_failed_shot False, grab_multiple gives up the frame and goes on
-    # to the next when this is True.
     def is_skippable_grab_error(self, exception):
-        """Whether this exception from `grab` is one the camera's own API reported."""
+        """Whether this exception from `grab` is one the camera's own API reported.
+
+        With ``exception_on_failed_shot`` False, `grab_multiple` gives up the frame
+        and goes on to the next when this is True.
+        """
         return False
 
-    # Runs in the worker's thread while grab_multiple runs in its own, so it only
-    # raises the flag. A camera whose grab blocks in the vendor's API overrides it to
-    # make the call that unblocks it, and then calls this implementation.
     def abort_acquisition(self):
-        """Ask `grab_multiple` to stop at its next frame."""
+        """Ask `grab_multiple` to stop at its next frame.
+
+        This runs in the worker's thread while `grab_multiple` runs in its own, so
+        it only raises the flag. A camera whose `grab` blocks in the vendor's API
+        overrides it to make the call that unblocks it, then calls this one.
+        """
         self._abort_acquisition = True
 
-    # The worker runs this in a thread for the shot, having configured the acquisition
-    # for the same n_images. A camera whose acquisition is not one frame per grab, such
-    # as a kinetic series, overrides it wholesale.
     def grab_multiple(self, n_images, images):
-        """Grab `n_images` frames, appending each to `images` as it arrives."""
+        """Grab `n_images` frames, appending each to `images` as it arrives.
+
+        The worker runs this in a thread for the shot, having configured the
+        acquisition for the same `n_images`. A camera whose acquisition is not one
+        frame per `grab`, such as a kinetic series, overrides it wholesale.
+        """
         print(f"Attempting to grab {n_images} images.")
         for i in range(n_images):
             while True:
@@ -213,11 +231,13 @@ class TriggerableCameraWorker(Worker):
         """Return the camera; override if it takes more than the serial number."""
         return self.interface_class(self.serial_number)
 
-    # Called by transition_to_buffered with the shot file open, after the exposures and
-    # the camera attributes have been read from it. A camera that needs more overrides
-    # this, so the file is not opened and locked a second time.
     def load_shot_data(self, shot_file):
-        """Read what else this worker needs from the open shot file."""
+        """Read what else this worker needs from the open shot file.
+
+        `transition_to_buffered` calls this with the shot file open, after reading
+        the exposures and the camera attributes. A camera that needs more overrides
+        it, so that the file is not opened and locked a second time.
+        """
         pass
 
     def set_attributes_smart(self, attributes):

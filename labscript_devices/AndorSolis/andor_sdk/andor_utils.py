@@ -186,7 +186,7 @@ class AndorCam:
         if not emccd_gain in self.emccd_gain_range:
             raise ValueError(
                 f"Invalid emccd gain {emccd_gain}. Set the 'emccd_gain' attribute "
-                f"from {self.emccd_gain_range[0]} to {self.emccd_gain_range[1]}."
+                f"to {self.emccd_gain_range[0]} or {self.emccd_gain_range[1]}."
             )
 
         if not self.cooling:
