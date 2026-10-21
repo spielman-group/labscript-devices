@@ -16,3 +16,5 @@
 - `DummyIntermediateDevice/labscript_devices.py`: a DummyIntermediateDevice with no outputs fails to compile; `generate_code` writes an OUTPUTS table of no columns, and h5py raises ValueError.
 - `CiceroOpalKellyXEM3001/blacs_tabs.py`: `get_child_from_connection_table` searches the board's first child, which by name order is the wait monitor's pseudoclock, so it never finds 'Clock Out'; harmless while the tab creates no outputs.
 - `CiceroOpalKellyXEM3001/labscript_devices.py`: `generate_code` merges instructions of equal periods with no cap, and the worker packs reps into 4 bytes, so 2**32 or more ticks at one period are silently cut short; it also merges a clock instruction into a wait whose timeout makes the same periods (3 or 4 ticks).
+- `LightCrafterDMD/blacs_workers.py`: `transition_to_buffered` keys the final image "None", not the ImageSet's connection, so after a shot BLACS leaves the front panel on its earlier image while the DMD shows the shot's last one.
+- `LightCrafterDMD/blacs_workers.py`: `_receive` reads the header and the body with one `recv` each, so a reply split across TCP segments is misread.
