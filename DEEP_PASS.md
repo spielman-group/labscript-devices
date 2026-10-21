@@ -1045,11 +1045,15 @@ one commit a package, the top-level modules last.
     resumed at the unrounded wait time, before its own wait began, and a
     secondary took the first edge at or after it, which misses a retrigger
     rounded down.
-- Drawn traces, against `1fea8d6`: after wait n each moves earlier by n times
-  its master's `wait_delay`, onto script time: 40 ns on a PrawnBlaster, 50 ns
-  on a PrawnDO, 2.5 µs on a PineBlaster or DummyPseudoclock, 10 ns (a clock
-  period) on a Cicero, and 100 ns on a PulseBlaster. A wait row drawn at its
-  own time moves less.
+- Drawn traces, against `1fea8d6`, over the sweep's 96 test shots and three
+  PrawnDO wait shots: after wait n each moves earlier by n times its master's
+  `wait_delay`, onto script time: 40 ns on a PrawnBlaster, 50 ns on a PrawnDO,
+  2.5 µs on a PineBlaster or DummyPseudoclock, 10 ns (a clock period) on a
+  Cicero, and 100 ns on a PulseBlaster. A wait row drawn at its own time moves
+  less. A trace the old parsers resumed on a wrong edge moves by their error
+  instead: a PrawnDO sharing its clock line with a tick at 39.9 µs resumes
+  after the fourth wait at 41.00 µs, where it was drawn at 41.02, 20 ns, not
+  160.
   The two PulseBlaster secondaries of `plain_trigger_devices` start at their
   trigger, 0.74 µs, where they were drawn as if triggered at 0. No other trace
   moves.
