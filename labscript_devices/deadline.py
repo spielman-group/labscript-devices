@@ -16,41 +16,60 @@ import time
 
 
 class Deadline:
-    """The time by which a device must have done something, so that a worker
-    waiting on it raises rather than hangs. Once it passes, it raises a
-    TimeoutError: "<device_name> did not <what> within <seconds> s."
+    """A limit on how long a worker waits for its device to do something.
+
+    Once it has passed, :meth:`remaining`, :meth:`wait` and :meth:`timeout_for`
+    raise a TimeoutError: "<device_name> did not <what> within <seconds> s."
     """
 
     def __init__(self, device_name, what, seconds):
+        """
+        Parameters
+        ----------
+        device_name : str
+            The device's name, as the error gives it.
+        what : str
+            What the device is to do, completing "did not ...": ``'end the shot'``.
+        seconds : float
+            How long the device has, from now.
+        """
         self.device_name = device_name
         self.what = what
         self.seconds = seconds
         self.end = time.monotonic() + seconds
 
     def remaining(self):
-        """The seconds left, for a library call's own timeout. Raises the
-        TimeoutError if none are, since a library takes a timeout of 0 as "do
-        not wait", or as "wait forever"."""
+        """Return the seconds left, for a library call's own timeout.
+
+        Raises the TimeoutError once none are left, since a library may take a
+        timeout of 0 as "do not wait" or as "wait forever".
+        """
         left = self.end - time.monotonic()
         if left <= 0:
             raise self._timed_out()
         return left
 
     def wait(self, done):
-        """Poll ``done()`` every 0.01 s until it returns True."""
+        """Poll ``done()`` every 0.01 s until it is True, or raise the TimeoutError."""
         while not done():
             time.sleep(min(0.01, self.remaining()))
 
     @contextmanager
     def timeout_for(self, *library_errors):
-        """Yield the seconds left for a library call's own timeout, and raise the
-        deadline's TimeoutError in place of the library's timeout errors."""
+        """Yield the seconds left for a library call's own timeout.
+
+        Parameters
+        ----------
+        *library_errors : type
+            The library's timeout exceptions. One raised in the block becomes the
+            deadline's TimeoutError.
+        """
         seconds = self.remaining()
         try:
             yield seconds
         except library_errors:
             # The library's timeout was the deadline's, even if it ran out a
-            # moment early
+            # moment early.
             raise self._timed_out() from None
 
     def _timed_out(self):

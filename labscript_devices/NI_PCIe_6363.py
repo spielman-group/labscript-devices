@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /NI_PCIe_6363.py                                                   #
+# /NI_PCIe_6363.py                                                  #
 #                                                                   #
 # Copyright 2012, Monash University                                 #
 #                                                                   #
@@ -14,6 +14,8 @@ from labscript_devices import lazy_attributes
 
 # LEGACY NI_DAQMX IMPORT PATH COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
 __getattr__ = lazy_attributes(
-    __name__, {'labscript_devices.NI_DAQmx.labscript_devices': ['NI_PCIe_6363']}, legacy=True
+    __name__,
+    {'labscript_devices.NI_DAQmx.labscript_devices': ['NI_PCIe_6363']},
+    legacy=True,
 )
 __all__ = ['NI_PCIe_6363']

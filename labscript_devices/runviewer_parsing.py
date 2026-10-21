@@ -15,11 +15,14 @@ import numpy as np
 
 
 def rising_edge_times(clock):
-    """Return the times of the rising edges of a clock that runviewer passes to a
-    parser as ``(times, values)``.
+    """Return the times of a clock's rising edges.
 
-    A clock that starts high counts as rising at its first time, since it is low
-    before the shot.
+    Parameters
+    ----------
+    clock : tuple of numpy.ndarray
+        The ``(times, values)`` that runviewer passes to a parser's ``get_traces``
+        as `clock`, with values of 0 and 1. The clock is taken to be low before its
+        first time, so one that starts high rises at its first time.
     """
     times, values = clock[0], clock[1]
     edges = np.where((values[1:] - values[:-1]) == 1)[0] + 1

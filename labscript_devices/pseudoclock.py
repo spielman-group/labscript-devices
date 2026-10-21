@@ -21,7 +21,7 @@ class PseudoclockWorker(Worker):
     """The worker of a pseudoclock device.
 
     BLACS begins the transition to manual mode when the master pseudoclock has
-    finished, and a secondary one may still be running then, so
+    finished, and a secondary one may still be running then, so a subclass's
     ``transition_to_manual`` calls :meth:`wait_for_end_of_shot` first. A master
     whose tab has already seen it finish may skip it.
 
@@ -31,27 +31,44 @@ class PseudoclockWorker(Worker):
     """
 
     def shot_finished(self):
-        """Return whether the board has finished the shot. A board that cannot
-        tell is taken to have finished."""
+        """Return whether the board has finished the shot, as `PseudoclockTab` polls.
+
+        A board that cannot tell keeps this default, True.
+        """
         return True
 
     def wait_for_end_of_shot(self, ended=None):
-        """Wait until ``ended()``, :meth:`shot_finished` if not given, returns
-        True. An abort passes its own test."""
-        # Not a class attribute, which BLACS would not let a worker argument set:
+        """Wait for the board to stop.
+
+        Raises a TimeoutError if it runs on past ``end_of_shot_timeout``.
+
+        Parameters
+        ----------
+        ended : callable, optional
+            Returns True once the board has stopped; :meth:`shot_finished` by
+            default. An abort passes its own test.
+        """
+        # BLACS does not set a worker argument that the worker already has, so
+        # this cannot be a class attribute.
         timeout = getattr(self, 'end_of_shot_timeout', 5)
-        Deadline(self.device_name, 'end the shot', timeout).wait(ended or self.shot_finished)
+        Deadline(self.device_name, 'end the shot', timeout).wait(
+            ended or self.shot_finished
+        )
 
 
 class PseudoclockTab(DeviceTab):
-    """The tab of a pseudoclock device whose worker says, through its
-    ``shot_finished``, whether the shot it started is over. A tab that shows the
-    board's status refreshes it in its own state function, on its own timer."""
+    """The tab of a pseudoclock device whose worker says when the shot is over.
+
+    ``start_run`` starts the worker's ``start_run`` and polls its ``shot_finished``
+    every 100 ms. Once that returns True, the tab puts 'done' on the notify queue
+    and calls :meth:`shot_over`. If the worker fails instead, BLACS is told the
+    device restarted, which aborts the shot. A tab that shows the board's status
+    refreshes it in its own state function, on its own timer.
+    """
 
     @define_state(MODE_BUFFERED, True)
     def start_run(self, notify_queue):
-        """Start the device, and tell BLACS through ``notify_queue`` when the
-        shot is over."""
+        """Start the device, and put 'done' on `notify_queue` when the shot is over."""
         self.statemachine_timeout_add(100, self.status_monitor, notify_queue)
         yield(self.queue_work(self.primary_worker, 'start_run'))
 
@@ -68,13 +85,16 @@ class PseudoclockTab(DeviceTab):
             self.statemachine_timeout_remove(self.status_monitor)
             self.shot_over()
         elif status is None:
-            # The worker failed. A faked restart tells the queue to abort the shot.
+            # The worker failed. Calling the restart receivers, as a restart does,
+            # makes BLACS abort the shot.
             self.statemachine_timeout_remove(self.status_monitor)
             for f in self._restart_receiver:
                 try:
                     f(self.device_name)
                 except Exception:
-                    self.logger.exception('Could not notify a connected receiver function')
+                    self.logger.exception(
+                        'Could not notify a connected receiver function'
+                    )
 
     def shot_over(self):
         """Called once the worker says the shot it started is over."""

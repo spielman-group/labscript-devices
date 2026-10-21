@@ -16,9 +16,11 @@ from blacs.tab_base_classes import Worker
 
 
 class GuilessTab(DeviceTab):
-    """The tab of a device with no front panel, such as a remote acquisition
-    board: it shows and saves nothing. A subclass names its worker in
-    ``worker_class``, the worker's full import path."""
+    """The tab of a device with no front panel, such as AlazarTechBoard.
+
+    It shows and saves nothing. A subclass sets ``worker_class`` to its worker's
+    full import path.
+    """
 
     worker_class = None
 
@@ -37,8 +39,7 @@ class GuilessTab(DeviceTab):
 
 
 class GuilessWorker(Worker):
-    """The worker of a device with no front panel, which has nothing to program
-    in manual mode."""
+    """The worker of a device with no front panel: nothing to program in manual mode."""
 
     def program_manual(self, front_panel_values):
         return front_panel_values

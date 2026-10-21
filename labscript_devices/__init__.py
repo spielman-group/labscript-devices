@@ -12,17 +12,23 @@ from labscript_utils.device_registry import *
 
 
 def lazy_attributes(package, names_by_submodule, legacy=False):
-    """Return a module ``__getattr__`` that imports each listed name from its
-    submodule of ``package``, or from the module a dotted key names in full,
-    only when it is first asked for.
+    """Return a module ``__getattr__`` that imports each name when first asked for.
 
     A device package uses it so that its tab, worker and parser stay importable
     from the package without a compile importing BLACS::
 
         __getattr__ = lazy_attributes(__name__, {'blacs_tabs': ['MyTab']})
 
-    With ``legacy``, ``package`` is an old path, and each import from it warns,
-    at the importing line, that it will be removed.
+    Parameters
+    ----------
+    package : str
+        The package the ``__getattr__`` belongs to, normally ``__name__``.
+    names_by_submodule : dict of str to list of str
+        The names to import, under the module that defines them: a submodule of
+        `package`, or a dotted path taken as the full module name.
+    legacy : bool, optional
+        If True, `package` is an old import path: each import from it warns, at
+        the importing line, that it will be removed, and names the new path.
     """
     submodules = {
         name: submodule
