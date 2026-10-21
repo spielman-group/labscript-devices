@@ -225,7 +225,6 @@ class PrawnDOWorker(PseudoclockWorker):
             # clear the old program
             self.intf.send_command_ok('cls')
             self.intf.adm_batch(pulse_program)
-            self.smart_cache['pulse_program'] = pulse_program
         else:
             # only program table lines that have changed
             n_cache = len(self.smart_cache['pulse_program'])
@@ -233,14 +232,14 @@ class PrawnDOWorker(PseudoclockWorker):
                 if i >= n_cache:
                     print(f'programming step {i}')
                     self.intf.send_command_ok(f'set {i:x} {instr[0]:x} {instr[1]:x}')
-                    self.smart_cache['pulse_program'][i] = instr
 
                 elif (self.smart_cache['pulse_program'][i] != instr):
                     print(f'programming step {i}')
                     self.intf.send_command_ok(f'set {i:x} {instr[0]:x} {instr[1]:x}')
-                    self.smart_cache['pulse_program'][i] = instr
+        self.smart_cache['pulse_program'] = pulse_program
 
-        final_values = self._int_to_dict(pulse_program[-1][0])
+        # The last row's bit set is ignored; the row before it holds the final output.
+        final_values = self._int_to_dict(pulse_program[-2][0])
 
         # start program, waiting for beginning trigger from parent
         self.intf.send_command_ok('run')

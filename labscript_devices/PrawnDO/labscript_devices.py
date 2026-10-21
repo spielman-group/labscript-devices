@@ -161,10 +161,10 @@ class PrawnDO(PseudoclockDevice):
         self.external_clock = external_clock
         self.clock_frequency = clock_frequency
         # The class specs are for a 100 MHz clock; scale them by the ratio of the clock
-        # periods.
+        # periods, and the clock limit, a rate, the other way.
         if self.clock_frequency != 100e6:
             factor = 100e6/self.clock_frequency
-            self.clock_limit *= factor
+            self.clock_limit /= factor
             self.clock_resolution *= factor
             self.minimum_duration *= factor
             self.wait_delay *= factor
