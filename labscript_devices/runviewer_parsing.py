@@ -13,6 +13,8 @@
 #####################################################################
 import labscript_utils.h5_lock, h5py
 import numpy as np
+import labscript_utils.properties as properties
+from labscript_utils.file_utils import warn_legacy_file
 
 
 class PseudoclockParser:
@@ -20,9 +22,8 @@ class PseudoclockParser:
 
     Runviewer draws the script's time, in which a wait takes no time: each device
     resumes where its wait begins. A master's own program places its waits. A
-    secondary starts `trigger_delay` after its trigger, the first rising edge of
-    the `clock` runviewer passes it, and resumes `trigger_delay` after each
-    retrigger.
+    secondary, given the `clock` it is triggered by, starts `trigger_delay` after
+    its trigger and resumes `trigger_delay` after each retrigger.
     """
 
     def __init__(self, path, device):
@@ -34,20 +35,26 @@ class PseudoclockParser:
         """Return ``resume(n, t)``, when the program starts or resumes.
 
         Call it with 0 and 0 for the start, then with each wait's number and the
-        time the program reaches it. A master carries on from `t`. A secondary's
-        nth retrigger is its clock's edge nearest the nth wait's time: labscript
-        rounds a trigger to the nearest tick of its clock, and keeps the wait's
-        time unrounded.
+        time the program reaches it. A master carries on from `t`. A secondary
+        resumes `trigger_delay` after its nth trigger time, as labscript saved it.
         """
         if clock is None:
             return lambda n, t: t
         with h5py.File(self.path, 'r') as f:
+            device_properties = properties.get(f, self.name, 'device_properties')
             wait_times = f['waits']['time']
-        edges = rising_edge_times(clock)
-        after = np.clip(np.searchsorted(edges, wait_times), 1, len(edges) - 1)
-        later = edges[after] - wait_times < wait_times - edges[after - 1]
-        retriggers = np.where(later, edges[after], edges[after - 1])
-        triggers = np.concatenate([[edges[0]], retriggers]) + trigger_delay
+        triggers = device_properties.get('trigger_times')
+        # LEGACY TRIGGER TIMES COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        # Shot files compiled before labscript saved a secondary's trigger times: its
+        # nth retrigger is the clock's edge nearest the nth wait's time.
+        if triggers is None:
+            warn_legacy_file(self.path, "lacks its secondaries' trigger times")
+            edges = rising_edge_times(clock)
+            after = np.clip(np.searchsorted(edges, wait_times), 1, len(edges) - 1)
+            later = edges[after] - wait_times < wait_times - edges[after - 1]
+            retriggers = np.where(later, edges[after], edges[after - 1])
+            triggers = np.concatenate([[edges[0]], retriggers])
+        triggers = np.asarray(triggers) + trigger_delay
         return lambda n, t: triggers[n]
 
     def clock_trace(self, clock, trigger_delay, segments):

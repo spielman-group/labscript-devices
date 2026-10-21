@@ -2,7 +2,7 @@
 
 A secondary's outputs change at their script times whether a shared clock line or
 a trigger line resumes it, and no drawn time runs backward, with waits off the
-master's grid that round down and up.
+master's grid that round down, up and from a tie.
 """
 import textwrap
 import unittest
@@ -34,8 +34,9 @@ class SecondaryAcrossWaitsTests(CompileTestCase):
         DigitalOut('trigger_out', on_trigger.outputs, 'do1')
 
         start()
-        # On a 20 ns grid, 20.006 us rounds down and 30.014 us up.
-        for n, t in enumerate([10e-6, 20.006e-6, 30.014e-6, 40e-6]):
+        # On a 20 ns grid, 20.006 us rounds down, 30.014 us up, and 40.03 us is a
+        # tie, which labscript rounds to even, up.
+        for n, t in enumerate([10e-6, 20.006e-6, 30.014e-6, 40.03e-6]):
             for out in (line_out, trigger_out):
                 out.go_high(10e-6 * n + 5e-6)
                 out.go_low(10e-6 * n + 7e-6)
