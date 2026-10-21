@@ -21,20 +21,11 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
 
 
 class DummyCameraInterface(DictAttributesMixin, TriggerableCameraInterface):
-    """A camera whose frames were computed when the shot was compiled.
+    """A camera that grabs the shot's compiled images; in manual mode, blank frames."""
 
-    It presents the interface every camera interface class presents, and
-    acquires the way any camera acquires -- one frame per grab, in the order the
-    triggers arrive -- but the frames come from the shot file rather than from a
-    sensor. In manual mode there is no shot and so no image function, and it
-    produces the default image on its own pixels instead.
-    """
-
-    # What marks these images as not real data once they are in the shot file.
-    # It is a camera attribute rather than pixels drawn onto the image because a
-    # watermark does not cancel in OD = -log((atoms - dark) / (probe - dark)),
-    # and would ruin the absorption analysis this camera exists to feed. The
-    # attribute path every camera already uses saves it beside the images.
+    # Marks the images as not real data. It is an attribute saved beside them, not a
+    # watermark over their pixels, which every frame would carry and so make the OD
+    # there 0/0.
     identifying_attributes = {'NOT_REAL_DATA': True}
 
     def __init__(self, serial_number=None):
@@ -44,26 +35,19 @@ class DummyCameraInterface(DictAttributesMixin, TriggerableCameraInterface):
         self.index = 0
 
     def configure_acquisition(self, continuous=True, buffer_count=None):
-        # A continuous acquisition is manual mode, where there is no shot and
-        # so no compiled frames. Whatever the last shot left behind is not
-        # live data, and handing it back would show it as though it were.
+        # A continuous acquisition is manual mode, with no shot behind it. Images left
+        # by the last shot are not live, so grab must not return them.
         if continuous:
             self.images = None
         self.index = 0
 
     def load_images(self, images):
-        """Take the frames this shot compiled, to be returned one per grab."""
+        """Take the shot's compiled images, to be returned one per grab."""
         self.images = images
         self.index = 0
 
     def snap(self):
-        """A frame with no shot behind it, for manual mode.
-
-        There is no shot and so no image function, and a camera that invented
-        something to show here would be modelling data on its own account.
-        So this is a blank frame at the size the sensor is configured for:
-        a real image, of nothing.
-        """
+        """Return a blank frame of the sensor's size, for manual mode."""
         return blank_image(*sensor_size(self.attributes))
 
     def grab(self):
@@ -81,18 +65,12 @@ class DummyCameraInterface(DictAttributesMixin, TriggerableCameraInterface):
 
 
 class DummyCameraWorker(TriggerableCameraWorker):
-    """Thin sub-class of :obj:`TriggerableCameraWorker`.
-
-    It names :obj:`DummyCameraInterface` as its interface class, and hands that camera
-    the images the shot compiled before the acquisition starts. Everything
-    after that -- the acquisition thread, saving the images to the shot file
-    and displaying them in the tab -- is inherited unchanged, which is what
-    makes these images indistinguishable from a real camera's downstream."""
+    """Worker for DummyCameraInterface; it loads the shot's compiled images into it."""
 
     interface_class = DummyCameraInterface
 
     def load_shot_data(self, shot_file):
-        """Hand the camera the frames this shot compiled."""
+        """Load the shot's compiled images into the camera."""
         group = shot_file['devices'][self.device_name]
         images = group['IMAGES'][:] if 'IMAGES' in group else None
         self.camera.load_images(images)
@@ -101,11 +79,8 @@ class DummyCameraWorker(TriggerableCameraWorker):
         return_value = TriggerableCameraWorker.transition_to_buffered(
             self, device_name, h5_file, front_panel_values, fresh
         )
-        # NOT_REAL_DATA is not camera metadata anyone may decide not to save:
-        # it is the only thing in the shot file saying these images were made
-        # up, so it does not travel by saved_attribute_visibility_level, which
-        # switches the rest of them off. Merging it last also keeps a camera
-        # attribute of the same name from overriding it.
+        # NOT_REAL_DATA is saved even when saved_attribute_visibility_level is None,
+        # and goes last so that a camera attribute of the same name cannot override it.
         self.attributes_to_save = dict(
             self.attributes_to_save or {}, **DummyCameraInterface.identifying_attributes
         )

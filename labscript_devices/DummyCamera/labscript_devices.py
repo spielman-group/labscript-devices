@@ -24,54 +24,43 @@ from labscript_devices.DummyCamera.sensor import (
 from labscript_devices.TriggerableCamera.labscript_devices import TriggerableCamera
 
 
-# What a pixel holds when PixelFormat does not say, and the most the shot file can
-# store in the uint16 datasets a camera's images are saved as.
+# The bit depth used when PixelFormat does not give one, and the most there can be:
+# images are saved as uint16.
 DEFAULT_BIT_DEPTH = 16
 
 
 class DummyCamera(TriggerableCamera):
-    """A camera with no hardware, whose images are computed as the shot compiles.
-
-    Each exposure names a function of the camera's coordinate grid. The function
-    is evaluated during compilation, where the shot's globals are in scope, and
-    the images it returns are stored in the shot file. BLACS then acquires them
-    through the same path a real camera's images take, so a lyse script cannot
-    tell them apart from a real camera's.
-    """
+    """A camera with no hardware; functions compute its images as the shot compiles."""
 
     description = 'Dummy Camera'
 
     def __init__(self, name, parent_device, connection, serial_number=0x0, **kwargs):
-        """A camera that produces images from a function instead of from hardware.
-
-        Args:
-            name (str)
-                device name
-
-            parent_device (IntermediateDevice)
-                Device with digital outputs to be used to trigger acquisition
-
-            connection (str)
-                Name of digital output port on parent device.
-
-            serial_number (str or int, optional), default: `0x0`
-                A dummy camera identifies no hardware, so this only determines
-                what appears as the camera's BLACS connection.
-
-            **kwargs: Further keyword arguments passed to the `__init__` method
-                of the parent class (:obj:`TriggerableCamera`). Of these,
-                `camera_attributes` determines the images this camera produces:
-                `Width` and `Height` give their size in pixels and `PixelFormat`
-                gives the depth a pixel saturates at.
+        """
+        Parameters
+        ----------
+        name : str
+            Python variable name of the device.
+        parent_device : IntermediateDevice or Trigger
+            The device whose digital output triggers the camera.
+        connection : str
+            Name of the digital output port on the parent device; ``'trigger'`` if the
+            parent is a `Trigger`.
+        serial_number : str or int, optional
+            As for `TriggerableCamera`, but a dummy camera identifies no hardware, so
+            this only sets its BLACS connection; 0 by default.
+        **kwargs
+            Passed to `TriggerableCamera`. Its `camera_attributes` must give
+            ``'Width'`` and ``'Height'``, the size of the images in pixels. A
+            ``'PixelFormat'`` attribute ending in a number of bits, such as
+            ``'Mono12'``, sets the depth at which pixels saturate, at 2**bits - 1
+            counts; the default is 16 bits, which is also the most.
         """
         self.image_functions = []
         TriggerableCamera.__init__(
             self, name, parent_device, connection, serial_number, **kwargs
         )
-        # Checked here rather than where it is first needed, which is
-        # generate_code: a failure there aborts the compile with the shot file
-        # already half written, and the half-written file cannot be compiled a
-        # second time either.
+        # Checked here, not in generate_code: a failure there leaves a half-written
+        # shot file, which labscript will not compile again.
         sensor_size(self.camera_attributes)
 
     def expose(
@@ -84,27 +73,48 @@ class DummyCamera(TriggerableCamera):
         function=None,
         **kwargs
     ):
-        """Request an exposure, and name the function that produces its image.
+        """Request an exposure at `t`, with the function that makes its image.
 
-        Takes everything :obj:`TriggerableCamera.expose` takes, and then a
-        function and the arguments to call it with, in the manner of
-        `AnalogQuantity.customramp`: this camera supplies the leading arguments
-        and the caller supplies the rest. The function is called as
-        `function(X, Y, *args, **kwargs)`, where `X` and `Y` are the camera's
-        coordinate grid, and returns an array of counts of that same shape.
+        The function is called once, as the shot compiles, so the shot's globals are
+        in scope in it. Only the image it returns is saved in the shot file, so it can
+        be any callable, a lambda included. Frames that have to agree, such as an
+        absorption image's atoms and probe frames, are exposures that share one
+        function and differ in `args` and `kwargs`.
 
-        The function is called once per exposure, while the shot compiles. It is
-        never stored anywhere -- only the image it returns is -- so it can be
-        any callable, including a local one, and nothing needs it on the machine
-        BLACS runs on.
+        Parameters
+        ----------
+        t : float
+            Time in seconds of the trigger edge.
+        name : str
+            What the image shows, such as ``'insitu_absorption'``. With `frametype` it
+            sets where the image is stored in the shot file, under
+            ``images/<orientation>/<name>/<frametype>``.
+        frametype : str, optional
+            The type of frame, for imaging methods that take several, such as
+            ``'probe'``, ``'atoms'`` and ``'background'``; ``'frame'`` by default.
+        trigger_duration : float, optional
+            Duration in seconds of the trigger pulse, greater than 0; the device's
+            `trigger_duration` by default.
+        *args
+            Positional arguments for `function`, after `X` and `Y`. They follow
+            `trigger_duration` in the call.
+        function : callable, optional
+            Passed by keyword. Called as ``function(X, Y, *args, **kwargs)``, where `X`
+            and `Y` are arrays, height by width, of each pixel's position in the object
+            plane in micrometres, from the sensor's centre: its offset in pixels times
+            `pixel_size`, divided by `magnification`. It returns an array of counts of
+            that shape, clipped from 0 to a pixel's saturation count (see
+            `camera_attributes`) and stored as uint16; an array of another shape, or
+            holding a NaN or an infinity, stops the shot compiling. `None`, the default,
+            gives a blank frame of zero counts.
+        **kwargs
+            Keyword arguments for `function`, other than those named `t`, `name`,
+            `frametype`, `trigger_duration` or `function`, which `expose` takes.
 
-        A set of frames that have to agree with each other, such as the atoms,
-        probe and dark frames of an absorption image, is three calls to this
-        method sharing one function with different arguments. Sharing the
-        function is what makes the frames consistent.
-
-        The function is passed by keyword. An exposure given none gets a
-        blank frame.
+        Returns
+        -------
+        float
+            The trigger duration used.
         """
         trigger_duration = TriggerableCamera.expose(
             self, t, name, frametype, trigger_duration
@@ -113,12 +123,7 @@ class DummyCamera(TriggerableCamera):
         return trigger_duration
 
     def coordinate_grid(self):
-        """The meshgrid every one of this camera's image functions is evaluated on.
-
-        Object-plane micrometres, centred on the sensor: the `Width` and `Height`
-        pixels in this camera's attributes, scaled by its `pixel_size` and
-        `magnification`.
-        """
+        """Return the X, Y grid of pixel positions in object-plane micrometres."""
         width, height = sensor_size(self.camera_attributes)
         pixel_x, pixel_y = self.pixel_size
         x = (np.arange(width) - (width - 1) / 2) * pixel_x / self.magnification
@@ -126,21 +131,14 @@ class DummyCamera(TriggerableCamera):
         return np.meshgrid(x, y)
 
     def saturation(self):
-        """The largest count a pixel of this camera can hold.
-
-        A real camera saturates, so an image function that returns more counts
-        than the sensor holds should saturate too rather than wrap around when
-        the image is stored. The depth comes from the `PixelFormat` camera
-        attribute, which is named for it: `Mono16`, `Mono12`, `Mono8`. A format
-        whose name does not end in a number, and one deeper than the uint16
-        datasets images are saved in, are both treated as 16-bit.
-        """
+        """Return the largest pixel count, from the bit depth `PixelFormat` ends in."""
         pixel_format = str(self.camera_attributes.get('PixelFormat', ''))
         match = re.search(r'(\d+)$', pixel_format)
         bit_depth = int(match.group(1)) if match else DEFAULT_BIT_DEPTH
         return 2 ** min(bit_depth, DEFAULT_BIT_DEPTH) - 1
 
     def generate_code(self, hdf5_file):
+        """Write the exposures and, if there are any, their images to the shot file."""
         TriggerableCamera.generate_code(self, hdf5_file)
         if not self.exposures:
             return
@@ -148,13 +146,9 @@ class DummyCamera(TriggerableCamera):
         width, height = sensor_size(self.camera_attributes)
         X, Y = self.coordinate_grid()
         images = []
-        # A camera's frames arrive in the order its triggers do, and
-        # transition_to_manual matches them up with the exposures sorted by time.
-        # Sorting the images the same way is what puts each one under the name
-        # and frametype of the exposure that asked for it. Sorting whole
-        # exposures rather than their times alone is what makes this the same
-        # order: numpy's sort(order='t') breaks ties on the remaining fields, in
-        # dtype order, which is what comparing the tuples does.
+        # The images go in time order, the order transition_to_manual matches them to
+        # the exposures sorted by t. Sorting whole exposures breaks ties on the
+        # remaining fields, in dtype order, as numpy's sort(order='t') does.
         for i in sorted(range(len(self.exposures)), key=self.exposures.__getitem__):
             function, args, kwargs = self.image_functions[i]
             if function is None:
@@ -163,31 +157,21 @@ class DummyCamera(TriggerableCamera):
             image = np.asarray(function(X, Y, *args, **kwargs))
             complaint = None
             if image.shape != X.shape:
-                complaint = """returned an array of shape %s, but this camera's
-                    images are %s. An image function is evaluated on the
-                    camera's coordinate grid and must return an array of the
-                    same shape as it.""" % (image.shape, X.shape)
+                complaint = f"""returned an array of shape {image.shape}, but this
+                    camera's images are {X.shape}, height by width. Return an array of
+                    the shape of X and Y."""
             elif not np.isfinite(image).all():
-                # np.clip passes a NaN through and the cast to counts is then
-                # undefined, so an image that is quietly saturated or quietly
-                # black would be stored as though a sensor had read it.
-                complaint = """returned an array holding values that are not
-                    finite, which cannot be stored as camera counts. Somewhere
-                    in it there is a NaN or an infinity."""
+                # np.clip passes a NaN through, and casting it to counts is undefined.
+                complaint = """returned a NaN or an infinity, which cannot be stored as
+                    camera counts. Return only finite values."""
             if complaint is not None:
                 t, name, frametype, _ = self.exposures[i]
-                msg = "%s %s (the '%s' exposure '%s' of %s at t = %s)"
-                raise ValueError(
-                    msg
-                    % (
-                        getattr(function, '__name__', function),
-                        dedent(complaint),
-                        frametype,
-                        name,
-                        self.name,
-                        t,
-                    )
+                msg = (
+                    f"The image function {getattr(function, '__name__', function)} for "
+                    f"exposure '{name}', frametype '{frametype}', of {self.name} at "
+                    f"t = {t} {dedent(complaint)}"
                 )
+                raise ValueError(msg)
             counts = np.clip(image.astype(float), 0, self.saturation())
             images.append(counts.astype(IMAGE_DTYPE))
         group.create_dataset('IMAGES', data=np.array(images), compression='gzip')

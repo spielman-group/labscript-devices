@@ -11,55 +11,32 @@
 #                                                                   #
 #####################################################################
 
-"""A dummy camera's sensor: how big it is, and what its counts are stored as.
+"""The size, count type and blank frame of a dummy camera's images."""
 
-Both halves of the device need these. The labscript half evaluates image
-functions on the grid while the shot compiles; the BLACS worker needs the same
-size for a manual-mode frame, where there is no shot and so no image function.
-Neither half can import the other's module -- one reaches labscript and through
-it pylab, the other reaches blacs -- so they share this one, which needs neither.
-
-Nothing here models anything. A camera returns counts; what those counts mean is
-the user's image function's business, and a blank frame is what this module
-offers when no function has said otherwise.
-"""
-
+# Imported by both labscript_devices.py and blacs_workers.py, so it needs neither
+# labscript, which loads pylab, nor blacs.
 import numpy as np
 
 from labscript_utils import dedent
 
 
-# What a camera's images are, everywhere: whole counts, as a sensor reads them.
-# The shot file stores them in uint16 datasets and the BLACS tab expects the
-# same, so an image function's floats become this before anything else sees them.
+# Images are whole counts, as a sensor reads them. They are saved as uint16, so
+# generate_code casts an image function's floats to this type before storing them.
 IMAGE_DTYPE = np.uint16
 
 
 def sensor_size(camera_attributes):
-    """The (width, height) in pixels that a dummy camera's attributes give it.
-
-    `Width` and `Height` come from the camera's attributes, where a real
-    camera's resolution comes from. A dummy camera has no sensor to fall back
-    on, so they are required rather than defaulted: an image quietly the wrong
-    size is worse than one that does not compile.
-    """
+    """Return (width, height) in pixels from the `Width` and `Height` attributes."""
+    # A dummy camera has no sensor to say its size, so they are required, not defaulted.
     missing = [key for key in ('Width', 'Height') if key not in camera_attributes]
     if missing:
-        msg = """A dummy camera's images are whatever size its camera_attributes
-            say they are, and this camera's do not say: %s missing. Give it
-            camera_attributes={'Width': ..., 'Height': ...}, the way a real
-            camera is told its resolution."""
-        raise ValueError(dedent(msg) % ' and '.join(missing))
+        msg = f"""A dummy camera's image size comes from its camera_attributes, which
+            do not give {' and '.join(missing)}. Pass
+            camera_attributes={{'Width': ..., 'Height': ...}}."""
+        raise ValueError(dedent(msg))
     return int(camera_attributes['Width']), int(camera_attributes['Height'])
 
 
 def blank_image(width, height):
-    """A valid frame with nothing in it.
-
-    What a dummy camera produces when nothing has said what it should produce:
-    an exposure given no function, and the Snap button in the BLACS tab, where
-    there is no shot at all. It is deliberately the least interesting image that
-    is still a real one, because anything more would be this module modelling
-    data, which is the user's function's job and not the camera's.
-    """
+    """Return a frame of zero counts, `height` rows by `width` columns."""
     return np.zeros((height, width), dtype=IMAGE_DTYPE)
