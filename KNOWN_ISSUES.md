@@ -50,5 +50,5 @@
 - `FunctionRunner/labscript_devices.py`: `add_function` with a string `t` other than 'start' or 'stop' raises float()'s ValueError, not a message about `t`.
 - `TriggerableCamera/blacs_workers.py`: with `exception_on_failed_shot` True, a grab error ends the acquisition thread, but `transition_to_manual` checks only whether the thread is still alive, so the shot goes on with the images acquired so far.
 - `PulseBlaster/labscript_devices.py`: `PulseBlasterDDS` does not refuse a `digital_gate`; `DDSQuantity` makes a gate from it, and the PulseBlaster's own gate then fails on the name, with an error that does not mention `digital_gate`.
-- `PulseBlaster/runviewer_parsers.py`: a secondary is drawn from `trigger_delay` after 0 and after each wait, without reading its triggers from the clock, so a later initial trigger time, or the master's resume delay after a wait, is not shown.
 - `RFBlaster/labscript_devices.py`: an RFBlaster without a `trigger_device` compiles as the master pseudoclock, but its tab has no `start_run`, so BLACS cannot run the shot.
+- runviewer draws nothing below a device that has no runviewer parser, such as a secondary pseudoclock triggered from a DummyIntermediateDevice: loading that device raises, and runviewer skips its children.

@@ -13,24 +13,16 @@
 
 import labscript_utils.h5_lock  # noqa: F401
 import h5py
-import numpy as np
 
 import labscript_utils.properties as properties
-from labscript_devices.runviewer_parsing import rising_edge_times
+from labscript_devices.runviewer_parsing import PseudoclockParser
 
 
-class PrawnBlasterParser:
+class PrawnBlasterParser(PseudoclockParser):
     """Runviewer parser for the PrawnBlaster Pseudoclocks."""
-    def __init__(self, path, device):
-        self.path = path
-        self.name = device.name
-        self.device = device
 
     def get_traces(self, add_trace, clock=None):
         """Add the clock lines' traces to runviewer and return them."""
-        if clock is not None:
-            clock_ticks = rising_edge_times(clock)
-
         pulse_programs = []
         with h5py.File(self.path, "r") as f:
             device_properties = properties.get(f, self.name, "device_properties")
@@ -38,7 +30,6 @@ class PrawnBlasterParser:
 
             self.clock_resolution = device_properties["clock_resolution"]
             self.trigger_delay = device_properties["trigger_delay"]
-            self.wait_delay = device_properties["wait_delay"]
 
             num_pseudoclocks = connection_table_properties["num_pseudoclocks"]
             for i in range(num_pseudoclocks):
@@ -56,14 +47,8 @@ class PrawnBlasterParser:
             index = int(connection_parts[1])
             pulse_program = pulse_programs[index]
 
-            time = []
-            states = []
-            trigger_index = 0
-            t = 0 if clock is None else clock_ticks[trigger_index] + self.trigger_delay
-            trigger_index += 1
-
             clock_factor = self.clock_resolution / 2.0
-
+            segments = [[]]
             last_instruction_was_wait = False
             for row in pulse_program:
                 # As in the firmware, a zero half_period and reps is the stop, and
@@ -72,31 +57,20 @@ class PrawnBlasterParser:
                     break
                 if row["reps"] == 0 and not last_instruction_was_wait:  # WAIT
                     last_instruction_was_wait = True
-                    if clock is not None:
-                        t = clock_ticks[trigger_index] + self.trigger_delay
-                        trigger_index += 1
-                    else:
-                        t += self.wait_delay
+                    segments.append([])
                 elif row["reps"] == 0:
                     # As in the firmware, waits in a row are one wait: two make it
                     # indefinite, so we just skip this instruction.
                     continue
                 else:
                     last_instruction_was_wait = False
-                    for i in range(row["reps"]):
-                        for j in range(1, -1, -1):
-                            time.append(t)
-                            states.append(j)
-                            t += row["half_period"] * clock_factor
+                    half = row["half_period"] * clock_factor
+                    segments[-1].append((half, half, row["reps"]))
 
-            pseudoclock_clock = (np.array(time), np.array(states))
-
-            for clock_line_name, clock_line in pseudoclock.child_list.items():
-                # Ignore the dummy internal wait monitor clockline
-                if clock_line.parent_port.startswith("GPIO"):
-                    clocklines_and_triggers[clock_line_name] = pseudoclock_clock
-                    add_trace(
-                        clock_line_name, pseudoclock_clock, self.name, clock_line.parent_port
-                    )
+            trace = self.clock_trace(clock, self.trigger_delay, segments)
+            # The GPIO ports only: the internal wait monitor's clock line has none.
+            clocklines_and_triggers.update(
+                self.add_clock_lines(add_trace, trace, "GPIO", pseudoclock)
+            )
 
         return clocklines_and_triggers

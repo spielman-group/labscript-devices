@@ -13,19 +13,18 @@
 
 import numpy as np
 import labscript_utils.h5_lock, h5py
+from labscript_devices.runviewer_parsing import PseudoclockParser
 
 from .labscript_devices import PulseBlasterBase
 
 
-class PulseBlasterBaseParser:
+class PulseBlasterBaseParser(PseudoclockParser):
     """Runviewer's traces of a PulseBlaster board's program. A board's class sets
     ``num_flags``, and ``num_dds`` if it has DDS outputs."""
     num_dds = 0
 
     def __init__(self, path, device):
-        self.path = path
-        self.name = device.name
-        self.device = device
+        super().__init__(path, device)
 
         # Lookup tables of the strings used as dictionary keys, so that the methods
         # that add a row to the traces do not format them each time.
@@ -53,10 +52,6 @@ class PulseBlasterBaseParser:
         return repeats * row['length'] * 1.0e-9
 
     def get_traces(self, add_trace, clock=None):
-        if clock is None:
-            # we're the master pseudoclock, software triggered. So we don't have to worry about trigger delays, etc
-            pass
-
         with h5py.File(self.path, 'r') as f:
             pulse_program = f['devices/%s/PULSE_PROGRAM'%self.name][:]
             dds = {}
@@ -73,8 +68,8 @@ class PulseBlasterBaseParser:
             for sub_chnl in ['freq', 'amp', 'phase']:
                 traces['dds %d_%s'%(i,sub_chnl)] = []
 
-        # A secondary is taken to be triggered at 0, so it starts trigger_delay later.
-        t = 0. if clock is None else PulseBlasterBase.trigger_delay
+        starts = iter(self.start_and_resume_times(clock, PulseBlasterBase.trigger_delay))
+        t = next(starts)
         i = 0
         while i < len(pulse_program):
             # ignore the first 2 instructions, they are dummy instructions for BLACS
@@ -122,8 +117,8 @@ class PulseBlasterBaseParser:
                 self._add_pulse_program_row_to_traces(traces,row,dds)
                 t+= self._duration(row)
 
-                if row['inst'] == 8 and clock is not None: # WAIT
-                    t+= PulseBlasterBase.trigger_delay
+                if row['inst'] == 8: # WAIT
+                    t = next(starts)
 
             i += 1
 

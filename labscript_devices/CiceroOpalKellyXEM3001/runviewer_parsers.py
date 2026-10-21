@@ -11,22 +11,13 @@
 #                                                                   #
 #####################################################################
 
-import numpy as np
 import labscript_utils.h5_lock, h5py
 import labscript_utils.properties
-from labscript_devices.runviewer_parsing import rising_edge_times
+from labscript_devices.runviewer_parsing import PseudoclockParser
 
 
-class CiceroOpalKellyXEM3001Parser:
-    def __init__(self, path, device):
-        self.path = path
-        self.name = device.name
-        self.device = device
-
+class CiceroOpalKellyXEM3001Parser(PseudoclockParser):
     def get_traces(self, add_trace, clock=None):
-        if clock is not None:
-            clock_ticks = rising_edge_times(clock)
-
         with h5py.File(self.path, 'r') as f:
             pulse_program = f[f'devices/{self.name}/PULSE_PROGRAM'][:]
             device_properties = labscript_utils.properties.get(
@@ -37,37 +28,19 @@ class CiceroOpalKellyXEM3001Parser:
             )
 
         clock_frequency = connection_table_properties['clock_frequency']
+        # A secondary's program begins with the wait for its first trigger, its start.
+        if not device_properties['is_master_pseudoclock']:
+            pulse_program = pulse_program[1:]
 
-        time = []
-        states = []
-        trigger_index = 0
-        t = 0
-
+        segments = [[]]
         for row in pulse_program:
-            # A row of 0 reps is a wait. With a parent clock the program resumes a trigger
-            # delay after that clock's next rising edge; without one, a wait_delay later.
+            # A row of 0 reps is a wait.
             if row['reps'] == 0:
-                if clock is not None:
-                    t = clock_ticks[trigger_index]+device_properties['trigger_delay']
-                    trigger_index += 1
-                else:
-                    t += device_properties['wait_delay']
+                segments.append([])
             else:
-                for i in range(row['reps']):
-                    time.append(t)
-                    states.append(1)
-                    t += row['on_period']/clock_frequency
-                    time.append(t)
-                    states.append(0)
-                    t += row['off_period']/clock_frequency
+                high = row['on_period'] / clock_frequency
+                low = row['off_period'] / clock_frequency
+                segments[-1].append((high, low, row['reps']))
 
-        clock = (np.array(time), np.array(states))
-
-        clocklines_and_triggers = {}
-        for pseudoclock_name, pseudoclock in self.device.child_list.items():
-            for clock_line_name, clock_line in pseudoclock.child_list.items():
-                if clock_line.parent_port == 'Clock Out':
-                    clocklines_and_triggers[clock_line_name] = clock
-                    add_trace(clock_line_name, clock, self.name, clock_line.parent_port)
-
-        return clocklines_and_triggers
+        trace = self.clock_trace(clock, device_properties['trigger_delay'], segments)
+        return self.add_clock_lines(add_trace, trace, 'Clock Out')
