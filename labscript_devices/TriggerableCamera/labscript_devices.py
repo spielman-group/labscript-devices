@@ -150,8 +150,8 @@ class TriggerableCamera(TriggerableDevice):
                 raise ValueError(dedent(msg))
         valid_attr_levels = ('simple', 'intermediate', 'advanced', None)
         if saved_attribute_visibility_level not in valid_attr_levels:
-            msg = "saved_attribute_visibility_level must be one of %s"
-            raise ValueError(msg % valid_attr_levels)
+            msg = f"saved_attribute_visibility_level must be one of {valid_attr_levels}."
+            raise ValueError(msg)
         self.camera_attributes = camera_attributes
         self.manual_mode_camera_attributes = manual_mode_camera_attributes
         self.exposures = []

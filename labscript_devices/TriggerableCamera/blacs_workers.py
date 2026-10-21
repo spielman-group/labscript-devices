@@ -223,6 +223,7 @@ class TriggerableCameraWorker(Worker):
         self.attributes_to_save = None
         self.exposures = None
         self.acquisition_thread = None
+        self.acquisition_error = None
         self.h5_file = None
         self.stop_acquisition_timeout = None
         self.exception_on_failed_shot = None
@@ -346,17 +347,24 @@ class TriggerableCameraWorker(Worker):
         # bufferCount.
         self.camera.configure_acquisition(False, self.n_images)
         self.images = []
-        self.acquisition_thread = threading.Thread(
-            target=self.camera.grab_multiple,
-            args=(self.n_images, self.images),
-            daemon=True,
-        )
+
+        def grab_multiple():
+            try:
+                self.camera.grab_multiple(self.n_images, self.images)
+            except Exception as e:
+                # Kept for transition_to_manual, which fails the shot with it.
+                self.acquisition_error = e
+                raise
+
+        self.acquisition_thread = threading.Thread(target=grab_multiple, daemon=True)
         self.acquisition_thread.start()
         return {}
 
     def transition_to_manual(self):
         if self.h5_file is None:
             print('No camera exposures in this shot.\n')
+            if self.continuous_dt is not None:
+                self.start_continuous(self.continuous_dt)
             return True
         assert self.acquisition_thread is not None
         self.acquisition_thread.join(timeout=self.stop_acquisition_timeout)
@@ -372,6 +380,10 @@ class TriggerableCameraWorker(Worker):
                 self.camera.abort_acquisition()
                 self.acquisition_thread.join()
                 print(dedent(msg), file=sys.stderr)
+        if self.acquisition_error is not None and self.exception_on_failed_shot:
+            error = self.acquisition_error
+            self.abort()
+            raise error
         self.acquisition_thread = None
 
         print("Stopping acquisition.")

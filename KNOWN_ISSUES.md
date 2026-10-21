@@ -12,9 +12,6 @@
 - `CiceroOpalKellyXEM3001/labscript_devices.py`: `generate_code` merges instructions of equal periods with no cap, and the worker packs reps into 4 bytes, so 2**32 or more ticks at one period are silently cut short; it also merges a clock instruction into a wait whose timeout makes the same periods (3 or 4 ticks).
 - `LightCrafterDMD/blacs_workers.py`: `transition_to_buffered` keys the final image "None", not the ImageSet's connection, so after a shot BLACS leaves the front panel on its earlier image while the DMD shows the shot's last one.
 - `LightCrafterDMD/blacs_workers.py`: `_receive` reads the header and the body with one `recv` each, so a reply split across TCP segments is misread.
-- `TriggerableCamera/labscript_devices.py`: `__init__` formats its message for a bad `saved_attribute_visibility_level` with a 4-tuple into one `%s`, so it raises TypeError, not the ValueError meant.
-- `TriggerableCamera/blacs_workers.py`: `transition_to_buffered` pauses continuous acquisition, but `transition_to_manual` returns early for a shot with no exposures for the camera, so the acquisition is never resumed while the tab still shows it running.
-- `TriggerableCamera/attributes_dialog.ui`, `blacs_tab.ui`: the text says IMAQdx, and tells every camera's users to pass the attributes as `imaqdx_attributes` to IMAQdxCamera; the keyword is `camera_attributes`.
 - `FlyCapture2Camera/blacs_workers.py`: `set_image_mode` rounds the width and height to the offset step sizes, not the image step sizes PyCapture2 also reports; unchecked against a camera.
 - `FlyCapture2Camera/blacs_workers.py`: `is_transient_grab_error` retries every Fc2error, so a fault that raises at once has `grab_multiple` retry it without pause until the shot ends.
 - `docs/source/devices/pylon.rst`: gives the usage as `python ExposureTiming.py [camera_sn]`, which the script's argparse refuses; it takes `-sn SERIAL`.
@@ -33,7 +30,6 @@
 - `FunctionRunner/blacs_workers.py`: the functions are deserialised with `__name__` and `__file__` set to the device name, for `lyse.Run` to name its results group after the device, but lyse takes the group from `sys.modules['__main__'].__file__`, so the group is named after the worker's main script.
 - `FunctionRunner/utils.py`: a lambda passes `add_function`, but the worker cannot find it by its name, `<lambda>`, in its source, and raises KeyError.
 - `FunctionRunner/labscript_devices.py`: `add_function` with a string `t` other than 'start' or 'stop' raises float()'s ValueError, not a message about `t`.
-- `TriggerableCamera/blacs_workers.py`: with `exception_on_failed_shot` True, a grab error ends the acquisition thread, but `transition_to_manual` checks only whether the thread is still alive, so the shot goes on with the images acquired so far.
 - `PulseBlaster/labscript_devices.py`: `PulseBlasterDDS` does not refuse a `digital_gate`; `DDSQuantity` makes a gate from it, and the PulseBlaster's own gate then fails on the name, with an error that does not mention `digital_gate`.
 - `RFBlaster/labscript_devices.py`: an RFBlaster without a `trigger_device` compiles as the master pseudoclock, but its tab has no `start_run`, so BLACS cannot run the shot.
 - runviewer draws nothing below a device that has no runviewer parser, such as a secondary pseudoclock triggered from a DummyIntermediateDevice: loading that device raises, and runviewer skips its children.

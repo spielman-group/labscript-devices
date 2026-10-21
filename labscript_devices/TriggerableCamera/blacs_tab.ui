@@ -33,7 +33,7 @@
        <item>
         <widget class="QPushButton" name="pushButton_attributes">
          <property name="toolTip">
-          <string>View IMAQdx attributes</string>
+          <string>View camera attributes</string>
          </property>
          <property name="text">
           <string>Attributes</string>
