@@ -89,7 +89,10 @@ Each stage's commits on `CodeHealth`, for review:
   recommendations", "whichever is the cleanest should be accepted", "yes, drop
   the reader", then "yes, bring C forward now"): `1fea8d6..` the commit that
   records this line. Coupled with labscript `4d88c40..99b4f59`, which saves
-  the trigger times the model reads, in time order.
+  the trigger times the model reads, in time order. Codex's re-check at
+  `6506f94` is clean, and step 2.6 is closed.
+- Step 2.6's known issues, triaged for Ian: the commit that records this line,
+  a table only.
 
 ## The test contract
 
@@ -1070,3 +1073,66 @@ one commit a package, the top-level modules last.
   The two PulseBlaster secondaries of `plain_trigger_devices` start at their
   trigger, 0.74 µs, where they were drawn as if triggered at 0. No other trace
   moves.
+
+## Step 2.6's known issues: triage (for Ian)
+
+The 47 lines step 2.6 added to `KNOWN_ISSUES.md`, the serious ones first.
+Ranked by Ian's rule, "can a reasonable sequence in his labs reach this?"; his
+labs run PulseBlaster masters, NovaTech DDSs and NI cards. Every fix is in
+labscript-devices unless the row names another repo. "Verify first" means the
+fix needs a board, a camera or a vendor SDK to be sure of; anything fixed is
+checked on Development's hardware after the merge. Nothing is changed until
+Ian decides.
+
+| # | Device, file | What goes wrong | Severity | Who reaches it | Fix, size | Verify first | Proposal |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | NI_DAQmx `blacs_workers.py` `stop_task` | the samples after each analog input acquisition's last full chunk are never read | high: lost data | every NI lab acquiring analog input, Ian's included | pass the integer task handle, as the callback does, 1 line | no | fix now |
+| 2 | AndorSolis `andor_utils.py` `enable_emccd` | only the gain range's two ends pass, so the default 50 is refused | high: EMCCD cannot be used | an Andor lab using EMCCD gain | test `low <= gain <= high`, 1 line | no | fix now |
+| 3 | AndorSolis `andor_utils.py` `setup_acquisition` | EMCCD with cooldown raises on the first setup, as the gain is set before cooling starts | high, with row 2 | the same lab | enable cooldown before the EMCCD gain, the order the error asks for, a block moved | camera: the cooldown waits until stable | fix now |
+| 4 | PrawnDO `blacs_workers.py` final values | BLACS shows every output low after a shot, from the stop row's ignored bit set | medium: front panel wrong until reprogrammed | every PrawnDO lab | read the row before the stop, 1 line | no | fix now |
+| 5 | TekScope `TekScope.py` `waveform` | with `int16` the trace is garbage: 16-bit points read as 4-byte `'i'` | medium: invalid data, only with `int16` | a TekScope lab that sets `int16` | datatype `'h'`, 1 line, and the parameter's doc | scope | fix now, then check on a scope |
+| 6 | Spinnaker, FlyCapture2, Pylon workers | a `serial_number` given as a string is read as hex, so the camera looked up is wrong or missing | medium: the camera does not open | a FLIR or Basler lab that writes its serial as a string | let a camera class say its serials are decimal, about 5 lines; IMAQdx keeps hex | no | fix now |
+| 7 | FunctionRunner `blacs_workers.py` | a `lyse.Run` in a function names its results group after the worker's script, not the device | medium: results under an unexpected name | a FunctionRunner lab saving results through `lyse.Run` | the docstring's `run.set_group(device_name)` is the workaround; a fix needs lyse to take a group from its caller (lyse) or the false `__name__`/`__file__` dropped here (1 line) | no | ask the lyse owner, then decide; defer meanwhile |
+| 8 | PrawnDO `blacs_workers.py` smart programming | a program at most 10% longer than the cached one raises IndexError | medium: shot fails | a PrawnDO lab scanning a parameter that adds instructions | cache the new program whole, about 3 lines | no | fix now |
+| 9 | PrawnDO `labscript_devices.py` `clock_limit` | off 100 MHz, the clock limit scales the wrong way, as PrawnBlaster's did (fixed in `3fd37cf`) | medium: too-fast updates compile, or slow ones refused | a PrawnDO at another clock | `/= factor`, 1 line | no | fix now |
+| 10 | TriggerableCamera `blacs_workers.py` continuous acquisition | a shot with no exposures for the camera leaves continuous acquisition paused, the tab showing it running | medium | a camera lab running continuous mode with shots that skip that camera | resume before the early return, 2 lines | no | fix now |
+| 11 | TriggerableCamera `blacs_workers.py` `exception_on_failed_shot` | with it True, a grab error ends the thread silently and the shot goes on with partial images | medium: the asked-for exception is lost | any camera lab with a grab error | re-raise the thread's error in `transition_to_manual`, about 4 lines | no | fix now |
+| 12 | AndorSolis `blacs_workers.py` `grab_multiple` | an abort waits for the next acquisition's timeout, and `abort()` joins without one | medium: slow or stuck abort | an Andor lab aborting a shot | poll the abort flag between acquisitions, 2 lines | camera | fix now, then check on a camera |
+| 13 | AlazarTechBoard `blacs_workers.py` lone channel B | `channels=CHANNEL_B` compiles, then raises TypeError at the end of the shot | medium | an Alazar lab using only channel B | refuse it at compile, 2 lines | no | fix now |
+| 14 | AlazarTechBoard `blacs_workers.py` DMA buffers | freed only after a successful shot, so each failed or aborted shot leaks them | medium: memory grows | an Alazar lab with failures | free them at the next transition or in abort, about 4 lines | board | verify first |
+| 15 | NovaTechDDS9M `blacs_workers.py` `check_remote_values` | a NovaTech that does not answer raises ValueError, not the "cannot connect" error meant | low-medium: misleading error | Ian's NovaTech labs, on a dead link | test the empty reply, 3 lines | no | fix now |
+| 16 | PulseBlaster `labscript_devices.py` `get_direct_outputs` | a connection's prefix is not checked against the output's class: a DigitalOut on 'dds 1' drives flag 1 | low-medium: a typo is accepted | Ian's PulseBlaster labs, on a typo | refuse the mismatch, about 6 lines | no | fix now |
+| 17 | PulseBlaster `labscript_devices.py` `PulseBlasterDDS` | a `digital_gate` is not refused, and fails later on a gate-name clash | low | a PulseBlaster DDS user passing one | refuse it, 2 lines | no | fix now |
+| 18 | ESRPro200, SP2 `labscript_devices.py` | `clock_resolution` is one cycle, not two, so a symmetric tick of an odd number of cycles may run long | unknown | those two boards | two cycles, if SpinAPI rounds both halves up, 1 line each | SpinAPI, or a board | verify first |
+| 19 | NI_DAQmx `labscript_devices.py` `static_AO` | `static_AO=False` is accepted on a device that cannot buffer AO, so an unclockable AnalogOut compiles | low-medium | an NI lab misconfiguring a model | refuse it, 2 lines | no | fix now |
+| 20 | RFBlaster `labscript_devices.py` | an RFBlaster without `trigger_device` compiles as the master, which BLACS cannot start | low-medium | an RFBlaster lab | refuse it at compile, 2 lines | no | fix now |
+| 21 | LightCrafterDMD `blacs_workers.py` final image | after a shot the front panel keeps its earlier image while the DMD shows the shot's last | medium, rare device | a LightCrafter lab | key the final image by the ImageSet's connection, 1 line | no | fix now |
+| 22 | LightCrafterDMD `blacs_workers.py` `_receive` | a reply split across TCP segments is misread | low | a LightCrafter on a busy network | read until the length is in, about 6 lines | no | defer |
+| 23 | AlazarTechBoard external clock, rate 0 | the default rate with the 10 MHz reference gives no samples and no error | low-medium | an Alazar lab forgetting the rate | refuse rate 0 at compile, 2 lines | no | fix now |
+| 24 | AndorSolis `andor_utils.py` `enable_preamp` | gains are checked against evenly spaced values, so a camera with uneven gains has some refused | low-medium | an Andor model with uneven gains | check the camera's own list, 3 lines | no | fix now |
+| 25 | AndorSolis `andor_structures.py` `ulSize` | set to the Python object's size, not the structure's | unknown | every Andor lab, if the SDK checks it | `ctypes.sizeof`, 1 line | SDK or camera | verify first |
+| 26 | AndorSolis `blacs_workers.py` attributes | the interface's attributes are AndorCam's defaults dict itself, so setting one changes the defaults | low | an Andor lab changing attributes between shots | copy the dict, 1 line | no | fix now |
+| 27 | Spinnaker `blacs_workers.py` packed formats | every Mono format not ending in 8 is read as uint16, so Mono12Packed is misread | medium for that format | a FLIR lab choosing a packed format | refuse packed formats, 2 lines, or decode them through PySpin | SDK, to decode | fix now as a refusal |
+| 28 | FlyCapture2 `blacs_workers.py` `set_image_mode` | the size is rounded to the offset steps, not the image steps | unknown | a FlyCapture2 lab setting an ROI | use the image step sizes, 2 lines | camera or SDK docs | verify first |
+| 29 | FlyCapture2 `blacs_workers.py` `is_transient_grab_error` | every Fc2error is retried, so a real fault retries without pause until the shot ends | low | a FlyCapture2 lab with a fault | retry only the timeout code | SDK | verify first |
+| 30 | Spinnaker, FlyCapture2 visibility level | `saved_attribute_visibility_level` is ignored; every attribute is saved | low | FLIR labs | map the level to PySpin's visibility; FlyCapture2 has none | SDK | defer |
+| 31 | Spinnaker `blacs_workers.py` release on errors | an image, or the camera list and system, are not released when decoding or `__init__` raises | low | a FLIR lab after an error | `try`/`finally`, about 6 lines | no | defer |
+| 32 | TriggerableCamera `labscript_devices.py` visibility message | a bad `saved_attribute_visibility_level` raises TypeError, not the ValueError meant | low | a typo | format the tuple, 1 line | no | fix now |
+| 33 | TriggerableCamera `.ui` text | the dialog tells every camera's users to pass `imaqdx_attributes` to IMAQdxCamera | low-medium: wrong instructions | every camera lab | say `camera_attributes`, two strings | no | fix now |
+| 34 | TekScope `blacs_workers.py` no channel shown | with no channel displayed the shot fails with UnboundLocalError | low | a TekScope lab | raise a direct error, 2 lines | no | fix now |
+| 35 | FunctionRunner `utils.py` lambda | a lambda passes `add_function`, then the worker raises KeyError | low-medium | a FunctionRunner user writing a lambda | refuse it at `add_function`, 2 lines | no | fix now |
+| 36 | FunctionRunner `labscript_devices.py` string `t` | a `t` other than 'start' or 'stop' raises float()'s ValueError | low | a typo | a direct message, 2 lines | no | fix now |
+| 37 | NI_DAQmx `utils.py` `split_conn_DO` | its error names the reassigned connection | low | a typo | name the original, 1 line | no | fix now |
+| 38 | ZaberStageController `blacs_tabs.py` order | 10 or more stages sort as text: 'device 1', 'device 10', 'device 2' | low | a lab with 10 stages | a sort key, 1 line | no | fix now |
+| 39 | ZaberStageController `utils.py` | a non-string connection raises AttributeError, not the message meant | low | a typo | catch it too, 1 line | no | fix now |
+| 40 | DummyIntermediateDevice `labscript_devices.py` | one with no outputs fails to compile | low: a test device | a test shot | write no table without outputs, 2 lines | no | fix now |
+| 41 | Cicero `labscript_devices.py` reps | 2**32 or more ticks at one period are cut short, and a 3- or 4-tick wait can merge | low: unphysical | none in practice | cap the merge, 2 lines | no | defer |
+| 42 | Cicero `blacs_tabs.py` child lookup | it searches the wait monitor's pseudoclock | none now | nobody, as the tab makes no outputs | look under the right child, 1 line | no | defer |
+| 43 | PineBlaster `blacs_tabs.py` `'-'` | an unknown port returns `'-'` | none now | nobody | return `None`, 1 line | no | defer |
+| 44 | runviewer, no parser above | nothing below a device without a parser is drawn | low | a secondary triggered from a DummyIntermediateDevice | a parser for DummyIntermediateDevice here, or runviewer loading children regardless (runviewer) | no | defer |
+| 45 | `docs/source/devices/pylon.rst` | the usage line has a positional serial the script refuses | low: docs | Basler users | `-sn SERIAL`, 1 line | no | fix now |
+| 46 | `docs/source/devices/alazartechboard.rst` | says atsapi.py is installed separately | low: docs | Alazar users | say it ships here, 1 line | no | fix now |
+| 47 | PylonCamera `testing/ExposureTiming.py` | the last print calls a start-to-start time end-to-start | low: a script | Basler users timing a camera | label both cases, 1 line | no | fix now |
+
+In all: fix now 34, verify first 5 (14, 18, 25, 28, 29), and defer 8 (7, 22,
+30, 31, 41, 42, 43, 44), row 7 until the lyse owner answers.
