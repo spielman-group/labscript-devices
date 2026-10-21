@@ -33,12 +33,8 @@ import labscript_utils.properties
 from labscript_utils.ls_zprocess import ZMQServer
 
 
-
-
 def exp_av(av_old, data_new, dt, tau):
-    """Compute the new value of an exponential moving average based on the previous
-    average av_old, a new value data_new, a time interval dt and an averaging timescale
-    tau. Returns data_new if dt > tau"""
+    """Update the average `av_old`, of timescale `tau`, with `data_new` after `dt`."""
     if dt > tau:
         return data_new
     k = dt / tau
@@ -46,8 +42,7 @@ def exp_av(av_old, data_new, dt, tau):
 
 
 class ImageReceiver(ZMQServer):
-    """ZMQServer that receives images on a zmq.REP socket, replies 'ok', and updates the
-    image widget and fps indicator"""
+    """Receive images from the worker, reply 'ok', and show them with the frame rate."""
 
     def __init__(self, image_view, label_fps):
         ZMQServer.__init__(self, port=None, dtype='multipart')
@@ -59,16 +54,16 @@ class ImageReceiver(ZMQServer):
 
     @inmain_decorator(wait_for_return=True)
     def handler(self, data):
-        # Acknowledge immediately so that the worker process can begin acquiring the
-        # next frame. This increases the possible frame rate since we may render a frame
-        # whilst acquiring the next, but does not allow us to accumulate a backlog since
-        # only one call to this method may occur at a time.
+        # Acknowledge at once so that the worker can acquire the next frame while this
+        # one is drawn. No backlog builds up, since only one call to this method can
+        # run at a time.
         self.send([b'ok'])
         md = json.loads(data[0])
         image = np.frombuffer(memoryview(data[1]), dtype=md['dtype'])
         image = image.reshape(md['shape'])
         if len(image.shape) == 3 and image.shape[0] == 1:
-            # If only one image given as a 3D array, convert to 2D array:
+            # transition_to_manual sends a shot's images as one 3D stack; show a single
+            # image as 2D.
             image = image.reshape(image.shape[1:])
         this_frame_time = perf_counter()
         if self.last_frame_time is not None:
@@ -87,30 +82,21 @@ class ImageReceiver(ZMQServer):
             self.image_view.setImage(
                 image.swapaxes(-1, -2), autoRange=False, autoLevels=False
             )
-        # Update fps indicator:
         if self.frame_rate is not None:
             self.label_fps.setText(f"{self.frame_rate:.01f} fps")
 
-        # Tell Qt to send posted events immediately to prevent a backlog of paint events
-        # and other low-priority events. It seems that we cannot make our qtutils
-        # CallEvents (which are used to call this method in the main thread) low enough
-        # priority to ensure all other occur before our next call to self.handler()
-        # runs. This may be because the CallEvents used by qtutils.invoke_in_main have
-        # their own event handler (qtutils.invoke_in_main.Caller), perhaps posted event
-        # priorities are only meaningful within the context of a single event handler,
-        # and not for the Qt event loop as a whole. In any case, this seems to fix it.
-        # Manually calling this is usually a sign of bad coding, but I think it is the
-        # right solution to this problem. This solves issue #36.
+        # qtutils CallEvents, which call this method in the main thread, cannot be given
+        # low enough priority for paint events to run before the next call, so they back
+        # up. Sending posted events here prevents it (issue #36).
         QtWidgets.QApplication.instance().sendPostedEvents()
         return self.NO_RESPONSE
 
 
 class TriggerableCameraTab(DeviceTab):
-    # Subclasses may override this if all they do is replace the worker class with a
-    # different one:
+    # A subclass that only replaces the worker class overrides this.
     worker_class = 'labscript_devices.TriggerableCamera.blacs_workers.TriggerableCameraWorker'
-    # Subclasses may override this to False if camera attributes should be set every
-    # shot even if the same values have previously been set:
+    # A subclass overrides this to False to set the camera attributes every shot, even
+    # when they are unchanged.
     use_smart_programming = True
 
     def initialise_GUI(self):
@@ -130,8 +116,8 @@ class TriggerableCameraTab(DeviceTab):
 
         self.attributes_dialog = UiLoader().load(attributes_ui_filepath)
         self.attributes_dialog.setParent(self.ui.parent())
-        self.attributes_dialog.setWindowFlags(QtCore.Qt.Tool)
-        self.attributes_dialog.setWindowTitle("{} attributes".format(self.device_name))
+        self.attributes_dialog.setWindowFlags(QtCore.Qt.WindowType.Tool)
+        self.attributes_dialog.setWindowTitle(f"{self.device_name} attributes")
         self.attributes_dialog.pushButton_copy.clicked.connect(self.on_copy_clicked)
         self.attributes_dialog.comboBox.currentIndexChanged.connect(
             self.on_attr_visibility_level_changed
@@ -141,7 +127,8 @@ class TriggerableCameraTab(DeviceTab):
         layout.addWidget(self.ui)
         self.image = pg.ImageView()
         self.image.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
         )
         self.ui.horizontalLayout.addWidget(self.image)
         self.ui.pushButton_stop.hide()
@@ -157,15 +144,15 @@ class TriggerableCameraTab(DeviceTab):
             self.ui.toolButton_nomax,
         ]:
             size_policy = widget.sizePolicy()
-            if hasattr(size_policy, 'setRetainSizeWhenHidden'): # Qt 5.2+ only
+            # setRetainSizeWhenHidden was added in Qt 5.2.
+            if hasattr(size_policy, 'setRetainSizeWhenHidden'):
                 size_policy.setRetainSizeWhenHidden(True)
                 widget.setSizePolicy(size_policy)
 
-        # Start the image receiver ZMQ server:
         self.image_receiver = ImageReceiver(self.image, self.ui.label_fps)
         self.acquiring = False
 
-        self.supports_smart_programming(self.use_smart_programming) 
+        self.supports_smart_programming(self.use_smart_programming)
 
     def get_save_data(self):
         return {
@@ -188,13 +175,11 @@ class TriggerableCameraTab(DeviceTab):
                 ast.literal_eval(data['colormap'])
             )
 
-
     def initialise_workers(self):
         table = self.settings['connection_table']
         connection_table_properties = table.find_by_name(self.device_name).properties
-        # The device properties can vary on a shot-by-shot basis, but at startup we will
-        # initially set the values that are configured in the connection table, so they
-        # can be used for manual mode acquisition:
+        # The device properties can vary from shot to shot; at startup the values in
+        # the connection table are set, for manual mode acquisition.
         with h5py.File(table.filepath, 'r') as f:
             device_properties = labscript_utils.properties.get(
                 f, self.device_name, "device_properties"
@@ -284,7 +269,6 @@ class TriggerableCameraTab(DeviceTab):
         yield (self.queue_work(self.primary_worker, 'stop_continuous'))
 
     def restart(self, *args, **kwargs):
-        # Must manually stop the receiving server upon tab restart, otherwise it does
-        # not get cleaned up:
+        # The receiving server must be stopped on a restart, or it is not cleaned up.
         self.image_receiver.shutdown()
         return DeviceTab.restart(self, *args, **kwargs)

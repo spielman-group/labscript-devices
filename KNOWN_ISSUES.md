@@ -18,3 +18,6 @@
 - `CiceroOpalKellyXEM3001/labscript_devices.py`: `generate_code` merges instructions of equal periods with no cap, and the worker packs reps into 4 bytes, so 2**32 or more ticks at one period are silently cut short; it also merges a clock instruction into a wait whose timeout makes the same periods (3 or 4 ticks).
 - `LightCrafterDMD/blacs_workers.py`: `transition_to_buffered` keys the final image "None", not the ImageSet's connection, so after a shot BLACS leaves the front panel on its earlier image while the DMD shows the shot's last one.
 - `LightCrafterDMD/blacs_workers.py`: `_receive` reads the header and the body with one `recv` each, so a reply split across TCP segments is misread.
+- `TriggerableCamera/labscript_devices.py`: `__init__` formats its message for a bad `saved_attribute_visibility_level` with a 4-tuple into one `%s`, so it raises TypeError, not the ValueError meant.
+- `TriggerableCamera/blacs_workers.py`: `transition_to_buffered` pauses continuous acquisition, but `transition_to_manual` returns early for a shot with no exposures for the camera, so the acquisition is never resumed while the tab still shows it running.
+- `TriggerableCamera/attributes_dialog.ui`, `blacs_tab.ui`: the text says IMAQdx, and tells every camera's users to pass the attributes as `imaqdx_attributes` to IMAQdxCamera; the keyword is `camera_attributes`.

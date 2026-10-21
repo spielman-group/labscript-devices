@@ -29,161 +29,104 @@ from labscript_utils.shared_drive import path_to_local
 
 def _unwritten(camera, method):
     """The message for a member of the camera contract a camera has not written."""
-    msg = """%s does not implement %s(). A camera interface class implements
-        every member of the contract in TriggerableCameraInterface, or
-        overrides the method that reaches for it."""
-    return dedent(msg) % (type(camera).__name__, method)
+    msg = f"""{type(camera).__name__} does not implement {method}(). Write it in the
+        camera's interface class, or override the method that calls it."""
+    return dedent(msg)
 
 
-class TriggerableCameraInterface(object):
-    """The object a camera worker talks to in place of hardware.
+class TriggerableCameraInterface:
+    """What `TriggerableCameraWorker` calls on its camera; cameras subclass it."""
 
-    One of these is what :obj:`TriggerableCameraWorker.interface_class` names,
-    and every camera in labscript_devices implements it: a thin layer over one
-    vendor's API, holding no labscript state and knowing nothing about shots.
-
-    The worker calls `set_attributes`, `get_attributes_as_dict`, `snap`,
-    `grab`, `grab_multiple`, `configure_acquisition`, `stop_acquisition`,
-    `abort_acquisition` and `close`. `snap` is called with no acquisition
-    configured and must arrange its own; `grab` is called only between
-    `configure_acquisition` and `stop_acquisition`. An array returned by either
-    must stay valid after the next one is taken, since `grab_multiple`
-    accumulates them, which is why most cameras copy out of the vendor's
-    buffer.
-
-    A camera should subclass this. It then gets `grab_multiple`,
-    `abort_acquisition` and the composing `get_attributes_as_dict` for free,
-    and is told which member it has forgotten rather than failing with an
-    AttributeError deep in a shot. One that does not must write every member
-    the worker calls, except that a worker subclassing `IMAQdxCameraWorker`
-    builds `get_attributes_as_dict` for it, a route that is deprecated.
-    """
-
-    # The worker overwrites this on every buffered shot, from the device
-    # property of the same name. The value here is what a manual-mode
-    # acquisition sees before any shot has run.
+    # Set by the worker, from the device property of the same name, for each shot that
+    # has exposures, and read by grab_multiple.
     exception_on_failed_shot = True
 
-    # Polled by grab_multiple between frames, set by abort_acquisition from
-    # whichever thread aborts, and cleared by the worker once it has joined the
-    # acquisition thread.
+    # Set by abort_acquisition, from the aborting thread. Polled by grab_multiple
+    # between frames, which clears it when it stops on seeing it; the worker's abort()
+    # clears it too.
     _abort_acquisition = False
 
-    # The members a camera writes for itself. Each raises rather than doing
-    # nothing, because a camera that silently fails to program an attribute or
-    # stop an acquisition is worse than one that does not start. A camera owes
-    # set_attribute or set_attributes; the two attribute readers are owed only
-    # by a camera that inherits the composing `get_attributes_as_dict` below.
-
     def set_attributes(self, attributes):
-        """Program a dict of attribute names and values into the camera, one at
-        a time unless the camera writes its own."""
+        """Program a dict of attributes; the default calls `set_attribute` for each."""
         for name, value in attributes.items():
             self.set_attribute(name, value)
 
+    # A member a camera must write raises rather than does nothing: a camera that
+    # silently fails to program an attribute or stop an acquisition is worse than one
+    # that does not start.
     def set_attribute(self, name, value):
-        """Program one attribute into the camera."""
+        """Program one attribute; a camera writes this or `set_attributes`."""
         raise NotImplementedError(_unwritten(self, 'set_attribute'))
 
+    # This and get_attribute_names are not needed by a camera that overrides
+    # get_attributes_as_dict.
     def get_attribute(self, name):
         """Return the current value of the named attribute."""
         raise NotImplementedError(_unwritten(self, 'get_attribute'))
 
     def get_attribute_names(self, visibility_level):
-        """Return the names of the attributes at the given level of detail."""
+        """Return the names of the attributes at a visibility level."""
         raise NotImplementedError(_unwritten(self, 'get_attribute_names'))
 
     def snap(self):
-        """Acquire and return one image, configuring acquisition as needed."""
+        """Return one image, arranging its own acquisition."""
         self.configure_acquisition(continuous=False, buffer_count=1)
         image = self.grab()
         self.stop_acquisition()
         return image
 
+    # The array returned must stay valid after the next grab, because grab_multiple
+    # accumulates them: a camera whose API reuses its buffer copies the image out.
     def grab(self):
         """Return the next image of an acquisition already configured."""
         raise NotImplementedError(_unwritten(self, 'grab'))
 
+    # The worker calls this with no arguments for manual-mode continuous acquisition,
+    # and with continuous=False and the shot's number of exposures for a buffered one.
     def configure_acquisition(self, continuous=True, buffer_count=None):
-        """Ready the camera to be grabbed from.
-
-        The worker calls this with no arguments for manual-mode continuous
-        acquisition, and with `continuous=False` and a `buffer_count` of the
-        shot's exposures for a buffered one. `None` leaves the number of
-        buffers to the camera.
-        """
+        """Ready the camera to grab; `buffer_count` None leaves it to the camera."""
         raise NotImplementedError(_unwritten(self, 'configure_acquisition'))
 
     def stop_acquisition(self):
-        """End an acquisition. Called after a shot, a failed shot and an abort,
-        so it has to be safe when nothing is acquiring."""
+        """End an acquisition: a shot's, however it ended, or a continuous one's."""
         raise NotImplementedError(_unwritten(self, 'stop_acquisition'))
 
     def close(self):
-        """Release the camera. The worker calls this when it shuts down."""
+        """Release the camera; the worker calls this when it shuts down."""
         raise NotImplementedError(_unwritten(self, 'close'))
 
-    # Reading the attributes back, for the shot file and the BLACS dialog.
-
+    # Reads the attributes back, for the shot file and the BLACS dialog. The default
+    # composes get_attribute_names and get_attribute; a camera whose API hands over
+    # every attribute at once overrides it.
     def get_attributes_as_dict(self, visibility_level):
-        """Return a dict of the camera's attributes at the given level of detail.
-
-        Composed here from `get_attribute_names` and `get_attribute`, which is
-        what a camera whose API is read one attribute at a time wants. A camera
-        whose API hands over every attribute in one call overrides this and
-        owes neither of those two.
-        """
+        """Return a dict of the attributes at a visibility level."""
         names = self.get_attribute_names(visibility_level)
         return {name: self.get_attribute(name) for name in names}
 
-    # Acquiring a shot's worth of frames.
-
+    # grab_multiple asks again at once, so a camera that says True must have blocked for
+    # its own timeout in grab before raising, or the loop spins until it is aborted.
     def is_transient_grab_error(self, exception):
-        """Whether this exception from `grab` means "no frame yet, ask again".
-
-        A camera waiting for a trigger reports the wait as an error, and the
-        acquisition has to keep asking: the shot decides when the triggers
-        arrive, and how long that takes is not the camera's business. Anything
-        else is a real failure. A camera whose `grab` blocks until a frame
-        arrives, or which cannot tell a wait from a failure, says False to
-        everything and is never retried.
-
-        The retry is paced by `grab` and by nothing else: a camera that says
-        True here must block for its own timeout before reporting the wait,
-        because the loop asks again immediately. One that returns straight
-        away would spin a core until the shot times out.
-        """
+        """Whether this exception from `grab` means "no frame yet, ask again"."""
         return False
 
+    # With exception_on_failed_shot False, grab_multiple gives up the frame and goes on
+    # to the next when this is True.
     def is_skippable_grab_error(self, exception):
-        """Whether `exception_on_failed_shot` may skip past this exception.
-
-        An error the camera's own API reported, as against a fault in the code
-        driving it. When a camera says True here and the shot was configured
-        with `exception_on_failed_shot=False`, the frame is given up and the
-        acquisition moves to the next exposure rather than failing the shot.
-        """
+        """Whether this exception from `grab` is one the camera's own API reported."""
         return False
 
+    # Runs in the worker's thread while grab_multiple runs in its own, so it only
+    # raises the flag. A camera whose grab blocks in the vendor's API overrides it to
+    # make the call that unblocks it, and then calls this implementation.
     def abort_acquisition(self):
-        """Ask an acquisition in progress to stop.
-
-        Called from the worker's thread while `grab_multiple` runs in its own,
-        so this only raises the flag; the loop sees it between frames. A camera
-        whose `grab` blocks in the vendor's API overrides this to make the call
-        that unblocks it, and then calls this implementation.
-        """
+        """Ask `grab_multiple` to stop at its next frame."""
         self._abort_acquisition = True
 
+    # The worker runs this in a thread for the shot, having configured the acquisition
+    # for the same n_images. A camera whose acquisition is not one frame per grab, such
+    # as a kinetic series, overrides it wholesale.
     def grab_multiple(self, n_images, images):
-        """Grab `n_images` frames, appending each to `images` as it arrives.
-
-        The worker runs this in a thread for the duration of a shot, having
-        configured the acquisition for the same `n_images`, so a camera that
-        allocates its buffers up front has one per frame asked for. A camera
-        whose acquisition is not one frame per `grab` -- a kinetic series, say
-        -- overrides this wholesale rather than bending the loop around it.
-        """
+        """Grab `n_images` frames, appending each to `images` as it arrives."""
         print(f"Attempting to grab {n_images} images.")
         for i in range(n_images):
             while True:
@@ -211,8 +154,7 @@ class TriggerableCameraInterface(object):
 
 
 class DictAttributesMixin:
-    """For a camera interface class whose attributes are held in a dict,
-    ``self.attributes``, rather than in the camera."""
+    """Attributes held in the dict ``self.attributes`` instead of in the camera."""
 
     def set_attribute(self, name, value):
         self.attributes[name] = value
@@ -225,9 +167,9 @@ class DictAttributesMixin:
 
 
 class TriggerableCameraWorker(Worker):
-    # The camera interface class this worker drives. Subclasses name their own
-    # here if it takes only the serial number as an instantiation argument,
-    # otherwise they reimplement get_camera():
+    # The camera interface class this worker drives. A subclass names its own here if
+    # it takes only the serial number as an instantiation argument, otherwise it
+    # reimplements get_camera().
     interface_class = None
 
     def init(self):
@@ -268,25 +210,18 @@ class TriggerableCameraWorker(Worker):
         self.exception_on_failed_shot = None
 
     def get_camera(self):
-        """Return an instance of the camera interface class. Subclasses may override
-        this method to pass required arguments to their class if they require more
-        than just the serial number."""
+        """Return the camera; override if it takes more than the serial number."""
         return self.interface_class(self.serial_number)
 
+    # Called by transition_to_buffered with the shot file open, after the exposures and
+    # the camera attributes have been read from it. A camera that needs more overrides
+    # this, so the file is not opened and locked a second time.
     def load_shot_data(self, shot_file):
-        """Read whatever else this worker needs from the shot file.
-
-        Called from transition_to_buffered with the shot file open, once the
-        exposures and the camera attributes have been read from it. A camera
-        that needs more of the shot than those overrides this, rather than
-        opening and locking the file a second time.
-        """
+        """Read what else this worker needs from the open shot file."""
         pass
 
     def set_attributes_smart(self, attributes):
-        """Call self.camera.set_attributes() to set the given attributes, only setting
-        those that differ from their value in, or are absent from self.smart_cache.
-        Update self.smart_cache with the newly-set values"""
+        """Set the attributes new or changed since `smart_cache`, and update it."""
         uncached_attributes = {}
         for name, value in attributes.items():
             if name not in self.smart_cache or self.smart_cache[name] != value:
@@ -295,23 +230,19 @@ class TriggerableCameraWorker(Worker):
         self.camera.set_attributes(uncached_attributes)
 
     def get_attributes_as_text(self, visibility_level):
-        """Return a string representation of the attributes of the camera for
-        the given visibility level"""
+        """Return the attributes at a visibility level as connection table text."""
         attrs = self.camera.get_attributes_as_dict(visibility_level)
-        # Format it nicely:
         lines = [f'    {repr(key)}: {repr(value)},' for key, value in attrs.items()]
         dict_repr = '\n'.join(['{'] + lines + ['}'])
         return self.device_name + '_camera_attributes = ' + dict_repr
 
     def snap(self):
-        """Acquire one frame in manual mode. Send it to the parent via
-        self.image_socket. Wait for a response from the parent."""
+        """Acquire one image in manual mode and send it to the tab."""
         image = self.camera.snap()
         self._send_image_to_parent(image)
 
     def _send_image_to_parent(self, image):
-        """Send the image to the GUI to display. This will block if the parent process
-        is lagging behind in displaying frames, in order to avoid a backlog."""
+        """Send an image to the tab and wait for its ack, so frames do not back up."""
         metadata = dict(dtype=str(image.dtype), shape=image.shape)
         self.image_socket.send_json(metadata, zmq.SNDMORE)
         self.image_socket.send(image, copy=False)
@@ -319,7 +250,7 @@ class TriggerableCameraWorker(Worker):
         assert response == b'ok', response
 
     def continuous_loop(self, dt):
-        """Acquire continuously in a loop, with minimum repetition interval dt"""
+        """Grab and send images until stopped, at least `dt` seconds apart."""
         while True:
             if dt is not None:
                 t = perf_counter()
@@ -334,8 +265,7 @@ class TriggerableCameraWorker(Worker):
                 break
 
     def start_continuous(self, dt):
-        """Begin continuous acquisition in a thread with minimum repetition interval
-        dt"""
+        """Start continuous acquisition in a thread; see `continuous_loop`."""
         assert self.continuous_thread is None
         self.camera.configure_acquisition()
         self.continuous_thread = threading.Thread(
@@ -345,18 +275,14 @@ class TriggerableCameraWorker(Worker):
         self.continuous_dt = dt
 
     def stop_continuous(self, pause=False):
-        """Stop the continuous acquisition thread"""
+        """Stop the continuous acquisition thread."""
         assert self.continuous_thread is not None
         self.continuous_stop.set()
         self.continuous_thread.join()
         self.continuous_thread = None
         self.camera.stop_acquisition()
-        # If we're just 'pausing', then do not clear self.continuous_dt. That way
-        # continuous acquisition can be resumed with the same interval by calling
-        # start(self.continuous_dt), without having to get the interval from the parent
-        # again, and the fact that self.continuous_dt is not None can be used to infer
-        # that continuous acquisiton is paused and should be resumed after a buffered
-        # run is complete:
+        # With pause, continuous_dt is kept, which tells transition_to_manual and abort
+        # to resume at that interval without asking the tab for it again.
         if not pause:
             self.continuous_dt = None
 
@@ -364,7 +290,6 @@ class TriggerableCameraWorker(Worker):
         if getattr(self, 'is_remote', False):
             h5_file = path_to_local(h5_file)
         if self.continuous_thread is not None:
-            # Pause continuous acquistion during transition_to_buffered:
             self.stop_continuous(pause=True)
         with h5py.File(h5_file, 'r') as f:
             group = f['devices'][self.device_name]
@@ -374,7 +299,6 @@ class TriggerableCameraWorker(Worker):
             self.exposures = group['EXPOSURES'][:]
             self.n_images = len(self.exposures)
 
-            # Get the camera_attributes from the device_properties
             device_properties = labscript_utils.properties.get(
                 f, self.device_name, 'device_properties'
             )
@@ -417,8 +341,10 @@ class TriggerableCameraWorker(Worker):
         assert self.acquisition_thread is not None
         self.acquisition_thread.join(timeout=self.stop_acquisition_timeout)
         if self.acquisition_thread.is_alive():
-            msg = """Acquisition thread did not finish. Likely did not acquire expected
-                number of images. Check triggering is connected/configured correctly"""
+            msg = f"""The camera {self.device_name} had acquired {len(self.images)} of
+                {len(self.exposures)} images {self.stop_acquisition_timeout} s after the
+                shot ended. Check that the triggers are connected and the camera is
+                configured to accept them."""
             if self.exception_on_failed_shot:
                 self.abort()
                 raise RuntimeError(dedent(msg))
@@ -442,7 +368,6 @@ class TriggerableCameraWorker(Worker):
             image_group = f.require_group(image_path)
             image_group.attrs['camera'] = self.device_name
 
-            # Save camera attributes to the HDF5 file:
             if self.attributes_to_save is not None:
                 labscript_utils.properties.set_attributes(
                     image_group, self.attributes_to_save
@@ -451,9 +376,8 @@ class TriggerableCameraWorker(Worker):
             # Whether we failed to get all the expected exposures:
             image_group.attrs['failed_shot'] = len(self.images) != len(self.exposures)
 
-            # key the images by name and frametype. Allow for the case of there being
-            # multiple images with the same name and frametype. In this case we will
-            # save an array of images in a single dataset.
+            # Key the images by name and frametype. Several images with the same name
+            # and frametype are saved as an array in a single dataset.
             images = {
                 (exposure['name'], exposure['frametype']): []
                 for exposure in self.exposures
@@ -465,7 +389,6 @@ class TriggerableCameraWorker(Worker):
             for image, exposure in zip(self.images, self.exposures):
                 images[(exposure['name'], exposure['frametype'])].append(image)
 
-            # Save images to the HDF5 file:
             for (name, frametype), imagelist in images.items():
                 data = imagelist[0] if len(imagelist) == 1 else np.array(imagelist)
                 print(f"Saving frame(s) {name}/{frametype}.")
@@ -491,8 +414,7 @@ class TriggerableCameraWorker(Worker):
         print("Setting manual mode camera attributes.\n")
         self.set_attributes_smart(self.manual_mode_camera_attributes)
         if self.continuous_dt is not None:
-            # If continuous manual mode acquisition was in progress before the bufferd
-            # run, resume it:
+            # Continuous manual mode acquisition was paused for the shot; resume it.
             self.start_continuous(self.continuous_dt)
         return True
 
@@ -504,7 +426,6 @@ class TriggerableCameraWorker(Worker):
             self.camera.stop_acquisition()
         self.camera._abort_acquisition = False
         self._clear_shot_state()
-        # Resume continuous acquisition, if any:
         if self.continuous_dt is not None and self.continuous_thread is None:
             self.start_continuous(self.continuous_dt)
         return True
