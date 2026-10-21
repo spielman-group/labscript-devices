@@ -24,53 +24,66 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
     TriggerableCameraWorker,
 )
 
-class SpinnakerCameraInterface(TriggerableCameraInterface):
-    def __init__(self, serial_number):
-        """Initialize Spinnaker API camera.
 
-        Serial number should be of string(?) type."""
+class SpinnakerCameraInterface(TriggerableCameraInterface):
+    """A FLIR camera driven through PySpin."""
+
+    def __init__(self, serial_number):
+        """Connect to the camera with this serial number, an int or a str."""
+        # PySpin is imported when an interface is created, not at module level, so
+        # importing this module does not require PySpin.
         global PySpin
         import PySpin
 
         self.system = PySpin.System.GetInstance()
 
         ver = self.system.GetLibraryVersion()
-        min_ver = (1,23,0,27) # first release with python 3.6 support
+        min_ver = (1, 23, 0, 27)  # first release with python 3.6 support
         if (ver.major, ver.minor, ver.type, ver.build) < min_ver:
-            raise RuntimeError(f"PySpin version {ver} must be >= {min_ver}")
+            raise RuntimeError(
+                f"PySpin version {ver.major}.{ver.minor}.{ver.type}.{ver.build} is "
+                f"older than the required {'.'.join(map(str, min_ver))}. "
+                "Install a newer PySpin."
+            )
 
         camList = self.system.GetCameras()
         numCams = camList.GetSize()
 
-        if numCams==0:
-            raise ValueError('No cameras found!')
+        if numCams == 0:
+            raise ValueError(
+                'No cameras found. Check that the camera is connected and powered on.'
+            )
 
         if isinstance(serial_number, int):
-            self.camera = camList.GetBySerial('%d' % serial_number)
+            self.camera = camList.GetBySerial(f"{serial_number:d}")
         else:
             self.camera = camList.GetBySerial(serial_number)
         self.camera.Init()
         camList.Clear()
 
-        # Set the timeout to 5 s:
-        self.timeout = 5000 # in ms
+        # The timeout grab passes to GetNextImage, in ms.
+        self.timeout = 5000
 
     def get_attribute_names(self, visibility):
+        """Return readable feature names as Category::Name; `visibility` is unused."""
         names = []
+
         def get_node_names_in_category(node_category, prefix=''):
             for node_feature in node_category.GetFeatures():
-                # Ensure node is available and readable
-                if (not PySpin.IsAvailable(node_feature) or not
-                    PySpin.IsReadable(node_feature)):
+                if (
+                    not PySpin.IsAvailable(node_feature)
+                    or not PySpin.IsReadable(node_feature)
+                ):
                     continue
 
-                # Get the feature name:
                 feature_name = node_feature.GetName()
 
-                # Category nodes must be dealt with separately in order to retrieve subnodes recursively.
+                # Category nodes must be dealt with separately, to retrieve their
+                # subnodes recursively.
                 if node_feature.GetPrincipalInterfaceType() == PySpin.intfICategory:
-                    get_node_names_in_category(PySpin.CCategoryPtr(node_feature),
-                                               prefix=feature_name + '::')
+                    get_node_names_in_category(
+                        PySpin.CCategoryPtr(node_feature), prefix=feature_name + '::'
+                    )
                 else:
                     names.append(prefix + feature_name)
 
@@ -80,10 +93,10 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
         return names
 
     def get_attribute(self, name):
-        """Return current values dictionary of attribute of the given name"""
         return self._get_node_value(self.camera.GetNodeMap(), name)
 
     def _get_node_value(self, nodemap, name):
+        """Return the feature's value, or None if it is unavailable or unreadable."""
         node = nodemap.GetNode(name.split('::')[-1])
 
         if PySpin.IsAvailable(node) and PySpin.IsReadable(node):
@@ -108,70 +121,77 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
 
         if PySpin.IsAvailable(node) and PySpin.IsWritable(node):
             if node.GetPrincipalInterfaceType() == PySpin.intfIInteger:
-                 PySpin.CIntegerPtr(node).SetValue(value)
+                PySpin.CIntegerPtr(node).SetValue(value)
             elif node.GetPrincipalInterfaceType() == PySpin.intfIFloat:
-                 PySpin.CFloatPtr(node).SetValue(value)
+                PySpin.CFloatPtr(node).SetValue(value)
             elif node.GetPrincipalInterfaceType() == PySpin.intfIBoolean:
                 PySpin.CBooleanPtr(node).SetValue(value)
             else:
                 PySpin.CValuePtr(node).FromString(value)
 
             sleep(0.05)
-            # Sometimes this doesn't work, so let's check and print warnings if it
-            # fails:
+            # Sometimes the set does not take effect, so read the value back and warn
+            # if it differs.
             name = '::'.join(name)
             return_value = self._get_node_value(nodemap, name)
             if return_value != value:
-                print('WARNING: setting attribute %s to %s failed. '%(name, str(value)) +
-                      'Returned value %s instead'%str(return_value))
+                print(
+                    f"WARNING: setting attribute {name} to {value} failed; the camera "
+                    f"reads back {return_value}."
+                )
             else:
-                print('Successfully set %s to %s.'%(name, str(return_value)))
+                print(f"Successfully set {name} to {return_value}.")
         else:
-            print('WARNING: not capable of writing attribute %s.'%'::'.join(name))
-
+            print(
+                f"WARNING: attribute {'::'.join(name)} is unavailable or not writable, "
+                "so it was not set."
+            )
 
     def snap(self):
-        """Acquire a single image and return it"""
         self.configure_acquisition(continuous=False, buffer_count=1)
         image = self.grab()
         self.camera.EndAcquisition()
         return image
 
     def grab(self):
-        """Grab and return single image during pre-configured acquisition."""
         image_result = self.camera.GetNextImage(self.timeout)
         img = self._decode_image_data(image_result.GetData())
         image_result.Release()
         return img
 
     def trigger(self):
-        """Execute software trigger"""
+        """Execute a software trigger."""
         nodemap = self.camera.GetNodeMap()
         trigger_cmd = PySpin.CCommandPtr(nodemap.GetNode('TriggerSoftware'))
         if not PySpin.IsAvailable(trigger_cmd) or not PySpin.IsWritable(trigger_cmd):
-            print('WARNING: Unable to execute trigger. Aborting...')
+            print(
+                'WARNING: cannot execute a software trigger: TriggerSoftware is '
+                'unavailable or not writable.'
+            )
         else:
             trigger_cmd.Execute()
 
-
     def configure_acquisition(self, continuous=True, buffer_count=None):
+        """Set the buffer count (10 if None) and the mode, then begin acquiring."""
         if buffer_count is None:
             buffer_count = 10
+        # _decode_image_data formats each grabbed image with these, so grab needs this
+        # call first.
         self.pix_fmt = self.get_attribute('PixelFormat')
         self.height = self.get_attribute('Height')
         self.width = self.get_attribute('Width')
 
-        # Unless the camera settings are set properly, in cntinuous mode
-        # the camera will generally move faster than BLACS, and so the buffer
-        # will fill up.  With a Flea3, I was unable to solve the prolem
-        # easily.  It really is quite annoying.
+        # Unless the camera settings are set properly, in continuous mode the camera
+        # generally moves faster than BLACS, so the buffer fills up. With a Flea3 this
+        # was not easily solved.
         if continuous:
             self.set_stream_attribute('StreamBufferCountMode', 'Manual')
             self.set_stream_attribute('StreamBufferCountManual', buffer_count)
             self.set_stream_attribute('StreamBufferHandlingMode', 'NewestFirst')
             self.set_attribute('AcquisitionMode', 'Continuous')
         elif buffer_count == 1:
-            # The StreamBufferCountMode originally was set to 'Auto', but this feature was depreciated by Spinnaker version 3.0.0.118
+            # StreamBufferCountMode 'Auto' was deprecated by Spinnaker version
+            # 3.0.0.118, so 'Manual' is set.
             self.set_stream_attribute('StreamBufferCountMode', 'Manual')
             self.set_stream_attribute('StreamBufferCountManual', 1)
             self.set_stream_attribute('StreamBufferHandlingMode', 'OldestFirst')
@@ -186,9 +206,7 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
         self.camera.BeginAcquisition()
 
     def _decode_image_data(self, img):
-        """Spinnaker image buffers require significant formatting.
-        This returns what one would expect from a camera.
-        configure_acquisition must be called first to set image format parameters."""
+        """Return a copy of the buffer `img`, shaped `height` by `width`."""
         if self.pix_fmt.startswith('Mono'):
             if self.pix_fmt.endswith('8'):
                 dtype = 'uint8'
@@ -196,9 +214,9 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
                 dtype = 'uint16'
             image = np.frombuffer(img, dtype=dtype).reshape(self.height, self.width)
         else:
-            msg = """Only MONO image types currently supported.
-            To add other image types, add conversion logic from returned
-            uint8 data to desired format in _decode_image_data() method."""
+            msg = f"""Pixel format {self.pix_fmt} is not supported, only Mono formats
+                are. To add another, convert the returned uint8 data to the desired
+                format in _decode_image_data."""
             raise ValueError(dedent(msg))
         return image.copy()
 
@@ -206,14 +224,16 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
         print('Stopping acquisition...')
         self.camera.EndAcquisition()
 
-        # This is supposed to provide debugging info, but as with most things
-        # in PySpin, it appears to be completely useless:.
+        # This is supposed to provide debugging info, but it appears to be completely
+        # useless.
         stream = self.camera.GetTLStreamNodeMap()
         num_frames = self._get_node_value(stream, 'StreamTotalBufferCount')
         failed_frames = self._get_node_value(stream, 'StreamFailedBufferCount')
         underrun_frames = self._get_node_value(stream, 'StreamBufferUnderrunCount')
-        print('Stream info: %s frames acquired, %s failed, %s underrun' %
-              (str(num_frames), str(failed_frames), str(underrun_frames)))
+        print(
+            f"Stream info: {num_frames} frames acquired, {failed_frames} failed, "
+            f"{underrun_frames} underrun"
+        )
 
     def close(self):
         print('Closing down the camera...')
@@ -222,8 +242,6 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
 
 
 class SpinnakerCameraWorker(TriggerableCameraWorker):
-    """Spinnaker API Camera Worker.
+    """Worker for SpinnakerCameraInterface."""
 
-    Inherits from TriggerableCameraWorker."""
     interface_class = SpinnakerCameraInterface
-

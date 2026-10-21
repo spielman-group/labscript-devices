@@ -25,3 +25,7 @@
 - `FlyCapture2Camera/blacs_workers.py`: `is_transient_grab_error` retries every Fc2error, so a fault that raises at once has `grab_multiple` retry it without pause until the shot ends.
 - `docs/source/devices/pylon.rst`: gives the usage as `python ExposureTiming.py [camera_sn]`, which the script's argparse refuses; it takes `-sn SERIAL`.
 - `PylonCamera/testing/ExposureTiming.py`: the last print labels `min_time_between_triggers` end-to-start, but when the exposure is at least the readout time it is start-to-start.
+- `SpinnakerCamera/blacs_workers.py`, `FlyCapture2Camera/blacs_workers.py`: TriggerableCamera reads a string `serial_number` as hexadecimal, but these cameras look the int up as a decimal FLIR serial, so a serial given as a string finds the wrong camera or none.
+- `SpinnakerCamera/blacs_workers.py`: `_decode_image_data` reads every Mono format not ending in 8 as uint16, so a packed format such as Mono12Packed is misread.
+- `SpinnakerCamera/blacs_workers.py`: `get_attribute_names` ignores `visibility_level`, so `saved_attribute_visibility_level` saves every readable attribute.
+- `SpinnakerCamera/blacs_workers.py`: `grab` does not release the image if decoding it raises, and `__init__` does not release the camera list and system when it raises.

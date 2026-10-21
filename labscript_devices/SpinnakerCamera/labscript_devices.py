@@ -13,5 +13,8 @@
 
 from labscript_devices.TriggerableCamera.labscript_devices import TriggerableCamera
 
+
 class SpinnakerCamera(TriggerableCamera):
-    description = 'Spinnaker Camera'
+    """A FLIR camera driven through the Spinnaker API, using the PySpin wrapper."""
+
+    description ='Spinnaker Camera'
