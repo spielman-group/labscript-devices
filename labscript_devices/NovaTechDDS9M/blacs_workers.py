@@ -21,7 +21,6 @@ from .labscript_devices import bauds
 class NovaTechDDS9MWorker(Worker):
     def init(self):
         global serial; import serial
-        global socket; import socket
         global h5py; import labscript_utils.h5_lock, h5py
         self.smart_cache = {'STATIC_DATA': None, 'TABLE_DATA': ''}
 
@@ -107,9 +106,9 @@ class NovaTechDDS9MWorker(Worker):
     def check_remote_values(self):
         # Get the currently output values:
         self.connection.write(b'QUE\r\n')
-        try:
-            response = [self.connection.readline() for i in range(5)]
-        except socket.timeout:
+        response = [self.connection.readline() for i in range(5)]
+        # pyserial returns an empty line when its read times out.
+        if b'' in response[:4]:
             raise Exception('Failed to execute command "QUE". Cannot connect to device.')
         results = {}
         for i, line in enumerate(response[:4]):
