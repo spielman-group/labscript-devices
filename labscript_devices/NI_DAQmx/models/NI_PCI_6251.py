@@ -71,7 +71,6 @@ class NI_PCI_6251(NI_DAQmx):
     description = 'NI-PCI-6251'
 
     def __init__(self, *args, **kwargs):
-        """Class for NI-PCI-6251"""
         # Any provided kwargs take precedent over capabilities
         combined_kwargs = CAPABILITIES.copy()
         combined_kwargs.update(kwargs)

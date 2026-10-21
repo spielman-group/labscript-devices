@@ -62,7 +62,6 @@ class NI_USB_6008(NI_DAQmx):
     description = 'NI-USB-6008'
 
     def __init__(self, *args, **kwargs):
-        """Class for NI-USB-6008"""
         # Any provided kwargs take precedent over capabilities
         combined_kwargs = CAPABILITIES.copy()
         combined_kwargs.update(kwargs)

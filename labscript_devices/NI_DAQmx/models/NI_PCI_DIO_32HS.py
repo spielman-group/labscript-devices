@@ -54,7 +54,6 @@ class NI_PCI_DIO_32HS(NI_DAQmx):
     description = 'NI-PCI-DIO-32HS'
 
     def __init__(self, *args, **kwargs):
-        """Class for NI-PCI-DIO-32HS"""
         # Any provided kwargs take precedent over capabilities
         combined_kwargs = CAPABILITIES.copy()
         combined_kwargs.update(kwargs)

@@ -23,7 +23,6 @@ class ${CLASS_NAME}(NI_DAQmx):
     description = '${MODEL_NAME}'
 
     def __init__(self, *args, **kwargs):
-        """Class for ${MODEL_NAME}"""
         # Any provided kwargs take precedent over capabilities
         combined_kwargs = CAPABILITIES.copy()
         combined_kwargs.update(kwargs)

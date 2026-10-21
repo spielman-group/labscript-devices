@@ -87,7 +87,6 @@ class NI_PCIe_6363(NI_DAQmx):
     description = 'NI-PCIe-6363'
 
     def __init__(self, *args, **kwargs):
-        """Class for NI-PCIe-6363"""
         # Any provided kwargs take precedent over capabilities
         combined_kwargs = CAPABILITIES.copy()
         combined_kwargs.update(kwargs)
