@@ -30,5 +30,4 @@
 - `FunctionRunner/utils.py`: a lambda passes `add_function`, but the worker cannot find it by its name, `<lambda>`, in its source, and raises KeyError.
 - `FunctionRunner/labscript_devices.py`: `add_function` with a string `t` other than 'start' or 'stop' raises float()'s ValueError, not a message about `t`.
 - `PulseBlaster/labscript_devices.py`: `PulseBlasterDDS` does not refuse a `digital_gate`; `DDSQuantity` makes a gate from it, and the PulseBlaster's own gate then fails on the name, with an error that does not mention `digital_gate`.
-- `RFBlaster/labscript_devices.py`: an RFBlaster without a `trigger_device` compiles as the master pseudoclock, but its tab has no `start_run`, so BLACS cannot run the shot.
 - runviewer draws nothing below a device that has no runviewer parser, such as a secondary pseudoclock triggered from a DummyIntermediateDevice: loading that device raises, and runviewer skips its children.

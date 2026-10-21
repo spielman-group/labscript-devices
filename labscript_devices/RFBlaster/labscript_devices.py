@@ -42,9 +42,10 @@ class RFBlaster(PseudoclockDevice):
             ``'192.168.0.5'``; a host name is not accepted. BLACS contacts it on port
             8080. Required, though it defaults to ``None``: the deprecated keyword
             `ip_address` is accepted in its place.
-        trigger_device : :class:`~labscript.IntermediateDevice`, optional
-            Device that sends the hardware start trigger. An RFBlaster must be a
-            secondary pseudoclock, since its BLACS tab cannot start a shot.
+        trigger_device : :class:`~labscript.IntermediateDevice`
+            Device that sends the hardware start trigger. Required, though it defaults
+            to ``None``: an RFBlaster must be a secondary pseudoclock, since its BLACS
+            tab cannot start a shot.
         trigger_connection : str, optional
             Output of `trigger_device` wired to the board's hardware trigger input.
         **kwargs
@@ -55,6 +56,11 @@ class RFBlaster(PseudoclockDevice):
         if host is None:
             raise LabscriptError(
                 f'RFBlaster {name} needs the host of its board. Pass its IP address as host.'
+            )
+        if trigger_device is None:
+            raise LabscriptError(
+                f'RFBlaster {name} needs a trigger_device: it can only be a secondary '
+                'pseudoclock, as its BLACS tab cannot start a shot.'
             )
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.BLACS_connection = host

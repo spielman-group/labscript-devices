@@ -43,9 +43,6 @@ class RFBlasterWorker(PseudoclockWorker):
         global re; import re
         # Seconds the RFBlaster has to answer an HTTP request.
         self.timeout = 10
-        # The number of caught failures after which http_request restarts kloned, and
-        # again after which it raises; it catches none of the errors requests raises.
-        self.retries = 3
         p = re.compile('http://([0-9.]+):[0-9]+')
         m = p.match(self.address)
         self.ip = m.group(1)
@@ -54,24 +51,6 @@ class RFBlasterWorker(PseudoclockWorker):
         # See if the RFBlaster answers
         self.http_request()
         self._last_program_manual_values = {}
-
-    def restart_kloned(self, respawn_netcat=True):
-        import socket, time
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(self.timeout)
-        self.netlogger.info(f'restart_kloned: Connecting to {self.ip}...')
-        s.connect((self.ip, 8009))
-        self.netlogger.info('restart_kloned: Connected!')
-        if respawn_netcat:
-            self.netlogger.info('restart_kloned: Respawning netcat...')
-            s.sendall(b'nohup nc -l -p 8009 -e /bin/sh &')
-            time.sleep(0.5)
-        self.netlogger.info('restart_kloned: Trying to start/restart kloned...')
-        s.sendall(b'./startup/klone_start.sh')
-        time.sleep(0.5)
-        s.shutdown(socket.SHUT_WR)
-        self.netlogger.info('restart_kloned: Finished. Closing socket.')
-        s.close()
 
     def program_manual(self, front_panel_values):
         self._last_program_manual_values = front_panel_values
@@ -97,9 +76,6 @@ class RFBlasterWorker(PseudoclockWorker):
             # The form carries each DDS's binary program, and is posted below.
             form = MultiPartForm()
             self.final_values = {}
-            finalfreq = zeros(self.num_DDS)
-            finalamp = zeros(self.num_DDS)
-            finalphase = zeros(self.num_DDS)
             for i in range(self.num_DDS):
                 # The front panel's final values are the last row of TABLE_DATA, the
                 # table before quantising.
@@ -137,55 +113,29 @@ class RFBlasterWorker(PseudoclockWorker):
         """Fetch the board's page, or post `form` to it, and return the page's text."""
         import requests
         from urllib3.exceptions import ReadTimeoutError
-        from urllib.request import urlopen, Request
-        from urllib.error import URLError, HTTPError
 
-        self._connection_attempt = 1
-        self._kloned_attempted = False
-        response = None
-        while not response:
+        deadline = Deadline(self.device_name, 'answer an HTTP request', self.timeout)
+        with deadline.timeout_for(requests.exceptions.Timeout, TimeoutError) as timeout:
             try:
-                self.netlogger.info(f'Connection attempt {self._connection_attempt}.')
-                deadline = Deadline(self.device_name, 'answer an HTTP request', self.timeout)
-                with deadline.timeout_for(requests.exceptions.Timeout, TimeoutError) as timeout:
-                    try:
-                        if form is not None:
-                            # requests takes form_fields, a list of (key, value) tuples, as it
-                            # is, but wants each file as (field name, (filename, body, type)).
-                            filelist = [
-                                (field_name, (filename, bytes(body), content_type))
-                                for field_name, filename, content_type, body in form.files
-                            ]
-                            r = requests.post(
-                                self.address, data=form.form_fields, files=filelist, timeout=timeout
-                            )
-                        else:
-                            r = requests.get(self.address, timeout=timeout)
-                    except requests.exceptions.ConnectionError as e:
-                        # requests reports a timeout while reading the body as a ConnectionError
-                        if e.args and isinstance(e.args[0], ReadTimeoutError):
-                            raise TimeoutError from e
-                        raise
-                r.raise_for_status()
-                self.netlogger.info('Connected!')
-                break
-            # This catches no error of requests, none being a URLError or ConnectionError, nor
-            # the Deadline's TimeoutError, so a board that stops answering fails in one timeout.
-            except (URLError, HTTPError, ConnectionError) as e:
-                self.netlogger.warning(str(e))
-                if self._connection_attempt < self.retries:
-                    self.netlogger.info(
-                        'Connection failed. Trying again '
-                        f'({self.retries - self._connection_attempt} more attempts remain).'
+                if form is not None:
+                    # requests takes form_fields, a list of (key, value) tuples, as it
+                    # is, but wants each file as (field name, (filename, body, type)).
+                    filelist = [
+                        (field_name, (filename, bytes(body), content_type))
+                        for field_name, filename, content_type, body in form.files
+                    ]
+                    r = requests.post(
+                        self.address, data=form.form_fields, files=filelist, timeout=timeout
                     )
-                    self._connection_attempt += 1
-                elif not self._kloned_attempted:
-                    self._kloned_attempted = True
-                    self.restart_kloned()
-                    self._connection_attempt = 1
                 else:
-                    self.netlogger.error(str(e))
-                    raise e
+                    r = requests.get(self.address, timeout=timeout)
+            except requests.exceptions.ConnectionError as e:
+                # requests reports a timeout while reading the body as a ConnectionError
+                if e.args and isinstance(e.args[0], ReadTimeoutError):
+                    raise TimeoutError from e
+                raise
+        r.raise_for_status()
+        self.netlogger.info('Connected!')
         return r.text
 
     def get_web_values(self, page):
