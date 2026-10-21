@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /NI_DAQmx/blacs_tab.py                                            #
+# /NI_DAQmx/blacs_tabs.py                                           #
 #                                                                   #
 # Copyright 2018, Monash University, JQI, Christopher Billington    #
 #                                                                   #
@@ -22,14 +22,12 @@ from . import models
 
 class NI_DAQmxTab(DeviceTab):
     def initialise_GUI(self):
-        # Get capabilities from connection table properties:
         connection_table = self.settings['connection_table']
         properties = connection_table.find_by_name(self.device_name).properties
 
         # Raise an error on old connection tables, since we are not backward compatible
-        # with them. In terms of old shot files being added to the queue once BLACS has
-        # started, BLACS will reject them as being incomatible since the connection
-        # table properties won't match. So we do not need to add a check for that.
+        # with them. BLACS rejects old shot files queued once it has started, as their
+        # connection table properties won't match, so they need no check here.
         version = properties.get('__version__', None)
         if version is None:
             msg = """Connection table was compiled with the old version of the NI_DAQmx
@@ -52,14 +50,13 @@ class NI_DAQmxTab(DeviceTab):
         AO_base_step = 0.1
         AO_base_decimals = 3
 
-        # And the Measurement and Automation Explorer (MAX) name we will need to
+        # The Measurement and Automation Explorer (MAX) name, which we need to
         # communicate with the device:
         self.MAX_name = properties['MAX_name']
 
-        # Create output objects:
         AO_prop = {}
         for i in range(num_AO):
-            AO_prop['ao%d' % i] = {
+            AO_prop[f'ao{i}'] = {
                 'base_unit': AO_base_units,
                 'min': AO_base_min,
                 'max': AO_base_max,
@@ -69,20 +66,18 @@ class NI_DAQmxTab(DeviceTab):
 
         DO_proplist = []
         for port_num in range(len(ports)):
-            port_str ='port%d' % port_num
+            port_str = f'port{port_num}'
             port_props = {}
             for line in range(ports[port_str]['num_lines']):
-                hardware_name = 'port%d/line%d' % (port_num, line)
+                hardware_name = f'port{port_num}/line{line}'
                 port_props[hardware_name] = {}
             DO_proplist.append((port_str, port_props))
 
-        # Create the output objects
         self.create_analog_outputs(AO_prop)
 
         # Create widgets for outputs defined so far (i.e. analog outputs only)
         _, AO_widgets, _ = self.auto_create_widgets()
 
-        # now create the digital output objects one port at a time
         for _, DO_prop in DO_proplist:
             self.create_digital_outputs(DO_prop)
 
@@ -94,9 +89,9 @@ class NI_DAQmxTab(DeviceTab):
         # Auto place the widgets in the UI, specifying sort keys for ordering them:
         widget_list = [("Analog outputs", AO_widgets, split_conn_AO)]
         for port_num in range(len(ports)):
-            port_str ='port%d' % port_num
+            port_str = f'port{port_num}'
             DO_widgets = DO_widgets_by_port[port_str]
-            name = "Digital outputs: %s" % port_str
+            name = f"Digital outputs: {port_str}"
             if ports[port_str]['supports_buffered']:
                 name += ' (buffered)'
             else:
@@ -104,7 +99,6 @@ class NI_DAQmxTab(DeviceTab):
             widget_list.append((name, DO_widgets, split_conn_DO))
         self.auto_place_widgets(*widget_list)
 
-        # Set the capabilities of this device
         self.supports_remote_value_check(False)
         self.supports_smart_programming(False)
 
@@ -138,8 +132,6 @@ class NI_DAQmxTab(DeviceTab):
         clock_limit = properties['clock_limit']
         min_semiperiod_measurement = properties['min_semiperiod_measurement']
 
-        # We only need a wait monitor worker if we are if fact the device with
-        # the wait monitor input.
         with h5py.File(connection_table.filepath, 'r') as f:
             waits = f['waits']
             wait_acq_device = waits.attrs['wait_monitor_acquisition_device']
@@ -151,7 +143,6 @@ class NI_DAQmxTab(DeviceTab):
             except KeyError:
                 timeout_trigger_type = 'rising'
 
-        # Create and set the primary worker
         self.create_worker(
             "main_worker",
             'labscript_devices.NI_DAQmx.blacs_workers.NI_DAQmxWorker',
@@ -174,6 +165,8 @@ class NI_DAQmxTab(DeviceTab):
         )
         self.primary_worker = "main_worker"
 
+        # We only need a wait monitor worker if we are in fact the device with the wait
+        # monitor input.
         if wait_acq_device == self.device_name:
             if wait_timeout_device:
                 wait_timeout_device = connection_table.find_by_name(wait_timeout_device)
@@ -182,8 +175,9 @@ class NI_DAQmxTab(DeviceTab):
                 wait_timeout_MAX_name = None
 
             if num_CI == 0:
-                msg = """Device cannot be the wait monitor acquisiiton device as it has
-                    no counter inputs"""
+                msg = f"""{self.device_name} has no counter inputs, so it cannot be the
+                    wait monitor acquisition device. Set the WaitMonitor's
+                    acquisition_device to a device with counter inputs."""
                 raise RuntimeError(dedent(msg))
 
             self.create_worker(
@@ -200,11 +194,9 @@ class NI_DAQmxTab(DeviceTab):
             )
             self.add_secondary_worker("wait_monitor_worker")
 
-        # Only need an acquisition worker if we have analog inputs. It is important that
-        # the acquisition worker is created after the wait monitor worker if there is
-        # one, because the creation order determines the order that transition_to_manual
-        # runs, and the acquisition processing requires processing that is done in the
-        # wait monitor during transition_to_manual.
+        # Add the acquisition worker after the wait monitor worker: BLACS runs secondary
+        # workers' transition_to_manual in the order they were added, and the acquisition
+        # processing needs the wait durations that the wait monitor works out there.
         if num_AI > 0:
             self.create_worker(
                 "acquisition_worker",
@@ -223,4 +215,3 @@ class NI_DAQmxTab(DeviceTab):
                 },
             )
             self.add_secondary_worker("acquisition_worker")
-

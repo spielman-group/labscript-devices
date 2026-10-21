@@ -39,3 +39,6 @@
 - `AlazarTechBoard/blacs_workers.py`: the DMA buffers are freed only by a successful `transition_to_manual`; after an abort, a trigger timeout or a failure the next shot overwrites `self.buffers` and the memory leaks.
 - `AlazarTechBoard/blacs_workers.py`: with `ats.EXTERNAL_CLOCK_10MHz_REF` and the default `requested_acquisition_rate` of 0, the divider is 0 and the decimation -1, and the board acquires no samples without an error.
 - `docs/source/devices/alazartechboard.rst`: says atsapi.py must be installed separately; it ships as `labscript_devices/atsapi.py`.
+- `NI_DAQmx/blacs_workers.py`: `stop_task` passes the Task to `read`, which compares it with the integer task handle and returns at once, so the samples after the last full chunk of each analog input acquisition are never read.
+- `NI_DAQmx/labscript_devices.py`: `static_AO=False` is accepted on a device without `supports_buffered_AO` when it has buffered DO, so an `AnalogOut` it cannot clock compiles.
+- `NI_DAQmx/utils.py`: `split_conn_DO` names the reassigned connection in its error, so 'port0/line0 (foo)' is reported as 'port0/line0'.

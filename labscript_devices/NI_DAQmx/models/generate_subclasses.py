@@ -10,16 +10,11 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
-"""Reads the capabilities file and generates labscript devices
-for each known model of DAQ.
+"""Generate a device class for each model in capabilities.json, in files such as
+NI_PCIe_6363.py beside this script.
 
-Called from the command line via
-
-.. code-block:: shell
-
-    python generate_subclasses.py
-
-For proper formatting of the code, you will need to install the `black` python package.
+Run it with `python generate_subclasses.py`. The files are formatted with black if it
+is installed.
 """
 import os
 import warnings
@@ -34,18 +29,13 @@ TEMPLATE_FILE = os.path.join(THIS_FOLDER, '_subclass_template.py')
 
 
 def reformat_files(filepaths):
-    """Apply `black <https://black.readthedocs.io/en/stable/>`_ 
-    formatter to a list of source files.
-    
-    Args:
-        filepaths (list): List of python source files to format.
-    """
+    """Format the source files with black, or warn if it is not installed."""
     try:
         import black
     except ImportError:
-        msg = """Cannot import code formatting library 'black'. Generated labscript
-            device code may be poorly formatted. Install black (Python 3.6+ only) via
-            pip and run again to produce better formatted files"""
+        msg = """Cannot import the code formatting library 'black', so the generated
+            labscript device code may be poorly formatted. Install black with pip and
+            run again to format the files."""
         warnings.warn(dedent(msg))
         return
 
@@ -58,11 +48,6 @@ def reformat_files(filepaths):
 
 
 def main():
-    """Called when the script is run.
-
-    Will attempt to reformat the generated files using
-    :func:`reformat_files`.
-    """
     capabilities = {}
     if os.path.exists(CAPABILITIES_FILE):
         with open(CAPABILITIES_FILE) as f:
@@ -95,10 +80,11 @@ def main():
         with open(filepath, 'w', newline='\n') as f:
             f.write(src)
         filepaths.append(filepath)
-        print('generated %s' % os.path.basename(filepath))
+        print(f'generated {os.path.basename(filepath)}')
 
     if filepaths:
         reformat_files(filepaths)
+
 
 if __name__ == '__main__':
     main()

@@ -7,13 +7,16 @@ from labscript_utils import dedent
 from labscript_devices.runviewer_parsing import rising_edge_times
 
 
-class NI_DAQmxParser(object):
+class NI_DAQmxParser:
+    """Runviewer parser for NI_DAQmx devices and their models."""
+
     def __init__(self, path, device):
         self.path = path
         self.name = device.name
         self.device = device
 
     def get_traces(self, add_trace, clock=None):
+        """Add the outputs' traces to runviewer; return those that clock other devices."""
 
         with h5py.File(self.path, 'r') as f:
 
@@ -24,7 +27,7 @@ class NI_DAQmxParser(object):
             else:
                 AO_table = None
 
-            if 'DO' in f['devices/%s' % self.name]:
+            if 'DO' in f[f'devices/{self.name}']:
                 DO_table = group['DO'][:]
             else:
                 DO_table = None
@@ -55,7 +58,7 @@ class NI_DAQmxParser(object):
                     line_vals = (((1 << line) & DO_table[port_str]) != 0).astype(float)
                     if static_DO:
                         line_vals = np.full(len(clock_ticks), line_vals[0])
-                    traces['%s/line%d' % (port_str, line)] = (clock_ticks, line_vals)
+                    traces[f'{port_str}/line{line}'] = (clock_ticks, line_vals)
 
         if AO_table is not None:
             for chan in AO_table.dtype.names:
@@ -68,7 +71,8 @@ class NI_DAQmxParser(object):
         for channel_name, channel in self.device.child_list.items():
             if channel.parent_port in traces:
                 trace = traces[channel.parent_port]
-                # A line that triggers devices, a Trigger of any class, clocks them
+                # A line with child devices, such as a Trigger of any class, clocks them:
+                # return its trace so that runviewer loads them with it as their clock.
                 if channel.child_list:
                     triggers[channel_name] = trace
                 add_trace(channel_name, trace, self.name, channel.parent_port)

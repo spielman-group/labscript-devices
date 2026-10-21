@@ -58,7 +58,7 @@ class NI_DAQmxWorker(Worker):
         self.stop_tasks()
 
     def check_version(self):
-        """Check the version of PyDAQmx is high enough to avoid a known bug"""
+        """Check the NI-DAQmx version is high enough to avoid a known bug."""
         major = uInt32()
         minor = uInt32()
         patch = uInt32()
@@ -67,13 +67,13 @@ class NI_DAQmxWorker(Worker):
         DAQmxGetSysNIDAQUpdateVersion(patch)
 
         if major.value == 14 and minor.value < 2:
-            msg = """There is a known bug with buffered shots using NI DAQmx v14.0.0.
-                This bug does not exist on v14.2.0. You are currently using v%d.%d.%d.
-                Please ensure you upgrade to v14.2.0 or higher."""
-            raise Exception(dedent(msg) % (major.value, minor.value, patch.value))
+            msg = f"""There is a known bug with buffered shots using NI DAQmx v14.0.0.
+                This bug does not exist on v14.2.0. You are currently using
+                v{major.value}.{minor.value}.{patch.value}. Upgrade NI DAQmx to v14.2.0
+                or higher."""
+            raise Exception(dedent(msg))
 
     def start_manual_mode_tasks(self):
-        # Create tasks:
         if self.num_AO > 0:
             self.AO_task = Task()
         else:
@@ -84,22 +84,18 @@ class NI_DAQmxWorker(Worker):
         else:
             self.DO_task = None
 
-        # Setup AO channels
         for i in range(self.num_AO):
-            con = self.MAX_name + "/ao%d" % i
+            con = f"{self.MAX_name}/ao{i}"
             self.AO_task.CreateAOVoltageChan(
                 con, "", self.Vmin, self.Vmax, DAQmx_Val_Volts, None
             )
 
-        # Setup DO channels
         for port_str in sorted(self.ports, key=split_conn_port):
             if not self.ports[port_str]['num_lines']:
                 continue
-            # Add each port to the task:
-            con = '%s/%s' % (self.MAX_name, port_str)
+            con = f'{self.MAX_name}/{port_str}'
             self.DO_task.CreateDOChan(con, "", DAQmx_Val_ChanForAllLines)
 
-        # Start tasks:
         if self.AO_task is not None:
             self.AO_task.StartTask()
         if self.DO_task is not None:
@@ -110,21 +106,14 @@ class NI_DAQmxWorker(Worker):
         if self.AO_task is not None:
             AO_data = np.zeros(self.num_AO, dtype=np.float64)
             for i in range(self.num_AO):
-                AO_data[i] = front_panel_values['ao%d' % i]
+                AO_data[i] = front_panel_values[f'ao{i}']
             self.AO_task.WriteAnalogF64(
                 1, True, 1, DAQmx_Val_GroupByChannel, AO_data, written, None
             )
+        # Pack into a uint32 for WriteDigitalU32: WriteDigitalLines uses uninitialised
+        # memory, and a smaller int dtype sometimes fails despite fitting the port (NI
+        # forum, USB-6341). A uint32 always works; extra bits are ignored.
         if self.DO_task is not None:
-            # Due to two bugs in DAQmx, we will always pack our data into a uint32 and
-            # write using WriteDigitalU32. The first bug is some kind of use of
-            # uninitialised memory when using WriteDigitalLines, discussed here:
-            # https://bitbucket.org/labscript_suite
-            #     /labscript_devices/pull-requests/56/#comment-83671312
-            # The second is that using a smaller int dtype sometimes fails even though
-            # it is the correct int size for the size of the port. Using a 32 bit int
-            # always works, the additional bits are ignored. This is discussed here:
-            # https://forums.ni.com/t5/Multifunction-DAQ
-            #     /problem-with-correlated-DIO-on-USB-6341/td-p/3344066
             DO_data = np.zeros(len(self.ports), dtype=np.uint32)
             for conn, value in front_panel_values.items():
                 if conn.startswith('port'):
@@ -136,7 +125,7 @@ class NI_DAQmxWorker(Worker):
         return {}
 
     def get_output_tables(self, h5_file, device_name):
-        """Return the AO and DO tables rom the file, or None if they do not exist."""
+        """Return the AO and DO tables from the file, each None if it does not exist."""
         with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['devices'][device_name]
             try:
@@ -150,8 +139,7 @@ class NI_DAQmxWorker(Worker):
         return AO_table, DO_table
 
     def set_mirror_clock_terminal_connected(self, connected):
-        """Mirror the clock terminal on another terminal to allow daisy chaining of the
-        clock line to other devices, if applicable"""
+        """Connect or disconnect the clock terminal and its mirror, if there is one."""
         if self.clock_mirror_terminal is None:
             return
         if connected:
@@ -164,9 +152,7 @@ class NI_DAQmxWorker(Worker):
             DAQmxDisconnectTerms(self.clock_terminal, self.clock_mirror_terminal)
 
     def set_connected_terminals_connected(self, connected):
-        """Connect the terminals in the connected terminals list.
-        Allows on daisy chaining of the clock line to/from other devices
-        that do not have a direct route (see Device Routes in NI MAX)."""
+        """Connect or disconnect each of the connected_terminals pairs."""
         if self.connected_terminals is None:
             return
         if connected:
@@ -181,8 +167,7 @@ class NI_DAQmxWorker(Worker):
                 DAQmxDisconnectTerms(terminal_pair[0], terminal_pair[1])
 
     def program_buffered_DO(self, DO_table):
-        """Create the DO task and program in the DO table for a shot. Return a
-        dictionary of the final values of each channel in use"""
+        """Create the DO task, program the DO table, and return the final values."""
         if DO_table is None:
             return {}
         self.DO_task = Task()
@@ -191,25 +176,22 @@ class NI_DAQmxWorker(Worker):
 
         final_values = {}
         for port_str in ports:
-            # Add each port to the task:
-            con = '%s/%s' % (self.MAX_name, port_str)
+            con = f'{self.MAX_name}/{port_str}'
             self.DO_task.CreateDOChan(con, "", DAQmx_Val_ChanForAllLines)
 
-            # Collect the final values of the lines on this port:
             port_final_value = DO_table[port_str][-1]
             for line in range(self.ports[port_str]["num_lines"]):
                 # Extract each digital value from the packed bits:
                 line_final_value = bool((1 << line) & port_final_value)
-                final_values['%s/line%d' % (port_str, line)] = int(line_final_value)
+                final_values[f'{port_str}/line{line}'] = int(line_final_value)
 
-        # Convert DO table to a regular array and ensure it is C continguous:
+        # Convert DO table to a regular array and ensure it is C contiguous:
         DO_table = np.ascontiguousarray(
             structured_to_unstructured(DO_table, dtype=np.uint32)
         )
 
-        # Check if DOs are all zero for the whole shot. If they are this triggers a
-        # bug in NI-DAQmx that throws a cryptic error for buffered output. In this
-        # case, run it as a non-buffered task.
+        # An all-zero DO table triggers a bug in NI-DAQmx that throws a cryptic error
+        # for buffered output, so run that case as a non-buffered task.
         self.DO_all_zero = not np.any(DO_table)
         if self.DO_all_zero:
             DO_table = DO_table[0:1]
@@ -229,13 +211,11 @@ class NI_DAQmxWorker(Worker):
                 None,
             )
         else:
-            # We use all but the last sample (which is identical to the second last
-            # sample) in order to ensure there is one more clock tick than there are
-            # samples. This is required by some devices to determine that the task has
-            # completed.
+            # Use all but the last sample, which is identical to the second last, to
+            # ensure there is one more clock tick than there are samples: some devices
+            # need that to determine that the task has completed.
             npts = len(DO_table) - 1
 
-            # Set up timing:
             self.DO_task.CfgSampClkTiming(
                 self.clock_terminal,
                 self.clock_limit,
@@ -251,17 +231,17 @@ class NI_DAQmxWorker(Worker):
                 False,  # autostart
                 10.0,  # timeout
                 DAQmx_Val_GroupByScanNumber,
-                DO_table[:-1], # All but the last sample as mentioned above
+                DO_table[:-1],
                 written,
                 None,
             )
 
-            # Go!
             self.DO_task.StartTask()
 
         return final_values
 
     def program_buffered_AO(self, AO_table):
+        """Create the AO task, program the AO table, and return the final values."""
         if AO_table is None:
             return {}
         self.AO_task = Task()
@@ -271,17 +251,15 @@ class NI_DAQmxWorker(Worker):
             channels, "", self.Vmin, self.Vmax, DAQmx_Val_Volts, None
         )
 
-        # Collect the final values of the analog outs:
         final_values = dict(zip(AO_table.dtype.names, AO_table[-1]))
 
-        # Convert AO table to a regular array and ensure it is C continguous:
+        # Convert AO table to a regular array and ensure it is C contiguous:
         AO_table = np.ascontiguousarray(
             structured_to_unstructured(AO_table, dtype=np.float64)
         )
 
-        # Check if AOs are all zero for the whole shot. If they are this triggers a
-        # bug in NI-DAQmx that throws a cryptic error for buffered output. In this
-        # case, run it as a non-buffered task.
+        # An all-zero AO table triggers a bug in NI-DAQmx that throws a cryptic error
+        # for buffered output, so run that case as a non-buffered task.
         self.AO_all_zero = not np.any(AO_table)
         if self.AO_all_zero:
             AO_table = AO_table[0:1]
@@ -293,13 +271,11 @@ class NI_DAQmxWorker(Worker):
                 1, True, 10.0, DAQmx_Val_GroupByChannel, AO_table, written, None
             )
         else:
-            # We use all but the last sample (which is identical to the second last
-            # sample) in order to ensure there is one more clock tick than there are
-            # samples. This is required by some devices to determine that the task has
-            # completed.
+            # Use all but the last sample, which is identical to the second last, to
+            # ensure there is one more clock tick than there are samples: some devices
+            # need that to determine that the task has completed.
             npts = len(AO_table) - 1
 
-            # Set up timing:
             self.AO_task.CfgSampClkTiming(
                 self.clock_terminal,
                 self.clock_limit,
@@ -308,18 +284,16 @@ class NI_DAQmxWorker(Worker):
                 npts,
             )
 
-            # Write data:
             self.AO_task.WriteAnalogF64(
                 npts,
                 False,  # autostart
                 10.0,  # timeout
                 DAQmx_Val_GroupByScanNumber,
-                AO_table[:-1],  # All but the last sample as mentioned above
+                AO_table[:-1],
                 written,
                 None,
             )
 
-            # Go!
             self.AO_task.StartTask()
 
         return final_values
@@ -328,19 +302,13 @@ class NI_DAQmxWorker(Worker):
         # Store the initial values in case we have to abort and restore them:
         self.initial_values = front_panel_values
 
-        # Stop the manual mode output tasks, if any:
         self.stop_tasks()
 
-        # Get the data to be programmed into the output tasks:
         AO_table, DO_table = self.get_output_tables(h5_file, device_name)
 
-        # Mirror the clock terminal, if applicable:
         self.set_mirror_clock_terminal_connected(True)
-
-        # Mirror other terminals, if applicable
         self.set_connected_terminals_connected(True)
 
-        # Program the output tasks and retrieve the final values of each output:
         DO_final_values = self.program_buffered_DO(DO_table)
         AO_final_values = self.program_buffered_AO(AO_table)
 
@@ -362,9 +330,6 @@ class NI_DAQmxWorker(Worker):
         return self._return_to_manual(abort=True)
 
     def _return_to_manual(self, abort):
-        # Stop output tasks and call program_manual. Only call StopTask if not aborting.
-        # Otherwise results in an error if output was incomplete. If aborting, call
-        # ClearTask only.
         npts = uInt64()
         samples = uInt64()
         tasks = []
@@ -375,6 +340,8 @@ class NI_DAQmxWorker(Worker):
             tasks.append([self.DO_task, self.static_DO or self.DO_all_zero, 'DO'])
             self.DO_task = None
 
+        # Only call StopTask if not aborting, as it results in an error if output was
+        # incomplete. ClearTask is always called.
         for task, static, name in tasks:
             if not abort:
                 if not static:
@@ -395,16 +362,11 @@ class NI_DAQmxWorker(Worker):
                 task.StopTask()
             task.ClearTask()
 
-        # Remove the mirroring of the clock terminal, if applicable:
         self.set_mirror_clock_terminal_connected(False)
-
-        # Remove connections between other terminals, if applicable:
         self.set_connected_terminals_connected(False)
 
-        # Set up manual mode tasks again:
         self.start_manual_mode_tasks()
         if abort:
-            # Reprogram the initial states:
             self.program_manual(self.initial_values)
 
         return True
@@ -435,8 +397,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
         self.buffered_rate = None
         self.buffered_chans = None
 
-        # Hard coded for now. Perhaps we will add functionality to enable
-        # and disable inputs in manual mode, and adjust the rate:
+        # Manual mode acquires every analog input at a fixed 1000 samples per second:
         self.manual_mode_chans = self.AI_chans
         self.manual_mode_rate = 1000
 
@@ -444,7 +405,6 @@ class NI_DAQmxAcquisitionWorker(Worker):
         # them to chunk up acquisition data:
         self.wait_durations_analysed = Event('wait_durations_analysed')
 
-        # Start task for manual mode
         self.start_task(self.manual_mode_chans, self.manual_mode_rate)
 
     def shutdown(self):
@@ -452,9 +412,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
             self.stop_task()
 
     def read(self, task_handle, event_type, num_samples, callback_data=None):
-        """Called as a callback by DAQmx while task is running. Also called by us to get
-        remaining data just prior to stopping the task. Since the callback runs
-        in a separate thread, we need to serialise access to instance variables"""
+        """DAQmx's every-N-samples callback: read the samples, keeping them if buffered."""
         samples_read = int32()
         with self.tasklock:
             if self.task is None or task_handle != self.task.taskHandle.value:
@@ -472,16 +430,12 @@ class NI_DAQmxAcquisitionWorker(Worker):
             # Select only the data read, and downconvert to 32 bit:
             data = self.read_array[: int(samples_read.value), :].astype(np.float32)
             if self.buffered_mode:
-                # Append to the list of acquired data:
                 self.acquired_data.append(data)
         return 0
 
     def start_task(self, chans, rate):
-        """Set up a task that acquires data with a callback every MAX_READ_PTS points or
-        MAX_READ_INTERVAL seconds, whichever is faster. NI DAQmx calls callbacks in a
-        separate thread, so this method returns, but data acquisition continues until
-        stop_task() is called. Data is appended to self.acquired_data if
-        self.buffered_mode=True, and discarded otherwise."""
+        """Start a task that calls read every MAX_READ_PTS samples or MAX_READ_INTERVAL
+        seconds, whichever comes first, until stop_task is called."""
 
         if self.task is not None:
             raise RuntimeError('Task already running')
@@ -489,8 +443,6 @@ class NI_DAQmxAcquisitionWorker(Worker):
         if chans is None:
             return
 
-        # Get data MAX_READ_PTS points at a time or once every MAX_READ_INTERVAL
-        # seconds, whichever is faster:
         num_samples = min(self.MAX_READ_PTS, int(rate * self.MAX_READ_INTERVAL))
 
         self.read_array = np.zeros((num_samples, len(chans)), dtype=np.float64)
@@ -542,9 +494,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
         with self.tasklock:
             if self.task is None:
                 raise RuntimeError('Task not running')
-            # Read remaining data:
             self.read(self.task, None, -1)
-            # Stop the task:
             self.task.StopTask()
             self.task.ClearTask()
             self.task = None
@@ -553,17 +503,14 @@ class NI_DAQmxAcquisitionWorker(Worker):
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         self.logger.debug('transition_to_buffered')
 
-        # read channels, acquisition rate, etc from H5 file
         with h5py.File(h5_file, 'r') as f:
             group = f['/devices/' + device_name]
             if 'AI' not in group:
-                # No acquisition
                 return {}
             AI_table = group['AI'][:]
             device_properties = properties.get(f, device_name, 'device_properties')
 
         chans = [ensure_str(c) for c in AI_table['connection']]
-        # Remove duplicates and sort:
         if chans:
             self.buffered_chans = sorted(set(chans), key=split_conn_AI)
         self.h5_file = h5_file
@@ -586,10 +533,9 @@ class NI_DAQmxAcquisitionWorker(Worker):
 
     def _return_to_manual(self, abort):
         self.logger.debug('transition_to_manual')
-        #  If we were doing buffered mode acquisition, stop the buffered mode task and
-        # start the manual mode task. We might not have been doing buffered mode
-        # acquisition if abort() was called when we are not in buffered mode, or if
-        # there were no acuisitions this shot.
+        # Stop the buffered mode task and start the manual mode task, but only if in
+        # buffered mode: abort() can be called when we are not, and a shot without
+        # acquisitions never entered it.
         if not self.buffered_mode:
             return True
         if self.buffered_chans is not None:
@@ -612,7 +558,8 @@ class NI_DAQmxAcquisitionWorker(Worker):
 
         if self.buffered_chans is not None and not self.acquired_data:
             msg = """No data was acquired. Perhaps the acquisition task was not
-                triggered to start, is the device connected to a pseudoclock?"""
+                triggered to start: check that the device is connected to a
+                pseudoclock."""
             raise RuntimeError(dedent(msg))
         # Concatenate our chunks of acquired data and recast them as a structured
         # array with channel names:
@@ -626,7 +573,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
             self.extract_measurements(raw_data, waits_in_use)
             self.h5_file = None
             self.buffered_rate = None
-            msg = 'data written, time taken: %ss' % str(time.time() - start_time)
+            msg = f'data written, time taken: {time.time() - start_time}s'
         else:
             msg = 'No acquisitions in this shot.'
         self.logger.info(msg)
@@ -643,11 +590,14 @@ class NI_DAQmxAcquisitionWorker(Worker):
             with deadline.timeout_for(TimeoutError) as timeout:
                 analysed = self.wait_durations_analysed.wait(self.h5_file, timeout=timeout)
             if analysed == 'failed':
-                raise RuntimeError('The wait monitor failed, so the durations of the waits, which divide up the acquisitions, are unknown')
+                raise RuntimeError(
+                    "The wait monitor failed, so the durations of the waits, which "
+                    "divide up the acquisitions, are unknown. See the wait monitor "
+                    "worker's error."
+                )
 
         with h5py.File(self.h5_file, 'a') as hdf5_file:
             if waits_in_use:
-                # get the wait start times and durations
                 waits = hdf5_file['/data/waits']
                 wait_times = waits['time']
                 wait_durations = waits['duration']
@@ -682,10 +632,9 @@ class NI_DAQmxAcquisitionWorker(Worker):
                 # We want np.floor(x) to yield the largest integer < x (not <=):
                 if t_end - t0 - i_end / self.buffered_rate < 2e-16:
                     i_end -= 1
-                # IBS: we sometimes find that t_end (with waits) gives a time
-                # after the end of acquisition.  The following line
-                # will produce return a shorter than expected array if i_end
-                # is larger than the length of the array.
+                # IBS: t_end (with waits) sometimes lands after the end of the
+                # acquisition, and then the slice below returns a shorter array than
+                # expected, as i_end is past the end of the array.
                 values = raw_data[connection][i_start : i_end + 1]
                 i_end = i_start + len(values) - 1 # re-measure i_end
 
@@ -710,7 +659,6 @@ class NI_DAQmxAcquisitionWorker(Worker):
 
 class NI_DAQmxWaitMonitorWorker(Worker):
     def init(self):
-
         self.all_waits_finished = Event('all_waits_finished', type='post')
         self.wait_durations_analysed = Event('wait_durations_analysed', type='post')
         self.wait_completed = Event('wait_completed', type='post')
@@ -729,13 +677,11 @@ class NI_DAQmxWaitMonitorWorker(Worker):
         # To trigger early shutdown of the wait monitor thread:
         self.shutting_down = False
 
-        # Does this device have the "incomplete sample detection" feature? This
-        # determines whether the first sample on our semiperiod counter input task will
-        # be automatically discarded before we see it, or whether we will have to
-        # discard it ourselves
+        # Whether this device has "incomplete sample detection": if so, the first sample
+        # on our semiperiod counter input task is automatically discarded before we see
+        # it, otherwise we have to discard it ourselves
         self.incomplete_sample_detection = incomplete_sample_detection(self.MAX_name)
 
-        # Data for timeout triggers:
         if self.timeout_trigger_type == 'rising':
             trigger_value = 1
             rearm_value = 0
@@ -743,8 +689,12 @@ class NI_DAQmxWaitMonitorWorker(Worker):
             trigger_value = 0
             rearm_value = 1
         else:
-            msg = 'timeout_trigger_type  must be "rising" or "falling", not "{}".'
-            raise ValueError(msg.format(self.timeout_trigger_type))
+            msg = (
+                'timeout_trigger_type must be "rising" or "falling", '
+                f'not "{self.timeout_trigger_type}". Set the timeout_trigger_type '
+                'argument of the WaitMonitor to one of them.'
+            )
+            raise ValueError(msg)
         self.timeout_trigger = np.array([trigger_value], dtype=np.uint8)
         self.timeout_rearm = np.array([rearm_value], dtype=np.uint8)
 
@@ -752,9 +702,7 @@ class NI_DAQmxWaitMonitorWorker(Worker):
         self.stop_tasks(True)
 
     def read_edges(self, npts, timeout=None):
-        """Wait up to the given timeout in seconds for an edge on the wait monitor and
-        and return the duration since the previous edge. Return None upon timeout,
-        keeping any edges read for the next call."""
+        """Read npts semiperiods; return None if timeout seconds pass, keeping those read."""
         samples_read = int32()
         # Read in chunks of at most 0.2 s, until the timeout if there is one, so
         # that an abort is seen between them.
@@ -784,10 +732,9 @@ class NI_DAQmxWaitMonitorWorker(Worker):
 
     def wait_monitor(self):
         try:
-            # Read edge times from the counter input task, indiciating the times of the
-            # pulses that occur at the start of the experiment and after every wait. If a
-            # timeout occurs, pulse the timeout output to force a resume of the master
-            # pseudoclock. Save the resulting
+            # Read the semiperiods of the pulses at the start of the experiment and
+            # after every wait into self.semiperiods. If a wait times out, pulse the
+            # timeout output to force a resume of the master pseudoclock.
             self.logger.debug('Wait monitor thread starting')
             with self.kill_lock:
                 self.logger.debug('Waiting for start of experiment')
@@ -797,20 +744,15 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                 else:
                     semiperiods = self.read_edges(2, timeout=None)
                 self.logger.debug('Experiment started, got edges:' + str(semiperiods))
-                # May have been one or two edges, depending on whether the device has
-                # incomplete sample detection. We are only interested in the second one
-                # anyway, it tells us how long the initial pulse was. Store the pulse width
-                # for later, we will use it for making timeout pulses if necessary. Note
-                # that the variable current_time is labscript time, so it will be reset
-                # after each wait to the time of that wait plus pulse_width.
+                # The last semiperiod is the initial pulse's width, which timeout pulses
+                # reuse. current_time is labscript time: after each wait it is reset to
+                # that wait's time plus the width of the pulse after it.
                 current_time = pulse_width = semiperiods[-1]
                 self.semiperiods.append(semiperiods[-1])
-                # Alright, we're now a short way into the experiment.
                 for wait in self.wait_table:
                     # How long until when the next wait should timeout?
                     timeout = wait['time'] + wait['timeout'] - current_time
-                    timeout = max(timeout, 0)  # ensure non-negative
-                    # Wait that long for the next pulse:
+                    timeout = max(timeout, 0)
                     self.logger.debug('Waiting for pulse indicating end of wait')
                     semiperiods = self.read_edges(2, timeout)
                     # Did the wait finish of its own accord, or time out?
@@ -818,9 +760,9 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                         # It timed out. If there is a timeout device, send a trigger to
                         # resume the clock!
                         if self.DO_task is not None:
-                            msg = """Wait timed out; retriggering clock with {:.3e} s
-                                pulse ({} edge)"""
-                            msg = msg.format(pulse_width, self.timeout_trigger_type)
+                            msg = f"""Wait timed out; retriggering clock with
+                                {pulse_width:.3e} s pulse ({self.timeout_trigger_type}
+                                edge)"""
                             self.logger.debug(dedent(msg))
                             self.send_resume_trigger(pulse_width)
                         else:
@@ -831,14 +773,11 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                         # Keep waiting for the clock to resume:
                         self.logger.debug('Waiting for pulse indicating end of wait')
                         semiperiods = self.read_edges(2, timeout=None)
-                    # Alright, now we're at the end of the wait.
                     self.semiperiods.extend(semiperiods)
                     self.logger.debug('Wait completed')
                     current_time = wait['time'] + semiperiods[-1]
-                    # Inform any interested parties that a wait has completed:
                     postdata = ensure_str(wait['label'])
                     self.wait_completed.post(self.h5_file, data=postdata)
-                # Inform any interested parties that waits have all finished:
                 self.logger.debug('All waits finished')
                 self.all_waits_finished.post(self.h5_file)
         except Exception:
@@ -848,15 +787,13 @@ class NI_DAQmxWaitMonitorWorker(Worker):
 
     def send_resume_trigger(self, pulse_width):
         written = int32()
-        # Trigger:
         self.DO_task.WriteDigitalLines(
             1, True, 1, DAQmx_Val_GroupByChannel, self.timeout_trigger, written, None
         )
-        # Wait however long we observed the first pulse of the experiment to be. In
-        # practice this is likely to be negligible compared to the other software delays
-        # here, but in case it is larger we'd better wait:
+        # Hold the trigger as long as we observed the first pulse of the experiment to
+        # last. In practice this is likely to be negligible compared to the other
+        # software delays here, but in case it is larger we'd better wait:
         time.sleep(pulse_width)
-        # Rearm trigger:
         self.DO_task.WriteDigitalLines(
             1, True, 1, DAQmx_Val_GroupByChannel, self.timeout_rearm, written, None
         )
@@ -872,7 +809,7 @@ class NI_DAQmxWaitMonitorWorker(Worker):
             # come: give the thread a second for the last ones, then stop it.
             self.wait_monitor_thread.join(1)
             self.shutting_down = True
-            # It reads in chunks of 0.2 s, so sees that within one
+            # It reads in chunks of 0.2 s, so sees shutting_down within one chunk
             Deadline(self.device_name, 'stop its wait monitor thread', 2).wait(
                 lambda: not self.wait_monitor_thread.is_alive()
             )
@@ -896,12 +833,10 @@ class NI_DAQmxWaitMonitorWorker(Worker):
         self.logger.debug('finished stop_tasks')
 
     def start_tasks(self):
-
-        # The counter acquisition task:
         self.CI_task = Task()
         CI_chan = self.MAX_name + '/' + self.wait_acq_connection
-        # What is the longest time in between waits, plus the timeout of the
-        # second wait?
+        # The longest measurement is the labscript time from the start or the previous
+        # wait to a wait, plus that wait's timeout:
         interwait_times = np.diff([0] + list(self.wait_table['time']))
         max_measure_time = max(interwait_times + self.wait_table['timeout'])
         # Allow for software delays in timeouts.
@@ -937,7 +872,6 @@ class NI_DAQmxWaitMonitorWorker(Worker):
         with h5py.File(h5_file, 'r') as hdf5_file:
             dataset = hdf5_file['waits']
             if len(dataset) == 0:
-                # There are no waits. Do nothing.
                 self.logger.debug('There are no waits, not transitioning to buffered')
                 self.wait_table = None
                 return {}
@@ -945,7 +879,8 @@ class NI_DAQmxWaitMonitorWorker(Worker):
 
         self.start_tasks()
 
-        # An array to store the results of counter acquisition:
+        # semiperiods collects the counter's results. partial_edges holds what a
+        # timed-out read got, for the next read:
         self.semiperiods = []
         self.partial_edges = np.zeros(0)
         self.wait_monitor_thread = threading.Thread(target=self.wait_monitor)
@@ -967,18 +902,18 @@ class NI_DAQmxWaitMonitorWorker(Worker):
         try:
             self.stop_tasks(abort)
             if not abort and self.wait_table is not None:
-                # Let's work out how long the waits were. The absolute times of each edge on
-                # the wait monitor were:
+                # Work out how long the waits were. The absolute times of each edge on
+                # the wait monitor are:
                 edge_times = np.cumsum(self.semiperiods)
-                # Now there was also a rising edge at t=0 that we didn't measure:
+                # There was also a rising edge at t=0 that we didn't measure:
                 edge_times = np.insert(edge_times, 0, 0)
-                # Ok, and the even-indexed ones of these were rising edges.
+                # The even-indexed edges are rising edges:
                 rising_edge_times = edge_times[::2]
-                # Now what were the times between rising edges?
+                # The times between rising edges:
                 periods = np.diff(rising_edge_times)
-                # How does this compare to how long we expected there to be between the
-                # start of the experiment and the first wait, and then between each pair of
-                # waits? The difference will give us the waits' durations.
+                # Compared to how long we expected between the start of the experiment
+                # and the first wait, and between each pair of waits, the difference is
+                # the waits' durations.
                 resume_times = self.wait_table['time']
                 # Again, include the start of the experiment, t=0:
                 resume_times = np.insert(resume_times, 0, 0)
@@ -986,10 +921,7 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                 wait_durations = periods - run_periods
                 waits_timed_out = wait_durations > self.wait_table['timeout']
 
-                # Work out how long the waits were, save them, post an event saying so:
-                # 'S' rather than the 'a' this used to say: 'a' was only ever an
-                # alias for it, and numpy 2.0 removed the alias. Same bytes on
-                # disk, so shot files written by earlier versions still read back.
+                # Save the durations, then post an event saying so:
                 dtypes = [
                     ('label', 'S256'),
                     ('time', float),

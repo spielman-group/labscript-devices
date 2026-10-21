@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /NI_DAQmx/models/labscript_devices.py                             #
+# /NI_DAQmx/labscript_devices.py                                    #
 #                                                                   #
 # Copyright 2018, Monash University, JQI, Christopher Billington    #
 #                                                                   #
@@ -35,11 +35,13 @@ _ints = {8: np.uint8, 16: np.uint16, 32: np.uint32, 64: np.uint64}
 
 
 def _smallest_int_type(n):
-    """Return the smallest unsigned integer type sufficient to contain n bits"""
+    """Return the smallest unsigned integer type that holds n bits."""
     return _ints[min(size for size in _ints.keys() if size >= n)]
 
 
 class NI_DAQmx(IntermediateDevice):
+    """A National Instruments DAQ with analog and digital outputs and analog inputs."""
+
     # Will be overridden during __init__ depending on configuration:
     allowed_children = []
 
@@ -121,99 +123,148 @@ class NI_DAQmx(IntermediateDevice):
         supports_simultaneous_AI_sampling=False,
         **kwargs
     ):
-        """Generic class for NI_DAQmx devices.
+        """
+        A model subclass, such as ``NI_PCIe_6363``, takes the same keywords and
+        supplies those that describe the hardware (ranges, rates, channel counts,
+        ports and supported features) from its model's introspected capabilities;
+        a keyword given to it replaces the capability.
 
-        Generally over-ridden by device-specific subclasses that contain
-        the introspected default values.
-
-        Args:
-            name (str): name to assign to the created labscript device
-            parent_device (clockline): Parent clockline device that will
-                clock the outputs of this device
-            clock_terminal (str): What input on the DAQ is used for the clockline
-            MAX_name (str): NI-MAX device name
-            static_AO (int, optional): Number of static analog output channels.
-            static_DO (int, optional): Number of static digital output channels.
-            clock_mirror_terminal (str, optional): Channel string of digital output
-                that mirrors the input clock. Useful for daisy-chaning DAQs on the same
-                clockline.
-            connected_terminals (list, optional): List of pairs of strings of digital inputs
-                and digital outputs that will be connected. Useful for daisy-chaining DAQs
-                on the same clockline when they do not have direct routes (see Device Routes in NI MAX).
-            acquisiton_rate (float, optional): Default sample rate of inputs.
-            AI_range (iterable, optional): A `[Vmin, Vmax]` pair that sets the analog
-                input voltage range for all analog inputs.
-            AI_range_Diff (iterable, optional): A `[Vmin, Vmax]` pair that sets the analog
-                input voltage range for all analog inputs when using Differential termination.
-            AI_start_delay (float, optional): Time in seconds between start of an
-                analog input task starting and the first sample.
-            AI_start_delay_ticks (int, optional): Time in sample clock periods between
-                start of an analog input task starting and the first sample. To use
-                this method, `AI_start_delay` must be set to `None`. This is necessary
-                for DAQs that employ delta ADCs.
-            AI_term (str, optional): Configures the analog input termination for all
-                analog inputs. Must be supported by the device. Supported options are
-                `'RSE'`, `'NRSE'` `'Diff'`, and '`PseudoDiff'`.
-            AI_term_cfg (dict, optional): Dictionary of analog input channels and their
-                supported terminations. Best to use `get_capabilities.py` to introspect
-                these.
-            AI_timebase_terminal (str, optional): Channel string that specifies what
-                channel to use for the Sample Clock Timebase signal.
-                If None, use default internal clocks.
-                Must also specify the rate when not using the internal sources.
-            AI_timebase_rate (float, optional): Supplied clock frequency for the AI timebase.
-                Only specify if using an external clock source.
-            AO_range (iterable, optional): A `[Vmin, Vmax]` pair that sets the analog
-                output voltage range for all analog outputs.
-            max_AI_multi_chan_rate (float, optional): Max supported analog input 
-                sampling rate when using multiple channels.
-            max_AI_single_chan_rate (float, optional): Max supported analog input
-                sampling rate when only using a single channel.
-            max_AO_sample_rate (float, optional): Max supported analog output
-                sample rate.
-            max_DO_sample_rate (float, optional): Max supported digital output
-                sample rate.
-            min_sermiperiod_measurement (float, optional): Minimum measurable time
-                for a semiperiod measurement.
-            num_AI (int, optional): Number of analog inputs channels.
-            num_AO (int, optional): Number of analog output channels.
-            num_CI (int, optional): Number of counter input channels.
-            ports (dict, optional): Dictionarly of DIO ports, which number of lines
-                and whether port supports buffered output.
-            supports_buffered_AO (bool, optional): True if analog outputs support
-                buffered output
-            supports_buffered_DO (bool, optional): True if digital outputs support
-                buffered output
-            supports_semiperiod_measurement (bool, optional): True if device supports
-                semi-period measurements
-
+        Parameters
+        ----------
+        name : str
+            Python variable name of the device.
+        parent_device : :class:`~labscript.ClockLine`, optional
+            Clockline that clocks the buffered outputs and triggers the start of the
+            analog input acquisitions; ``None`` by default. It can be left out only if
+            `static_AO` and `static_DO` are both true, and no analog input can be
+            added without it.
+        clock_terminal : str, optional
+            Terminal of the device that the clockline is connected to, such as
+            ``'/daq/PFI0'`` for a device named ``daq`` in NI MAX. Required whenever
+            `parent_device` is given.
+        MAX_name : str, optional
+            Name of the device in NI MAX; `name` by default.
+        static_AO, static_DO : bool, optional
+            Whether the analog and digital outputs are static. Static outputs take
+            ``StaticAnalogOut`` or ``StaticDigitalOut`` children, each with one value
+            for the whole shot; buffered outputs take ``AnalogOut`` or ``DigitalOut``
+            children and are clocked. The default is ``not supports_buffered_AO`` for
+            `static_AO` and ``not supports_buffered_DO`` for `static_DO`. A device that
+            supports neither kind of buffered output needs both true.
+        clock_mirror_terminal : str, optional
+            Terminal of a digital output that mirrors the clock input: during a shot,
+            BLACS connects `clock_terminal` to it. For daisy-chaining DAQs on the same
+            clockline. ``None`` by default.
+        connected_terminals : list of tuple of str, optional
+            Pairs of terminals, a digital input and a digital output, that BLACS
+            connects during a shot. For daisy-chaining DAQs on the same clockline when
+            they have no direct route (see Device Routes in NI MAX). ``None`` by
+            default.
+        acquisition_rate : float, optional
+            Sample rate of the analog inputs in a shot, in samples per second per
+            channel; ``None`` by default, which allows no analog input. It cannot be
+            set if `num_AI` is 0, and cannot exceed `max_AI_single_chan_rate`. When
+            several channels are acquired, it is also limited by
+            `max_AI_multi_chan_rate`, which the channels share unless
+            `supports_simultaneous_AI_sampling`.
+        AI_range : list of float, optional
+            ``[Vmin, Vmax]``, in volts, for all analog inputs; ``None`` by default.
+            If `AI_term` is ``'Diff'``, `AI_range_Diff` is used instead.
+        AI_range_Diff : list of float, optional
+            ``[Vmin, Vmax]``, in volts, for all analog inputs when `AI_term` is
+            ``'Diff'``; ``None`` by default.
+        AI_start_delay : float or None, optional
+            Time in seconds between the start of an analog input task and its first
+            sample; 0 by default. ``None`` takes the delay from
+            `AI_start_delay_ticks`.
+        AI_start_delay_ticks : int, optional
+            Time in sample clock periods between the start of an analog input task and
+            its first sample, which is necessary for DAQs that employ delta ADCs. Used,
+            and then required, only if `AI_start_delay` is ``None``; ``None`` by
+            default.
+        AI_term : str, optional
+            Termination of all analog inputs: ``'RSE'`` (the default), ``'NRSE'``,
+            ``'Diff'`` or ``'PseudoDiff'``. Only the channels that `AI_term_cfg` lists
+            as supporting it can be used, and none supporting it raises
+            :class:`~labscript.LabscriptError`.
+        AI_term_cfg : dict, optional
+            The terminations each analog input supports, such as
+            ``{'ai0': ['RSE', 'NRSE', 'Diff'], 'ai1': ['RSE', 'NRSE']}``; best
+            introspected with ``get_capabilities.py``. ``None`` by default, which takes
+            every channel to support only ``'RSE'`` and warns that the model
+            specification needs updating.
+        AI_timebase_terminal : str, optional
+            Terminal, generally a PFI line, of the external signal used as the Sample
+            Clock Timebase of the analog inputs; ``None`` by default, which uses the
+            internal timebase. Give it with `AI_timebase_rate`, or neither.
+        AI_timebase_rate : float, optional
+            Frequency of the signal on `AI_timebase_terminal`; ``None`` by default.
+        AO_range : list of float, optional
+            ``[Vmin, Vmax]``, in volts, for all analog outputs; ``None`` by default.
+            Needed if the device has analog outputs. A value outside it by more than
+            1e-10 of the range raises :class:`~labscript.LabscriptError` when the shot
+            compiles, and a smaller excess is clipped.
+        max_AI_multi_chan_rate : float, optional
+            Highest analog input sample rate, in samples per second, with more than
+            one channel in use; the channels share it unless
+            `supports_simultaneous_AI_sampling`.
+        max_AI_single_chan_rate : float, optional
+            Highest analog input sample rate, in samples per second, with one channel
+            in use; `acquisition_rate` cannot exceed it.
+        max_AO_sample_rate, max_DO_sample_rate : float, optional
+            Highest sample rate, in samples per second, of buffered analog and digital
+            output. The device's ``clock_limit`` is the lower of the two for the kinds
+            of output that support buffering.
+        min_semiperiod_measurement : float, optional
+            Shortest semiperiod, in seconds, the device can measure. If the device is
+            the acquisition device of the wait monitor, trigger pulses are at least
+            this long.
+        num_AI, num_AO, num_CI : int, optional
+            Number of analog input, analog output and counter input channels; 0 by
+            default. BLACS can use the device as the acquisition device of the wait
+            monitor only if `num_CI` is not 0.
+        ports : dict, optional
+            The digital ports, as ``{'port0': {'num_lines': 32, 'supports_buffered':
+            True}, 'port1': ...}``, keyed ``'port<N>'`` from 0 with none missing. Each
+            gives the port's number of lines and whether it supports buffered output,
+            which a ``DigitalOut`` needs. Empty by default.
+        supports_buffered_AO, supports_buffered_DO : bool, optional
+            Whether the analog and digital outputs can be clocked; ``False`` by
+            default. They set the defaults of `static_AO` and `static_DO` and the
+            device's ``clock_limit``.
+        supports_semiperiod_measurement : bool, optional
+            Whether the device can make semiperiod measurements; ``False`` by default.
+            Saved in the connection table, where nothing reads it.
+        supports_simultaneous_AI_sampling : bool, optional
+            Whether the device samples its analog inputs simultaneously; ``False`` by
+            default. If so, `max_AI_multi_chan_rate` applies to each channel rather
+            than being shared.
+        **kwargs
+            Passed to :class:`~labscript.IntermediateDevice`, which passes them on to
+            :class:`~labscript.Device`, for example `start_order` and `stop_order`.
         """
 
-        # Default static output setting based on whether the device supports buffered
-        # output:
         if static_AO is None:
             static_AO = not supports_buffered_AO
         if static_DO is None:
             static_DO = not supports_buffered_DO
 
-        # Parent is only allowed to be None if output is static:
         if parent_device is None and not (static_DO and static_AO):
-            msg = """Must specify a parent clockline, unless both static_AO and
-                static_DO are True"""
+            msg = f"""{name} needs a parent clockline unless static_AO and static_DO are
+                both True. Pass parent_device, or make both outputs static."""
             raise LabscriptError(dedent(msg))
-        # If parent device is not None though, then clock terminal must be specified:
         if parent_device is not None and clock_terminal is None:
-            msg = """If parent_device is given, then clock_terminal must be specified as
-                well as the terminal to which the parent pseudoclock is connected."""
+            msg = f"""{name} has a parent_device, so it needs a clock_terminal: the
+                terminal the parent clockline is connected to."""
             raise ValueError(dedent(msg))
         if acquisition_rate is not None and num_AI == 0:
-            msg = "Cannot set set acquisition rate on device with no analog inputs"
+            msg = f"{name} has no analog inputs, so acquisition_rate cannot be set."
             raise ValueError(msg)
-        # Acquisition rate cannot be larger than the single channel rate:
         if acquisition_rate is not None and acquisition_rate > max_AI_single_chan_rate:
-            msg = """acquisition_rate %f is larger than the maximum single-channel rate
-                %f for this device"""
-            raise ValueError(dedent(msg) % (acquisition_rate, max_AI_single_chan_rate))
+            msg = f"""acquisition_rate {acquisition_rate} is larger than the maximum
+                single-channel rate {max_AI_single_chan_rate} of {name}. Lower
+                acquisition_rate."""
+            raise ValueError(dedent(msg))
 
         self.clock_terminal = clock_terminal
         self.MAX_name = MAX_name if MAX_name is not None else name
@@ -228,22 +279,23 @@ class NI_DAQmx(IntermediateDevice):
         self.max_DO_sample_rate = max_DO_sample_rate
         self.min_semiperiod_measurement = min_semiperiod_measurement
         self.num_AI = num_AI
-        # special handling for AI termination configurations
         self.AI_term = AI_term
         if num_AI > 0:
             if AI_term_cfg == None:
-                # assume legacy configuration if none provided
+                # A model specification without AI_term_cfg is a legacy one: every
+                # channel is taken to support only 'RSE'.
                 AI_term_cfg = {f'ai{i:d}': ['RSE'] for i in range(num_AI)}
-                # warn user to update their local model specs
-                msg = """Model specifications for {} needs to be updated.
+                msg = f"""Model specifications for {self.description} need to be updated.
                     Please run the `get_capabilities.py` and `generate_subclasses.py`
                     scripts or define the `AI_term_cfg` kwarg for your device.
                     """
-                warnings.warn(dedent(msg.format(self.description)), FutureWarning)
+                warnings.warn(dedent(msg), FutureWarning)
             self.AI_chans = [key for key,val in AI_term_cfg.items() if self.AI_term in val]
             if not len(self.AI_chans):
-                msg = """AI termination {0} not supported for {1}."""
-                raise LabscriptError(dedent(msg.format(AI_term,self.description)))
+                msg = f"""None of the analog inputs of {name} ({self.description})
+                    supports AI_term {AI_term!r}. Pass an AI_term that its AI_term_cfg
+                    lists."""
+                raise LabscriptError(dedent(msg))
             if AI_term == 'Diff':
                 self.AI_range = AI_range_Diff
             if AI_start_delay is None:
@@ -251,20 +303,26 @@ class NI_DAQmx(IntermediateDevice):
                     # Tell blacs_worker to use AI_start_delay_ticks to define delay
                     self.start_delay_ticks = True
                 else:
-                    raise LabscriptError("You have specified `AI_start_delay = None` but have not provided `AI_start_delay_ticks`.")
+                    raise LabscriptError(
+                        f"{name} has AI_start_delay=None but no AI_start_delay_ticks. "
+                        "Give the delay in seconds as AI_start_delay or in sample "
+                        "clock periods as AI_start_delay_ticks."
+                    )
             else:
                 # Tells blacs_worker to use AI_start_delay to define delay
                 self.start_delay_ticks = False
         else:
-            # no analog inputs
             self.AI_chans = []
             self.start_delay_ticks = None
-        # special AI timebase handling
         if num_AI > 0:
             if (AI_timebase_rate is None) ^ (AI_timebase_terminal is None):
-                raise LabscriptError("You must specify terminal and rate when using an external AI timebase")
+                raise LabscriptError(
+                    f"{name} needs both AI_timebase_terminal and AI_timebase_rate to "
+                    "use an external AI timebase. Give both, or neither for the "
+                    "internal timebase."
+                )
             self.AI_timebase_terminal = AI_timebase_terminal
-                
+
         self.num_AO = num_AO
         self.num_CI = num_CI
         self.ports = ports if ports is not None else {}
@@ -282,14 +340,13 @@ class NI_DAQmx(IntermediateDevice):
         else:
             self.clock_limit = None
             if not (static_AO and static_DO):
-                msg = """Device does not support buffered output, please instantiate
-                it with static_AO=True and static_DO=True"""
+                msg = f"""{name} does not support buffered output. Instantiate it with
+                    static_AO=True and static_DO=True."""
                 raise LabscriptError(dedent(msg))
 
         self.wait_monitor_minimum_pulse_width = self.min_semiperiod_measurement
 
         self.allowed_children = []
-        '''Sets the allowed children types based on the capabilites.'''
         if self.num_AI > 0:
             self.allowed_children += [AnalogIn]
         if self.num_AO > 0 and static_AO:
@@ -302,14 +359,13 @@ class NI_DAQmx(IntermediateDevice):
             self.allowed_children += [DigitalOut]
 
         if clock_terminal is None and not (static_AO and static_DO):
-            msg = """Clock terminal must be specified unless static_AO and static_DO are
-                both True"""
+            msg = f"""{name} needs a clock_terminal unless static_AO and static_DO are
+                both True. Pass the terminal the parent clockline is connected to."""
             raise LabscriptError(dedent(msg))
 
         self.BLACS_connection = self.MAX_name
 
-        # This is called late since it must be called after our clock_limit attribute is
-        # set:
+        # Called late: the parent clockline reads clock_limit when this device joins it.
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
 
         # Cannot be set with set_passed_properties because of name mangling with the
@@ -317,69 +373,69 @@ class NI_DAQmx(IntermediateDevice):
         self.set_property('__version__', __version__, 'connection_table_properties')
 
     def add_device(self, device):
-        """Error checking for adding a child device.
-
-        Args:
-            device (labscript device): Child labscript device to
-                attach to this device. Only types of devices in :obj:`allowed_children`
-                can be attached.
-        """
-        # Verify static/dynamic outputs compatible with configuration:
+        """Check a child's kind and connection against this device's configuration."""
         if isinstance(device, StaticAnalogOut) and not self.static_AO:
-            msg = """Cannot add StaticAnalogOut to NI_DAQmx device configured for
-                dynamic analog output. Pass static_AO=True for static analog output"""
+            msg = f"""Cannot add the StaticAnalogOut {device.name} to {self.name}, which
+                is configured for dynamic analog output. Pass static_AO=True to
+                {self.name} for static analog output."""
             raise LabscriptError(dedent(msg))
         if isinstance(device, StaticDigitalOut) and not self.static_DO:
-            msg = """Cannot add StaticDigitalOut to NI_DAQmx device configured for
-                dynamic digital output. Pass static_DO=True for static digital output"""
+            msg = f"""Cannot add the StaticDigitalOut {device.name} to {self.name}, which
+                is configured for dynamic digital output. Pass static_DO=True to
+                {self.name} for static digital output."""
             raise LabscriptError(dedent(msg))
         if isinstance(device, AnalogOut) and self.static_AO:
-            msg = """Cannot add AnalogOut to NI_DAQmx device configured for
-                static analog output. Pass static_AO=False for dynamic analog output"""
+            msg = f"""Cannot add the AnalogOut {device.name} to {self.name}, which is
+                configured for static analog output. Pass static_AO=False to
+                {self.name} for dynamic analog output."""
             raise LabscriptError(dedent(msg))
         if isinstance(device, DigitalOut) and self.static_DO:
-            msg = """Cannot add DigitalOut to NI_DAQmx device configured for static
-                digital output. Pass static_DO=False for dynamic digital output"""
+            msg = f"""Cannot add the DigitalOut {device.name} to {self.name}, which is
+                configured for static digital output. Pass static_DO=False to
+                {self.name} for dynamic digital output."""
             raise LabscriptError(dedent(msg))
-        # Verify connection string is OK:
         if isinstance(device, (AnalogOut, StaticAnalogOut)):
             ao_num = split_conn_AO(device.connection)
             if ao_num >= self.num_AO:
-                msg = """Cannot add output with connection string '%s' to device with
-                num_AO=%d"""
-                raise ValueError(dedent(msg) % (device.connection, self.num_AO))
+                msg = f"""Cannot add output with connection string '{device.connection}'
+                    to {self.name}, which has num_AO={self.num_AO}."""
+                raise ValueError(dedent(msg))
         elif isinstance(device, (DigitalOut, StaticDigitalOut)):
             port, line = split_conn_DO(device.connection)
-            port_str = 'port%d' % port
+            port_str = f'port{port}'
             if port_str not in self.ports:
-                msg = "Parent device has no such DO port '%s'" % port_str
+                msg = f"{self.name} has no digital output port '{port_str}'."
                 raise ValueError(msg)
             nlines = self.ports[port_str]['num_lines']
             if line >= nlines:
-                msg = """Canot add output with connection string '%s' to port '%s'
-                with only %d lines"""
-                raise ValueError(dedent(msg) % (device.connection, port_str, nlines))
+                msg = f"""Cannot add output with connection string
+                    '{device.connection}' to port '{port_str}' of {self.name}, which
+                    has only {nlines} lines."""
+                raise ValueError(dedent(msg))
             supports_buffered = self.ports[port_str]['supports_buffered']
             if isinstance(device, DigitalOut) and not supports_buffered:
-                msg = """Cannot add DigitalOut port '%s', which does not support
-                    buffered output"""
-                raise ValueError(dedent(msg) % port_str)
+                msg = f"""Cannot add the DigitalOut {device.name} to port '{port_str}'
+                    of {self.name}, which does not support buffered output. Use a
+                    buffered port, or a StaticDigitalOut with static_DO=True."""
+                raise ValueError(dedent(msg))
         elif isinstance(device, AnalogIn):
             if device.connection not in self.AI_chans:
-                msg = """Cannot add analog input with connection string '%s' to device
-                with num_AI=%d"""
-                raise ValueError(dedent(msg) % (device.connection, self.num_AI))
+                msg = f"""Cannot add analog input with connection string
+                    '{device.connection}' to {self.name}: it is not one of the analog
+                    inputs (num_AI={self.num_AI}) that support AI_term {self.AI_term!r}."""
+                raise ValueError(dedent(msg))
             if self.acquisition_rate is None:
-                msg = """Cannot add analog input to NI_DAQmx device with
-                    acquisition_rate=None. Please set acquisition_rate as an
-                    instantiation argument to the parent NI_DAQmx device."""
+                msg = f"""Cannot add the analog input {device.name} to {self.name},
+                    which has acquisition_rate=None. Pass acquisition_rate to
+                    {self.name}."""
                 raise ValueError(dedent(msg))
             if self.parent_device is None:
-                msg = """Cannot add analog input to device with no parent pseudoclock.
-                    Even if there is no buffered output, a pseudoclock is still required
-                    to trigger the start of acquisition. Please specify a parent_device
-                    and clock_terminal for device %s"""
-                raise ValueError(dedent(msg) % self.name)
+                msg = f"""Cannot add the analog input {device.name} to {self.name},
+                    which has no parent clockline. Even if there is no buffered output,
+                    a pseudoclock is still required to trigger the start of
+                    acquisition. Pass parent_device and clock_terminal to
+                    {self.name}."""
+                raise ValueError(dedent(msg))
 
         IntermediateDevice.add_device(self, device)
 
@@ -387,8 +443,8 @@ class NI_DAQmx(IntermediateDevice):
         """Check that there are an even number of children of each type."""
         errmsg = """{0} {1} must have an even number of {2}s in order to guarantee an
             even total number of samples, which is a limitation of the DAQmx library.
-            Please add a dummy {2} device or remove one you're not using, so that there
-            is an even number."""
+            Add a dummy {2} device or remove one you are not using, so that there is an
+            even number."""
         if len(analogs) % 2:
             msg = errmsg.format(self.description, self.name, 'analog output')
             raise LabscriptError(dedent(msg))
@@ -397,22 +453,18 @@ class NI_DAQmx(IntermediateDevice):
             raise LabscriptError(dedent(msg))
 
     def _check_bounds(self, analogs):
-        """Check that all analog outputs are in bounds"""
+        """Check that all analog outputs are in bounds."""
         if not analogs:
             return
         vmin, vmax = self.AO_range
-        # Floating point rounding error can produce values that would mathematically be
-        # within bounds, but have ended up numerically out of bounds. We allow
-        # out-of-bounds values within a small threshold through, but apply clipping to
-        # keep them numerically within bounds. 1e-10 of the total range corresponds to >
-        # 32 bits of precision, so this is not changing the voltages at all since none
-        # of the DACs are that precise.
+        # Rounding can leave a value that is mathematically in bounds just outside them.
+        # One out by at most 1e-10 of the range (over 32 bits of precision, beyond any
+        # of the DACs) is clipped into bounds rather than refused.
         eps = abs(vmax - vmin) * 1e-10
         for output in analogs.values():
             if any((output.raw_output < vmin - eps) | (output.raw_output > vmax + eps)):
-                msg = """%s %s can only have values between %e and %e Volts, the limit
-                    imposed by %s."""
-                msg = msg % (output.description, output.name, vmin, vmax, self.name)
+                msg = f"""{output.description} {output.name} can only have values
+                    between {vmin:g} and {vmax:g} Volts, the AO_range of {self.name}."""
                 raise LabscriptError(dedent(msg))
             np.clip(output.raw_output, vmin, vmax, out=output.raw_output)
 
@@ -429,14 +481,15 @@ class NI_DAQmx(IntermediateDevice):
             return
         elif self.acquisition_rate <= self.max_AI_multi_chan_rate / n:
             return
-        msg = """Requested acqusition_rate %f for device %s with %d analog input
-            channels in use is too fast. Device supports a rate of %f per channel when
-            multiple channels are in use."""
-        msg = msg % (self.acquisition_rate, self.name, n, self.max_AI_multi_chan_rate)
+        msg = f"""acquisition_rate {self.acquisition_rate} of {self.name} is too fast for
+            the {n} analog input channels in use. The device's multi-channel rate is
+            {self.max_AI_multi_chan_rate}, which the channels share unless it samples
+            them simultaneously. Lower acquisition_rate or acquire from fewer
+            channels."""
         raise ValueError(dedent(msg))
 
     def _make_analog_out_table(self, analogs, times):
-        """Collect analog output data and create the output array"""
+        """Collect analog output data and create the output array."""
         if not analogs:
             return None
         n_timepoints = 1 if self.static_AO else len(times)
@@ -448,7 +501,7 @@ class NI_DAQmx(IntermediateDevice):
         return analog_out_table
 
     def _make_digital_out_table(self, digitals, times):
-        """Collect digital output data and create the output array"""
+        """Collect digital output data and create the output array."""
         if not digitals:
             return None
         n_timepoints = 1 if self.static_DO else len(times)
@@ -458,11 +511,10 @@ class NI_DAQmx(IntermediateDevice):
         columns = {}
         for connection, output in digitals.items():
             port, line = split_conn_DO(connection)
-            port_str = 'port%d' % port
+            port_str = f'port{port}'
             if port not in bits_by_port:
-                # Make a list of the right size for the number of lines
-                # on the port, or the number of bits in the smallest integer
-                # type that is equal to or larger than the number of lines.
+                # One bit per line, padded to the width of the smallest unsigned
+                # integer type that holds the port.
                 nlines = self.ports[port_str]["num_lines"]
                 int_type = _smallest_int_type(nlines)
                 int_type_nbits = 8 * int_type().nbytes
@@ -475,12 +527,11 @@ class NI_DAQmx(IntermediateDevice):
             # Pack the bits from each port into an integer:
             port_str, dtype = columns[port]
             values = bitfield(bits, dtype=dtype)
-            # Put them into the table:
             digital_out_table[port_str] = np.array(values)
         return digital_out_table
 
     def _make_analog_input_table(self, inputs):
-        """Collect analog input instructions and create the acquisition table"""
+        """Collect analog input instructions and create the acquisition table."""
         if not inputs:
             return None
         acquisitions = []
@@ -498,19 +549,15 @@ class NI_DAQmx(IntermediateDevice):
                     )
                 )
         if acquisitions and compiler.wait_table and compiler.wait_monitor is None:
-            msg = """Cannot do analog input on an NI DAQmx device in an experiment that
-                uses waits without a wait monitor. This is because input data cannot be
-                'chunked' into requested segments without knowledge of the durations of
-                the waits. See labscript.WaitMonitor for details."""
+            msg = f"""Cannot do analog input on {self.name} in an experiment that uses
+                waits without a wait monitor. Input data cannot be 'chunked' into the
+                requested segments without knowing the durations of the waits. Add a
+                labscript.WaitMonitor to the experiment."""
             raise LabscriptError(dedent(msg))
 
-        # The 'S256' dtype below limits the string fields to 256
-        # characters. Can't imagine this would be an issue, but to not
-        # specify the string length (using dtype=str) causes the strings
-        # to all come out empty. 'S' rather than the 'a' this used to say:
-        # 'a' was only ever an alias for it, and numpy 2.0 removed the alias.
-        # Same bytes on disk either way, so shot files written by earlier
-        # versions still read back.
+        # 'S256' limits the string fields to 256 characters; dtype=str, with no length,
+        # makes the strings all come out empty. 'S' is the 'a' alias numpy 2.0 removed,
+        # with the same bytes on disk, so shot files from earlier versions still read.
         acquisitions_table_dtypes = [
             ('connection', 'S256'),
             ('label', 'S256'),
@@ -527,10 +574,7 @@ class NI_DAQmx(IntermediateDevice):
         return acquisition_table
 
     def _check_wait_monitor_timeout_device_config(self):
-        """Check that if we are the wait monitor acquisition device and another device
-        is the wait monitor timeout device, that a) the other device is a DAQmx device
-        and b) the other device has a start_order lower than us and a stop_order higher
-        than us."""
+        """Check the type and order of a wait monitor timeout device other than this."""
         if compiler.wait_monitor is None:
             return
         acquisition_device = compiler.wait_monitor.acquisition_device
@@ -540,10 +584,10 @@ class NI_DAQmx(IntermediateDevice):
         if timeout_device is self:
             return
         if not isinstance(timeout_device, NI_DAQmx):
-            msg = """If using an NI DAQmx device as a wait monitor acquisition device,
+            msg = f"""If using an NI DAQmx device as a wait monitor acquisition device,
                 then the wait monitor timeout device must also be an NI DAQmx device,
-                not {}."""
-            raise TypeError(dedent(msg).format(type(timeout_device)))
+                not {type(timeout_device).__name__}."""
+            raise TypeError(dedent(msg))
         timeout_start = timeout_device.start_order
         if timeout_start is None:
             timeout_start = 0
@@ -572,14 +616,7 @@ class NI_DAQmx(IntermediateDevice):
             raise RuntimeError(dedent(msg))
 
     def generate_code(self, hdf5_file):
-        """Generates the hardware code from the script and saves it to the
-        shot h5 file.
-
-        This is called automatically when a shot is compiled.
-
-        Args:
-            hdf5_file (str): Path to shot's hdf5 file to save the instructions to.
-        """
+        """Write the AO, DO and AI tables to the shot file."""
         IntermediateDevice.generate_code(self, hdf5_file)
         analogs = {}
         digitals = {}
@@ -592,7 +629,10 @@ class NI_DAQmx(IntermediateDevice):
             elif isinstance(device, AnalogIn):
                 inputs[device.connection] = device
             else:
-                raise TypeError(device)
+                raise TypeError(
+                    f"{device.name} is not an analog output, digital output or analog "
+                    f"input, so {self.name} cannot generate code for it."
+                )
 
         clockline = self.parent_device
         if clockline is None:
@@ -624,4 +664,6 @@ class NI_DAQmx(IntermediateDevice):
             grp.create_dataset('AI', data=AI_table, compression=compiler.compression)
 
 
+# The models import NI_DAQmx from this module, so they load after it is defined; this
+# also makes each model importable from here.
 from .models import *

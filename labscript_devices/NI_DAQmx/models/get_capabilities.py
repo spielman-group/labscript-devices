@@ -10,19 +10,11 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
-"""This is a script to update `model_capabilities.json` with the capabilities of all
-NI-DAQmx devices currently connected to this computer. 
+"""Update capabilities.json with the capabilities of every NI-DAQmx device connected
+to this computer, to add support for a new model of device.
 
-Run this script to add support for a new model of NI-DAQmx device. 
-Note that this will work with a simulated device configured through NI-MAX as well, 
-so support can be added without actually having the physical device.
-
-Called from the command line via
-
-.. code-block:: shell
-
-    python get_capabilities.py
-
+A simulated device configured through NI-MAX works as well, so the physical device is
+not needed. Run it with `python get_capabilities.py`, then run generate_subclasses.py.
 """
 
 import numpy as np
@@ -39,14 +31,8 @@ CAPABILITIES_FILE = os.path.join(THIS_FOLDER, 'capabilities.json')
 
 
 def string_prop(func):
-    """String property wrapper.
+    """Wrap a PyDAQmx getter that fills a string buffer; the device name is optional."""
 
-    Args:
-        func (function): PyDAQmx library function that returns a string.
-
-    Returns:
-        function: The wrapped function. 
-    """
     def wrapped(name=None):
         BUFSIZE = 4096
         result = ctypes.create_string_buffer(BUFSIZE)
@@ -60,14 +46,6 @@ def string_prop(func):
 
 
 def bool_prop(func):
-    """Bool property wrapper.
-
-    Args:
-        func (function): PyDAQmx library function that returns a boolean.
-
-    Returns:
-        function: The wrapped function. 
-    """
     def wrapped(name):
         result = bool32()
         func(name, byref(result))
@@ -77,14 +55,6 @@ def bool_prop(func):
 
 
 def int32_prop(func):
-    """Int32 property wrapper.
-
-    Args:
-        func (function): PyDAQmx library function that returns a int32.
-
-    Returns:
-        function: The wrapped function. 
-    """
     def wrapped(name):
         result = int32()
         func(name, byref(result))
@@ -94,14 +64,6 @@ def int32_prop(func):
 
 
 def float64_prop(func):
-    """Float property wrapper.
-
-    Args:
-        func (function): PyDAQmx library function that returns a float64.
-
-    Returns:
-        function: The wrapped function. 
-    """
     def wrapped(name):
         result = float64()
         func(name, byref(result))
@@ -111,15 +73,6 @@ def float64_prop(func):
 
 
 def float64_array_prop(func):
-    """Array of floats property wrapper.
-
-    Args:
-        func (function): PyDAQmx library function that returns an array of
-            float64s.
-
-    Returns:
-        function: The wrapped function. 
-    """
     def wrapped(name):
         import warnings
 
@@ -129,7 +82,6 @@ def float64_array_prop(func):
             warnings.simplefilter("ignore")
             # Pass in null pointer and 0 len to ask for what array size is needed:
             npts = func(name, byref(float64()), 0)
-        # Create that array
         result = (float64 * npts)()
         func(name, result, npts)
         result = [result[i] for i in range(npts)]
@@ -139,15 +91,7 @@ def float64_array_prop(func):
 
 
 def chans(func):
-    """string_prop but splitting the return value into separate channels 
-    and stripping the device name from them
-
-    Args:
-        func (function): PyDAQmx library function that returns channel string.
-
-    Returns:
-        function: The wrapped function.
-    """
+    """Like string_prop, but return the channels it lists, with the device name stripped."""
     wrapped1 = string_prop(func)
 
     def wrapped2(name):
@@ -183,16 +127,7 @@ DAQmxGetDevAISimultaneousSamplingSupported = bool_prop(PyDAQmx.DAQmxGetDevAISimu
 
 
 def port_supports_buffered(device_name, port, clock_terminal=None):
-    """Empirically determines if the digital port supports buffered output.
-
-    Args:
-        device_name (str): NI-MAX device name
-        port (int): Which port to intro-spect
-        clock_terminal (str, optional): String that specifies the clock terminal.
-
-    Returns:
-        bool: True if `port` supports buffered output.
-    """
+    """Empirically determine whether a digital port supports buffered output."""
     all_terminals = DAQmxGetDevTerminals(device_name)
     if clock_terminal is None:
         clock_terminal = all_terminals[0]
@@ -237,15 +172,7 @@ def port_supports_buffered(device_name, port, clock_terminal=None):
 
 
 def AI_start_delay(device_name):
-    """Empirically determines the analog inputs' start delay.
-
-    Args:
-        device_name (str): NI-MAX device name
-
-    Returns:
-        float: Analog input start delay in seconds. `None` if
-        analog inputs not supported.
-    """
+    """Empirically determine the analog inputs' start delay in seconds (None without PFI0)."""
     if 'PFI0' not in DAQmxGetDevTerminals(device_name):
         return None
     task = Task()
@@ -278,12 +205,12 @@ def AI_start_delay(device_name):
     except PyDAQmx.DAQmxFunctions.AttributeNotSupportedInTaskContextError:
         # device does not have a Start Trigger Delay property
         # is likely a dynamic signal acquisition device with filter
-        # delays instead. 
+        # delays instead.
         start_trig_delay.value = 0
     try:
         task.GetDelayFromSampClkDelay(delay_from_sample_clock)
     except PyDAQmx.DAQmxFunctions.AttributeNotSupportedInTaskContextError:
-        # seems simultaneous sampling devices do not have this property, 
+        # seems simultaneous sampling devices do not have this property,
         # so assume it is zero
         delay_from_sample_clock.value = 0
     task.GetSampClkTimebaseRate(sample_timebase_rate)
@@ -296,16 +223,7 @@ def AI_start_delay(device_name):
 
 
 def AI_filter_delay(device_name):
-    """Determine the filter delay for dynamic signal acquistion devices.
-
-    Returns the delay in clock cycles. Absolute delay will vary with sample rate.
-    
-    Args:
-        device_name (str): NI-MAX device name
-
-    Returns:
-        int: Number of analog input delays ticks between task start and acquisition start.
-    """
+    """Return a dynamic signal acquisition device's filter delay in sample clock periods."""
     if 'PFI0' not in DAQmxGetDevTerminals(device_name):
         return None
     task = Task()
@@ -325,7 +243,6 @@ def AI_filter_delay(device_name):
     start_filter_delay = float64()
     sample_timebase_rate = float64()
 
-    # get delay in number of clock samples
     task.SetAIFilterDelayUnits("", c.DAQmx_Val_SampleClkPeriods)
 
     task.GetAIFilterDelay("", start_filter_delay)
@@ -337,18 +254,7 @@ def AI_filter_delay(device_name):
 
 
 def supported_AI_terminal_configurations(device_name):
-    """Determine which analong input configurations are supported for each AI.
-
-    Valid options are RSE, NRSE, Diff, and PseudoDiff.
-
-    Args:
-        device_name (str): NI-MAX device name
-
-    Returns:
-        dict:
-            Dictionary of analog input channels where each value is a list of
-            the supported input terminations.
-    """
+    """Return each analog input's supported terminations: RSE, NRSE, Diff or PseudoDiff."""
     supp_types = {}
     poss_types = {'RSE': c.DAQmx_Val_Bit_TermCfg_RSE,
                   'NRSE': c.DAQmx_Val_Bit_TermCfg_NRSE,
@@ -364,20 +270,10 @@ def supported_AI_terminal_configurations(device_name):
 
 
 def supported_AI_ranges_for_non_differential_input(device_name, AI_ranges):
-    """Empirically determine the analog input voltage ranges for non-differential inputs.
-
-    Tries AI ranges to see which are actually allowed for non-differential input, since
-    the largest range may only be available for differential input.
-
-    Args:
-        device_name (str): NI-MAX device name
-        AI_ranges (list): list of `[Vmin, Vmax]` pairs to check compatibility.
-
-    Returns:
-        list: List of lists with the supported voltage ranges.        
-    """
+    """Return the `[Vmin, Vmax]` pairs of AI_ranges that RSE input accepts."""
     chan = device_name + '/ai0'
     supported_ranges = []
+    # The largest range may only be available for differential input, so try each:
     for Vmin, Vmax in AI_ranges:
         try:
             task = Task()
@@ -398,14 +294,7 @@ def supported_AI_ranges_for_non_differential_input(device_name, AI_ranges):
 
 
 def supports_semiperiod_measurement(device_name):
-    """Empirically determines if the DAQ supports semiperiod measurement.
-
-    Args:
-        device_name (str): NI-MAX device name.
-
-    Returns:
-        bool: True if semi-period measurements are supported by the device.
-    """
+    """Return whether the device lists semiperiod among its counter input measurements."""
     import warnings
 
     with warnings.catch_warnings():
@@ -414,39 +303,13 @@ def supports_semiperiod_measurement(device_name):
         warnings.simplefilter("ignore")
         # Pass in null pointer and 0 len to ask for what array size is needed:
         npts = PyDAQmx.DAQmxGetDevCISupportedMeasTypes(device_name, int32(), 0)
-    # Create that array
     result = (int32 * npts)()
     PyDAQmx.DAQmxGetDevCISupportedMeasTypes(device_name, result, npts)
     return c.DAQmx_Val_SemiPeriod in [result[i] for i in range(npts)]
 
 
 def get_min_semiperiod_measurement(device_name):
-    """Determines the minimum semi-period measurement time supported by the device.
-
-    Depending on the timebase used, counter inputs can measure time intervals of
-    various ranges. As a default, we pick a largish range - the one with the fastest
-    timebase still capable of measuring 100 seconds, or the largest time interval if it
-    is less than 100 seconds, and we save the smallest interval measurable with this
-    timebase. Then labscript can ensure it doesn't make wait monitor pulses shorter than
-    this. This should be a sensible default behaviour, though if the user has
-    experiments considerably shorter or longer than 100 seconds, such that they want to
-    use a different timebase, they may pass the min_semiperiod_measurement keyword
-    argument into the DAQmx class, to tell labscript to make pulses some other duration
-    compatible with the maximum wait time in their experiment. However, since there are
-    software delays in timeouts of waits during a shot, any timed-out waits necessarily
-    will last software timescales of up to ~100ms on a slow computer, preventing one
-    from using very fast timebases with low-resolution counters if there is any
-    possibility of timing out. For now (in the wait monitor worker class) we
-    pessimistically add one second to the expected longest measurement to account for
-    software delays. These decisions can be revisited if there is a need, do not
-    hesitate to file an issue on bitbucket regarding this if it affects you.
-
-    Args:
-        device_name (str): NI-MAX device name
-
-    Returns:
-        float: Minimum measurement time.
-    """
+    """Return the minimum semiperiod measurement of the chosen counter timebase, in seconds."""
     CI_chans = DAQmxGetDevCIPhysicalChans(device_name)
     CI_chan = device_name + '/' + CI_chans[0]
     # Make a task with a semiperiod measurement
@@ -471,12 +334,14 @@ def get_min_semiperiod_measurement(device_name):
     finally:
         task.ClearTask()
 
-    # Pick out the value we want. Either dtmin when dtmax is over 100, or the largest
-    # dtmin if there is no dtmax over 100:
+    # Each timebase measures its own range. Use the fastest one that can still measure
+    # 100 s, or else the largest dtmin, as the default min_semiperiod_measurement, the
+    # shortest wait monitor pulse. Experiments far from 100 s may pass another.
     for dtmin, dtmax in sorted(CI_ranges):
         if dtmax > 100:
             return dtmin
     return dtmin
+
 
 if __name__ == '__main__':
     capabilities = {}
@@ -486,7 +351,6 @@ if __name__ == '__main__':
                 capabilities = json.load(f)
             except ValueError:
                 pass
-
 
     models = []
     for name in DAQmxGetSysDevNames().split(', '):
@@ -614,8 +478,8 @@ if __name__ == '__main__':
         data = json.dumps(capabilities, sort_keys=True, indent=4)
         f.write(data)
 
-    print("added/updated capabilities for %d models" % len(models))
-    print("Total models with known capabilities: %d" % len(capabilities))
+    print(f"added/updated capabilities for {len(models)} models")
+    print(f"Total models with known capabilities: {len(capabilities)}")
     for model in capabilities:
         if model not in models:
             print(model, 'capabilities not updated')
