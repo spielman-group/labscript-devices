@@ -15,15 +15,14 @@ from labscript_utils import dedent
 
 
 def get_device_number(connection_str):
-    """Return the integer device number from the connection string or raise ValueError
-    if the connection string is not in the format "device <n>" with positive n."""
+    """Return n from a connection 'device <n>' with n > 0, else raise ValueError."""
     try:
         prefix, num = connection_str.split(' ')
         num = int(num)
         if prefix != 'device' or num <= 0:
             raise ValueError
     except (TypeError, ValueError):
-        msg = f"""Connection string '{connection_str}' not in required format 'device
-            <n>' with n > 0"""
+        msg = f"""Connection string '{connection_str}' is not of the form 'device <n>'
+            with n > 0. Use a connection such as 'device 1'."""
         raise ValueError(dedent(msg)) from None
     return num

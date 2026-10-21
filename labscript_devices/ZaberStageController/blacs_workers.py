@@ -19,12 +19,17 @@ import labscript_utils.h5_lock, h5py
 from .utils import get_device_number
 
 
+# ZaberInterface sets this to the zaber.serial module, so that the mock needs no
+# Zaber library.
 zaber = None
 
+# Seconds a stage has to reach the position it was sent to.
 TIMEOUT = 60
 
 
-class MockZaberInterface(object):
+class MockZaberInterface:
+    """Stands in for the stages, keeping the positions it is sent in memory."""
+
     def __init__(self, com_port):
         from collections import defaultdict
         self.positions = defaultdict(int)
@@ -40,14 +45,16 @@ class MockZaberInterface(object):
         print(f"mock close")
 
 
-class ZaberInterface(object):
+class ZaberInterface:
+    """The stages on one serial port, through the zaber.serial library."""
+
     def __init__(self, com_port):
         global zaber
         try:
             import zaber.serial as zaber
         except ImportError:
-            msg = """Could not import zaber.serial module. Please ensure it is
-                installed. It is installable via pip with 'pip install zaber.serial'"""
+            msg = """Could not import zaber.serial. Install it with
+                'pip install zaber.serial'."""
             raise ImportError(dedent(msg))
 
         self.port = zaber.BinarySerial(com_port)
@@ -58,7 +65,10 @@ class ZaberInterface(object):
         deadline = monotonic() + TIMEOUT
         while device.get_position() != position:
             if monotonic() > deadline:
-                msg = "Device did not move to requested position within timeout"
+                msg = (
+                    f"Zaber device {device_number} did not reach position {position} "
+                    f"within {TIMEOUT} s. Check that nothing blocks the stage."
+                )
                 raise TimeoutError(msg)
 
     def get_position(self, device_number):
@@ -77,7 +87,7 @@ class ZaberStageControllerWorker(Worker):
             self.controller = ZaberInterface(self.com_port)
 
     def check_remote_values(self):
-        remote_values = {} 
+        remote_values = {}
         for connection in self.child_connections:
             device_number = get_device_number(connection)
             remote_values[connection] = self.controller.get_position(device_number)
@@ -92,6 +102,7 @@ class ZaberStageControllerWorker(Worker):
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['/devices/' + device_name]
+            # ZaberStageController.generate_code writes static_values.
             if 'static_values' in group:
                 data = group['static_values']
                 values = {name: data[0][name] for name in data.dtype.names}

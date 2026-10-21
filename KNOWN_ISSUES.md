@@ -44,3 +44,5 @@
 - `NI_DAQmx/utils.py`: `split_conn_DO` names the reassigned connection in its error, so 'port0/line0 (foo)' is reported as 'port0/line0'.
 - `TekScope/TekScope.py`: `waveform` reads 16-bit points with datatype `'i'`, 4 bytes, so with `int16` each value joins two points and the trace is garbage; the "only every second pt" comment describes this.
 - `TekScope/blacs_workers.py`: with no channel displayed, `transition_to_manual` raises UnboundLocalError, as the time axis comes from the last channel downloaded.
+- `ZaberStageController/blacs_tabs.py`: `auto_place_widgets` is given no sort key, so with 10 or more stages the front panel orders them 'device 1', 'device 10', 'device 2'.
+- `ZaberStageController/utils.py`: `get_device_number` catches TypeError and ValueError, but a non-string connection raises AttributeError, so it escapes the message meant for a bad connection.
