@@ -58,7 +58,7 @@ class TekScope:
         # transfer the waveform in binary format (signed, MSB)
         self.dev.write('DAT:ENC RIB')
         if int16:
-            # use 16-bit integers (but only return every second pt)
+            # use 16-bit integers
             self.dev.write(preamble_string + ':BYT_N 2')
         else:
             # use 8-bit integers
@@ -72,7 +72,7 @@ class TekScope:
         self.dev.write('DAT:STOP ' + str(record_length))
 
         raw = self.dev.query_binary_values('CURV?',
-            datatype='i' if int16 else 'b',
+            datatype='h' if int16 else 'b',
             is_big_endian=True,
             container=np.array
             )
@@ -114,8 +114,8 @@ class TekScope:
                 except: pass
             wfmp[key] = x
 
-        n = np.arange(0, wfmp['NR_PT'] / wfmp['BYT_NR'])
-        t = wfmp['BYT_NR'] * wfmp['XINCR'] * (n - wfmp['PT_OFF']) + wfmp['XZERO']
+        n = np.arange(wfmp['NR_PT'])
+        t = wfmp['XINCR'] * (n - wfmp['PT_OFF']) + wfmp['XZERO']
         y = wfmp['YMULT'] * (raw - wfmp['YOFF']) + wfmp['YZERO']
         return wfmp, t, y
 

@@ -37,8 +37,7 @@ class TekScope(Device):
             by default. Set per shot.
         int16 : bool, optional
             Download waveform points as 16-bit integers; ``False`` by default, which
-            downloads 8-bit integers. Set per shot. True gives invalid traces at
-            present: see KNOWN_ISSUES.md.
+            downloads 8-bit integers. Set per shot.
         **kwargs
             Passed to :class:`~labscript.Device`.
         """

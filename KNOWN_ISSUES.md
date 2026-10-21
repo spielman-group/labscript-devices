@@ -28,8 +28,6 @@
 - `AndorSolis/andor_sdk/andor_structures.py`: `AndorCapabilities` sets `ulSize` to `sys.getsizeof`, the Python object's size, not `ctypes.sizeof`, the structure's.
 - `AlazarTechBoard/blacs_workers.py`: the DMA buffers are freed only by a successful `transition_to_manual`; after an abort, a trigger timeout or a failure the next shot overwrites `self.buffers` and the memory leaks.
 - `NI_DAQmx/labscript_devices.py`: `static_AO=False` is accepted on a device without `supports_buffered_AO` when it has buffered DO, so an `AnalogOut` it cannot clock compiles.
-- `TekScope/TekScope.py`: `waveform` reads 16-bit points with datatype `'i'`, 4 bytes, so with `int16` each value joins two points and the trace is garbage; the "only every second pt" comment describes this.
-- `TekScope/blacs_workers.py`: with no channel displayed, `transition_to_manual` raises UnboundLocalError, as the time axis comes from the last channel downloaded.
 - `ZaberStageController/blacs_tabs.py`: `auto_place_widgets` is given no sort key, so with 10 or more stages the front panel orders them 'device 1', 'device 10', 'device 2'.
 - `ZaberStageController/utils.py`: `get_device_number` catches TypeError and ValueError, but a non-string connection raises AttributeError, so it escapes the message meant for a bad connection.
 - `FunctionRunner/blacs_workers.py`: the functions are deserialised with `__name__` and `__file__` set to the device name, for `lyse.Run` to name its results group after the device, but lyse takes the group from `sys.modules['__main__'].__file__`, so the group is named after the worker's main script.

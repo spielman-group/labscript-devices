@@ -3,6 +3,7 @@ import labscript_utils.h5_lock
 import h5py
 
 from blacs.tab_base_classes import Worker
+from labscript import LabscriptError
 import labscript_utils.properties
 
 
@@ -55,6 +56,11 @@ class TekScopeWorker(Worker):
                 )
                 wtype.append((ch, 'float'))
                 print(wfmp[ch]['WFID'])
+        if not vals:
+            raise LabscriptError(
+                f"{self.device_name} has no channel displayed, so there is no trace to "
+                "save. Display at least one channel on the scope."
+            )
 
         # Collate all data in a structured array, on the time axis of the last
         # channel downloaded.
