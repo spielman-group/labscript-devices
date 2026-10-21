@@ -70,8 +70,10 @@ class TriggerableCamera(TriggerableDevice):
             Name of the digital output port on the parent device; ``'trigger'`` if the
             parent is a `Trigger`.
         serial_number : str or int
-            The camera's serial number, which identifies it: an int, so that a hex
-            literal such as ``0x1F`` works, or a string of hexadecimal digits.
+            The camera's serial number, which identifies it: an int, which may be a
+            hex literal such as ``0x1F``, or a string, which is read as hexadecimal.
+            Give a camera whose serial is decimal, such as a FLIR or Basler one, an
+            int.
         orientation : str, optional
             The camera's location or orientation. The images are saved under
             ``images/<orientation>`` in the shot file, or under ``images/<name>`` if

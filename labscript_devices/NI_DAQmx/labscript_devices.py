@@ -386,13 +386,13 @@ class NI_DAQmx(IntermediateDevice):
             raise LabscriptError(dedent(msg))
         if isinstance(device, AnalogOut) and self.static_AO:
             msg = f"""Cannot add the AnalogOut {device.name} to {self.name}, which is
-                configured for static analog output. Pass static_AO=False to
-                {self.name} for dynamic analog output."""
+                configured for static analog output. Use a StaticAnalogOut, or, if the
+                device supports buffered analog output, pass static_AO=False to it."""
             raise LabscriptError(dedent(msg))
         if isinstance(device, DigitalOut) and self.static_DO:
             msg = f"""Cannot add the DigitalOut {device.name} to {self.name}, which is
-                configured for static digital output. Pass static_DO=False to
-                {self.name} for dynamic digital output."""
+                configured for static digital output. Use a StaticDigitalOut, or, if
+                the port supports buffered output, pass static_DO=False to the device."""
             raise LabscriptError(dedent(msg))
         if isinstance(device, (AnalogOut, StaticAnalogOut)):
             ao_num = split_conn_AO(device.connection)
@@ -556,8 +556,8 @@ class NI_DAQmx(IntermediateDevice):
             raise LabscriptError(dedent(msg))
 
         # 'S256' limits the string fields to 256 characters; dtype=str, with no length,
-        # makes the strings all come out empty. 'S' is the 'a' alias numpy 2.0 removed,
-        # with the same bytes on disk, so shot files from earlier versions still read.
+        # makes the strings all come out empty. 'S' strings are bytes, the same on disk
+        # as the 'a' alias numpy 2.0 removed, so earlier shot files still read.
         acquisitions_table_dtypes = [
             ('connection', 'S256'),
             ('label', 'S256'),

@@ -17,4 +17,4 @@ from labscript_devices.TriggerableCamera.blacs_tabs import TriggerableCameraTab
 class SpinnakerCameraTab(TriggerableCameraTab):
     """TriggerableCameraTab with SpinnakerCameraWorker as its worker."""
 
-    worker_class ='labscript_devices.SpinnakerCamera.blacs_workers.SpinnakerCameraWorker'
+    worker_class = 'labscript_devices.SpinnakerCamera.blacs_workers.SpinnakerCameraWorker'

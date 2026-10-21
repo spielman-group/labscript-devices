@@ -112,8 +112,7 @@ class PrawnBlaster(PseudoclockDevice):
         trigger_connection : str, optional
             Output of `trigger_device` wired to the hardware trigger input.
         com_port : str, optional
-            Serial port the OS assigned, of the form ``'COMd'``; ``'COM1'`` by
-            default.
+            Serial port the OS assigned, such as ``'COM1'``, the default.
         pico_board : str, optional
             ``'pico1'``, the default, or ``'pico2'``.
         num_pseudoclocks : int, optional

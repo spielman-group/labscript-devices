@@ -31,7 +31,7 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
         self.attributes = self.camera.default_acquisition_attrs
 
     def snap(self):
-        """Acquire one image and return it."""
+        """Acquire and return the stack of number_kinetics images."""
         self.configure_acquisition()
         self.camera.acquire()
         images = self.camera.download_acquisition()
@@ -44,7 +44,7 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
         self.camera.setup_acquisition(self.attributes)
 
     def grab(self):
-        """Return one image, acquired by `snap`."""
+        """Return the stack of images `snap` acquires."""
         # Consider using run til abort acquisition mode...
         img = self.snap()
         return img

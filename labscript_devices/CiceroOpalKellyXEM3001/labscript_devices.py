@@ -191,10 +191,9 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
                 wait_timeout = compiler.wait_table[wait_table[current_wait_index]][1]
                 current_wait_index += 1
 
-                # A wait has 0 reps. Its 'on' is the number of reference clock cycles to wait
-                # for the trigger before auto-resuming. The FPGA overcounts it by 1, as it
-                # cannot resume until after the second cycle, so 1 is subtracted for the
-                # wait to time out after the correct number of samples.
+                # A wait has 0 reps; 'on' is the reference clock cycles to wait for the
+                # trigger before resuming. The FPGA cannot resume until after the second
+                # cycle, so it overcounts by 1, which is subtracted here.
                 reduced_instructions.append(
                     {
                         'on': self.quantise_to_pseudoclock(wait_timeout, ticks=True) - 1,

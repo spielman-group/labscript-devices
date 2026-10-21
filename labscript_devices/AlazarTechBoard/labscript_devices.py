@@ -83,7 +83,8 @@ class AlazarTechBoard(Device):
             Python variable name of the device.
         server : str
             Saved as the device's BLACS connection, which BLACS shows on the board's
-            tab. The worker does not use it.
+            tab; it must not be empty, or BLACS makes no tab. The worker does not use
+            it.
         ats_system_id : int, optional
             Board system ID; 1 by default. The worker does not read it and opens
             system 1.

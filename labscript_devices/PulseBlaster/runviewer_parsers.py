@@ -73,7 +73,7 @@ class PulseBlasterBaseParser:
             for sub_chnl in ['freq', 'amp', 'phase']:
                 traces['dds %d_%s'%(i,sub_chnl)] = []
 
-        # Offset by the initial trigger from the parent's clock
+        # A secondary is taken to be triggered at 0, so it starts trigger_delay later.
         t = 0. if clock is None else PulseBlasterBase.trigger_delay
         i = 0
         while i < len(pulse_program):

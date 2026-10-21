@@ -25,9 +25,9 @@
 - `FlyCapture2Camera/blacs_workers.py`: `is_transient_grab_error` retries every Fc2error, so a fault that raises at once has `grab_multiple` retry it without pause until the shot ends.
 - `docs/source/devices/pylon.rst`: gives the usage as `python ExposureTiming.py [camera_sn]`, which the script's argparse refuses; it takes `-sn SERIAL`.
 - `PylonCamera/testing/ExposureTiming.py`: the last print labels `min_time_between_triggers` end-to-start, but when the exposure is at least the readout time it is start-to-start.
-- `SpinnakerCamera/blacs_workers.py`, `FlyCapture2Camera/blacs_workers.py`: TriggerableCamera reads a string `serial_number` as hexadecimal, but these cameras look the int up as a decimal FLIR serial, so a serial given as a string finds the wrong camera or none.
+- `SpinnakerCamera/blacs_workers.py`, `FlyCapture2Camera/blacs_workers.py`, `PylonCamera/blacs_workers.py`: TriggerableCamera reads a string `serial_number` as hexadecimal, but these cameras look the int up as a decimal serial, so a serial given as a string finds the wrong camera or none.
 - `SpinnakerCamera/blacs_workers.py`: `_decode_image_data` reads every Mono format not ending in 8 as uint16, so a packed format such as Mono12Packed is misread.
-- `SpinnakerCamera/blacs_workers.py`: `get_attribute_names` ignores `visibility_level`, so `saved_attribute_visibility_level` saves every readable attribute.
+- `SpinnakerCamera/blacs_workers.py`, `FlyCapture2Camera/blacs_workers.py`: Spinnaker's `get_attribute_names` and FlyCapture2's `get_attributes_as_dict` ignore the visibility level, so `saved_attribute_visibility_level` saves every readable attribute.
 - `SpinnakerCamera/blacs_workers.py`: `grab` does not release the image if decoding it raises, and `__init__` does not release the camera list and system when it raises.
 - `AndorSolis/andor_sdk/andor_utils.py`: `enable_emccd` tests `emccd_gain in emccd_gain_range`, a (low, high) pair, so only the two ends pass and the default gain of 50 is refused.
 - `AndorSolis/andor_sdk/andor_utils.py`: `setup_acquisition` calls `enable_emccd`, which needs `self.cooling`, before `enable_cooldown` sets it, so the first setup with both `emccd` and `cooldown` True raises.
@@ -49,3 +49,7 @@
 - `FunctionRunner/blacs_workers.py`: the functions are deserialised with `__name__` and `__file__` set to the device name, for `lyse.Run` to name its results group after the device, but lyse takes the group from `sys.modules['__main__'].__file__`, so the group is named after the worker's main script.
 - `FunctionRunner/utils.py`: a lambda passes `add_function`, but the worker cannot find it by its name, `<lambda>`, in its source, and raises KeyError.
 - `FunctionRunner/labscript_devices.py`: `add_function` with a string `t` other than 'start' or 'stop' raises float()'s ValueError, not a message about `t`.
+- `TriggerableCamera/blacs_workers.py`: with `exception_on_failed_shot` True, a grab error ends the acquisition thread, but `transition_to_manual` checks only whether the thread is still alive, so the shot goes on with the images acquired so far.
+- `PulseBlaster/labscript_devices.py`: `PulseBlasterDDS` does not refuse a `digital_gate`; `DDSQuantity` makes a gate from it, and the PulseBlaster's own gate then fails on the name, with an error that does not mention `digital_gate`.
+- `PulseBlaster/runviewer_parsers.py`: a secondary is drawn from `trigger_delay` after 0 and after each wait, without reading its triggers from the clock, so a later initial trigger time, or the master's resume delay after a wait, is not shown.
+- `RFBlaster/labscript_devices.py`: an RFBlaster without a `trigger_device` compiles as the master pseudoclock, but its tab has no `start_run`, so BLACS cannot run the shot.

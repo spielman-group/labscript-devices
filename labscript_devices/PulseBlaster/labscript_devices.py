@@ -140,10 +140,10 @@ class PulseBlasterBase(PseudoclockDevice):
             nothing reads it; ``''`` by default.
         programming_scheme : str, optional
             How BLACS starts and stops the board: ``'pb_start/BRANCH'``, the default,
-            or ``'pb_stop_programming/STOP'``. With the first, BLACS calls
-            ``pb_start()`` to start the board in software time, and the program ends
-            with a BRANCH to a WAIT instruction at its beginning, ready to start
-            again. With the second, BLACS leaves the board in programming mode until
+            or ``'pb_stop_programming/STOP'``. With the first, a master starts when
+            BLACS calls ``pb_start()``, in software time, and a secondary on its
+            hardware trigger; the program ends with a BRANCH to a WAIT instruction at
+            its beginning, ready to start again. With the second, BLACS leaves the board in programming mode until
             the shot starts, then calls ``pb_stop_programming()`` and ``pb_start()``;
             until then the board ignores hardware triggers, such as repeated ones from
             a 50/60 Hz line trigger. The program ends with a STOP, so further triggers

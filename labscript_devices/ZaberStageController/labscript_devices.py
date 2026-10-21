@@ -95,7 +95,7 @@ class ZaberStageController(IntermediateDevice):
             Python variable name of the device.
         com_port : str, optional
             Serial port the stages are connected to: ``'COM1'`` etc. on Windows, or
-            ``'/dev/USBtty0'`` or similar on unix. ``'COM1'`` by default.
+            ``'/dev/ttyUSB0'`` or similar on unix. ``'COM1'`` by default.
         mock : bool, optional
             If `True`, BLACS simulates the stages instead of communicating with
             hardware, for testing; `False` by default.

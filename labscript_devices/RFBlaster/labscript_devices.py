@@ -43,8 +43,8 @@ class RFBlaster(PseudoclockDevice):
             8080. Required, though it defaults to ``None``: the deprecated keyword
             `ip_address` is accepted in its place.
         trigger_device : :class:`~labscript.IntermediateDevice`, optional
-            Device that sends the hardware start trigger when this is a secondary
-            pseudoclock.
+            Device that sends the hardware start trigger. An RFBlaster must be a
+            secondary pseudoclock, since its BLACS tab cannot start a shot.
         trigger_connection : str, optional
             Output of `trigger_device` wired to the board's hardware trigger input.
         **kwargs

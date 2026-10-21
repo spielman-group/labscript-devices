@@ -194,7 +194,8 @@ class LightCrafterDMD(IntermediateDevice):
             raise LabscriptError(
                 f'The shot has {len(output.raw_output)} images for the LightCrafter '
                 f'{self.name}, which takes at most {self.max_instructions}. The count '
-                'includes one at the start of the shot and one at its end. '
+                'includes one at the start of the shot, one after each wait and one '
+                'at its end. '
                 'Set fewer images.'
             )
 

@@ -243,8 +243,8 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
                     )
                     assert next_wait_sample > master_samples_generated, (
                         'A wait came too soon after another: two passed between status '
-                        'polls, so the length of each cannot be measured. Keep waits more '
-                        'than 100 ms apart.'
+                        'polls, so the length of each cannot be measured. Keep waits well '
+                        'over 100 ms apart.'
                     )
 
                 # The board's count appears to be the total of the wait samples so far, so the

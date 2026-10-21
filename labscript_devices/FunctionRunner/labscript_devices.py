@@ -14,16 +14,13 @@ class FunctionRunner(Device):
         ----------
         name : str
             Python variable name of the device.
-        start_order : int, optional
-            BLACS transitions the devices to buffered mode in ascending
-            `start_order`, and runs this device's start functions in its turn. 0 by
-            default.
-        stop_order : int, optional
-            BLACS transitions the devices to manual mode in ascending `stop_order`,
-            and runs this device's stop functions in its turn. 0 by default.
         **kwargs
-            Passed to :class:`~labscript.Device`. `parent_device` and `connection`
-            are fixed at `None`, so cannot be given.
+            Passed to :class:`~labscript.Device`; `parent_device` and `connection` are
+            fixed at `None`, so cannot be given. `start_order` and `stop_order`, 0 by
+            default, set when this device's functions run: BLACS transitions the
+            devices to buffered mode in ascending `start_order`, running the start
+            functions in this device's turn, and to manual mode in ascending
+            `stop_order`, running the stop functions.
         """
         Device.__init__(self, name=name, parent_device=None, connection=None, **kwargs)
         self.functions = []

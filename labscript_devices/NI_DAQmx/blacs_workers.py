@@ -534,8 +534,8 @@ class NI_DAQmxAcquisitionWorker(Worker):
     def _return_to_manual(self, abort):
         self.logger.debug('transition_to_manual')
         # Stop the buffered mode task and start the manual mode task, but only if in
-        # buffered mode: abort() can be called when we are not, and a shot without
-        # acquisitions never entered it.
+        # buffered mode: abort() can be called when we are not, and a shot with no
+        # analog input table never entered it.
         if not self.buffered_mode:
             return True
         if self.buffered_chans is not None:
@@ -558,8 +558,8 @@ class NI_DAQmxAcquisitionWorker(Worker):
 
         if self.buffered_chans is not None and not self.acquired_data:
             msg = """No data was acquired. Perhaps the acquisition task was not
-                triggered to start: check that the device is connected to a
-                pseudoclock."""
+                triggered to start: check that the parent clockline is wired to
+                clock_terminal."""
             raise RuntimeError(dedent(msg))
         # Concatenate our chunks of acquired data and recast them as a structured
         # array with channel names:

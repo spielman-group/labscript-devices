@@ -74,11 +74,11 @@ class QuickSynDDS(StaticDDS):
         )
 
     def enable(self):
-        """Set the gate high for the whole shot. Takes no time, unlike StaticDDS's."""
+        """Set the gate high for the whole shot. Takes no `t`, unlike StaticDDS's."""
         self.gate.go_high()
 
     def disable(self):
-        """Set the gate low for the whole shot. Takes no time, unlike StaticDDS's."""
+        """Set the gate low for the whole shot. Takes no `t`, unlike StaticDDS's."""
         self.gate.go_low()
 
 
