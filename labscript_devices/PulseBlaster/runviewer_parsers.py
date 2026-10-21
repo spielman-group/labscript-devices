@@ -26,10 +26,9 @@ class PulseBlasterBaseParser:
         self.path = path
         self.name = device.name
         self.device = device
-        
-        # We create a lookup table for strings to be used later as dictionary keys.
-        # This saves having to evaluate '%d'%i many many times, and makes the _add_pulse_program_row_to_traces method
-        # significantly more efficient
+
+        # Lookup tables of the strings used as dictionary keys, so that the methods
+        # that add a row to the traces do not format them each time.
         self.dds_strings = {}
         for i in range(self.num_dds):
             self.dds_strings[i] = {}
@@ -40,16 +39,14 @@ class PulseBlasterBaseParser:
             self.dds_strings[i]['amp'] = 'amp%d'%i
             self.dds_strings[i]['phase'] = 'phase%d'%i
             self.dds_strings[i]['dds_en'] = 'dds_en%d'%i
-            
+
         self.flag_strings = {}
         self.flag_powers = {}
-        
+
         for i in range(self.num_flags):
             self.flag_strings[i] = 'flag %d'%i
             self.flag_powers[i] = 2**i
-        
-            
-        
+
     def _duration(self, row):
         # A LONG_DELAY runs its length as many times as its data says
         repeats = row['inst_data'] if row['inst'] == 7 else 1
@@ -59,8 +56,7 @@ class PulseBlasterBaseParser:
         if clock is None:
             # we're the master pseudoclock, software triggered. So we don't have to worry about trigger delays, etc
             pass
-            
-        # get the pulse program
+
         with h5py.File(self.path, 'r') as f:
             pulse_program = f['devices/%s/PULSE_PROGRAM'%self.name][:]
             dds = {}
@@ -68,78 +64,75 @@ class PulseBlasterBaseParser:
                 dds[i] = {}
                 for reg in ['FREQ', 'AMP', 'PHASE']:
                     dds[i][reg] = f['devices/%s/DDS%d/%s_REGS'%(self.name, i, reg)][:]
-        
+
         times = []
         traces = {}
         for i in range(self.num_flags):
             traces['flag %d'%i] = []
         for i in range(self.num_dds):
             for sub_chnl in ['freq', 'amp', 'phase']:
-                traces['dds %d_%s'%(i,sub_chnl)] = []   
-        
-        # now build the traces
-        t = 0. if clock is None else PulseBlasterBase.trigger_delay # Offset by the initial trigger from the parent's clock
+                traces['dds %d_%s'%(i,sub_chnl)] = []
+
+        # Offset by the initial trigger from the parent's clock
+        t = 0. if clock is None else PulseBlasterBase.trigger_delay
         i = 0
         while i < len(pulse_program):
             # ignore the first 2 instructions, they are dummy instructions for BLACS
             if i < 2:
                 i += 1
                 continue
-            
+
             row = pulse_program[i]
-            
-            if row['inst'] == 2: # Loop
+
+            if row['inst'] == 2: # LOOP
                 loops = int(row['inst_data'])
-                
+
                 buffer = {}
                 j = i
                 while loops > 0:
                     looping = True
                     while looping:
                         row = pulse_program[j]
-                        # buffer the index of traces used for this instruction
-                        # Cuts the runtime down by ~60%
+                        # Remember where each instruction of the loop first entered the
+                        # traces, so that later passes copy those values
                         if j not in buffer:
                             times.append(t)
                             self._add_pulse_program_row_to_traces(traces, row, dds)
                             buffer[j] = len(times)-1
-                        else:                            
+                        else:
                             times.append(t)
                             self._add_pulse_program_row_from_buffer(traces, buffer[j])
-                            
+
                         t+= self._duration(row)
-                        
+
                         if row['inst'] == 3: # END_LOOP
                             looping = False
                             j = int(row['inst_data']) if loops > 1 else j
                         else:
                             j+=1
                     loops -= 1
-                    
+
                 i = j
-                    
-            else: # Continue
-                if row['inst'] == 8: #WAIT
+
+            else:
+                if row['inst'] == 8: # WAIT
                     print('Wait at %.9f'%t)
                     pass
                 times.append(t)
                 self._add_pulse_program_row_to_traces(traces,row,dds)
                 t+= self._duration(row)
-            
-                if row['inst'] == 8 and clock is not None: #WAIT
+
+                if row['inst'] == 8 and clock is not None: # WAIT
                     t+= PulseBlasterBase.trigger_delay
-                    
-            
-            i += 1            
-                
+
+            i += 1
+
         print('Stop time: %.9f'%t)
-        # now put together the traces
         to_return = {}
         times = np.array(times, dtype=np.float64)
         for name, data in traces.items():
             to_return[name] = (times, np.array(data))
-            
-        
+
         clocklines_and_triggers = {}
         for pseudoclock_name, pseudoclock in self.device.child_list.items():
             for clock_line_name, clock_line in pseudoclock.child_list.items():
@@ -161,37 +154,32 @@ class PulseBlasterBaseParser:
                 else:
                     clocklines_and_triggers[clock_line_name] = to_return[clock_line.parent_port]
                     add_trace(clock_line_name, to_return[clock_line.parent_port], self.name, clock_line.parent_port)
-            
+
         return clocklines_and_triggers
-    
+
     def _add_pulse_program_row_from_buffer(self, traces, index):
         for i in range(self.num_flags):
             traces[self.flag_strings[i]].append(traces[self.flag_strings[i]][index])
-            
+
         for i in range(self.num_dds):
             current_strings = self.dds_strings[i]
             traces[current_strings['ddsfreq']].append(traces[current_strings['ddsfreq']][index])
             traces[current_strings['ddsphase']].append(traces[current_strings['ddsphase']][index])
             traces[current_strings['ddsamp']].append(traces[current_strings['ddsamp']][index])
-            
+
     def _add_pulse_program_row_to_traces(self, traces, row, dds, flags = None):
-        # add flags
         if flags is None:
             flags = np.binary_repr(row['flags'],self.num_flags)[::-1]
         for i in range(self.num_flags):
             traces[self.flag_strings[i]].append(int(flags[i]))
-        
-       
-        # note that we are looking up keys for the traces dictionary and row array in self.dds_strings
-        # Doing this reduces the runtime (of the below block) by 25%
+
+        # The keys for the traces dictionary and the row array come from self.dds_strings
         for i in range(self.num_dds):
-            # Note: This is done to reduce runtime (about 10%)
             current_strings = self.dds_strings[i]
             current_dds = dds[i]
-            
+
             traces[current_strings['ddsfreq']].append(current_dds['FREQ'][row[current_strings['freq']]])
             traces[current_strings['ddsphase']].append(current_dds['PHASE'][row[current_strings['phase']]])
-            # Note: Using the inline if statement reduces the runtime (of this for loop) by 50%
             amp = current_dds['AMP'][row[current_strings['amp']]] if row[current_strings['dds_en']] else 0
             traces[current_strings['ddsamp']].append(amp)
 

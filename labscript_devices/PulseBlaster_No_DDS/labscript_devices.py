@@ -15,6 +15,7 @@ from labscript_devices.PulseBlaster.labscript_devices import PulseBlasterBase
 
 
 class PulseBlaster_No_DDS(PulseBlasterBase):
+    """A generic SpinCore PulseBlaster with 24 flags, a 100 MHz core clock and no DDS outputs."""
 
     description = 'generic DO only Pulseblaster'
     clock_limit = 8.3e6 # can probably go faster

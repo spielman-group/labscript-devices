@@ -15,6 +15,8 @@ from labscript_devices.PulseBlaster_No_DDS.labscript_devices import PulseBlaster
 
 
 class PulseBlasterESRPro200(PulseBlaster_No_DDS):
+    """A SpinCore PulseBlaster ESR-PRO-200, with 21 flags and a 200 MHz core clock."""
+
     description = 'SpinCore PulseBlaster ESR-PRO-200'
     clock_limit = 200.0e6
     clock_resolution = 5e-9

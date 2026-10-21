@@ -15,6 +15,5 @@ from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import PulseBlaster_No_DDS
 
 
 class PulseBlasterUSBTab(PulseBlaster_No_DDSTab):
-    # Capabilities
     num_DO = 24
     worker_class = 'labscript_devices.PulseBlasterUSB.blacs_workers.PulseBlasterUSBWorker'

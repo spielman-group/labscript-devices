@@ -12,7 +12,7 @@
 #####################################################################
 
 from blacs.tab_base_classes import define_state
-from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
+from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED
 
 from blacs.device_base_class import DeviceTab
 from labscript_devices.pseudoclock import PseudoclockTab
@@ -24,7 +24,6 @@ import os
 from labscript_utils.file_utils import warn_legacy_file
 from labscript_utils.unitconversions import get_unit_conversion_class
 
-# We can't import * from QtCore & QtGui, as one of them has a function called bin() which overrides the builtin
 from qtutils.qt import QtCore
 from qtutils.qt import QtGui
 
@@ -37,28 +36,23 @@ class PulseBlasterBaseTab(PseudoclockTab):
         do_prop = {}
         for i in range(self.num_DO):
             do_prop['flag %d'%i] = {}
-        
-        # Create the output objects    
-        self.create_digital_outputs(do_prop)        
-        # Create widgets for output objects
+
+        self.create_digital_outputs(do_prop)
         dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
-        
-        # Define the sort function for the digital outputs
+
         def sort(channel):
             flag = channel.replace('flag ','')
             flag = int(flag)
             return '%02d'%(flag)
-        
-        # and auto place the widgets in the UI, after any DDS outputs a
-        # subclass made:
+
+        # The DDS widgets, if a subclass made DDS outputs, come before the flags.
         self.auto_place_widgets(("DDS Outputs",dds_widgets),("Flags",do_widgets,sort))
-        
-        # Store the board number to be used
+
         connection_object = self.settings['connection_table'].find_by_name(self.device_name)
         self.board_number = int(connection_object.BLACS_connection)
-        
-        # And which scheme we're using for buffered output programming and triggering:
-        # (default values for backward compat with old connection tables)
+
+        # How buffered output is programmed and triggered; a connection table from before
+        # it existed lacks it, and gets the default.
         self.programming_scheme = connection_object.properties.get('programming_scheme', 'pb_start/BRANCH')
         # LEGACY CONNECTION TABLE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
         if 'programming_scheme' not in connection_object.properties:
@@ -66,40 +60,33 @@ class PulseBlasterBaseTab(PseudoclockTab):
                 self.settings['connection_table'].filepath,
                 "lacks the PulseBlaster's programming_scheme, which a recompile writes",
             )
-            
-        
-        # Set the capabilities of this device
-        self.supports_smart_programming(True) 
-        
-        # Load status monitor (and start/stop/reset buttons) UI
+
+        self.supports_smart_programming(True)
+
         ui = UiLoader().load(os.path.join(os.path.dirname(os.path.realpath(__file__)),'pulseblaster.ui'))
         self.get_tab_layout().addWidget(ui)
-        # Connect signals for buttons
         ui.start_button.clicked.connect(self.start)
         ui.stop_button.clicked.connect(self.stop)
         ui.reset_button.clicked.connect(self.reset)
-        # Add icons
         ui.start_button.setIcon(QtGui.QIcon(':/qtutils/fugue/control'))
         ui.start_button.setToolTip('Start')
         ui.stop_button.setIcon(QtGui.QIcon(':/qtutils/fugue/control-stop-square'))
         ui.stop_button.setToolTip('Stop')
         ui.reset_button.setIcon(QtGui.QIcon(':/qtutils/fugue/arrow-circle'))
         ui.reset_button.setToolTip('Reset')
-        
-        # initialise dictionaries of data to display and get references to the QLabels
+
         self.status_states = ['stopped', 'reset', 'running', 'waiting']
         self.status = {}
         self.status_widgets = {}
         for state in self.status_states:
             self.status[state] = False
-            self.status_widgets[state] = getattr(ui,'%s_label'%state)        
-        
+            self.status_widgets[state] = getattr(ui,'%s_label'%state)
+
         # Refresh the status widgets every 2 s, in every mode
         self.statemachine_timeout_add(2000, self.update_status)
 
     def initialise_workers(self):
-        # Create and set the primary worker. A lab's own tab may name its worker
-        # class in device_worker_class instead.
+        # A lab's own tab may name its worker class in device_worker_class instead.
         worker_class = getattr(self, 'device_worker_class', self.worker_class)
         self.create_worker("main_worker",worker_class,
                            {'board_number':self.board_number,
@@ -108,58 +95,52 @@ class PulseBlasterBaseTab(PseudoclockTab):
         self.primary_worker = "main_worker"
 
     def get_child_from_connection_table(self, parent_device_name, port):
-        # This is a direct output, let's search for it on the internal intermediate device called 
-        # PulseBlasterDirectOutputs
+        # The port is a clock line of the pseudoclock, or a direct output, which is on
+        # the internal intermediate device, PulseBlasterDirectOutputs.
         if parent_device_name == self.device_name:
             device = self.connection_table.find_by_name(self.device_name)
             pseudoclock = device.child_list[list(device.child_list.keys())[0]] # there should always be one (and only one) child, the Pseudoclock
             clockline = None
             for child_name, child in pseudoclock.child_list.items():
-                # store a reference to the internal clockline
                 if child.parent_port == 'internal':
                     clockline = child
-                # if the port is in use by a clockline, return the clockline
                 elif child.parent_port == port:
                     return child
-                
+
             if clockline is not None:
                 # There should only be one child of this clock line, the direct outputs
                 direct_outputs = clockline.child_list[list(clockline.child_list.keys())[0]]
-                # look to see if the port is used by a child of the direct outputs
                 return DeviceTab.get_child_from_connection_table(self, direct_outputs.name, port)
             else:
                 return ''
         else:
-            # else it's a child of a DDS, so we can use the default behaviour to find the device
+            # A child of a DDS, which the default search finds
             return DeviceTab.get_child_from_connection_table(self, parent_device_name, port)
-    
-    # This function gets the status of the Pulseblaster from the spinapi,
-    # and updates the front panel widgets!
-    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
+
+    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)
     def update_status(self):
         self.status, _, _ = yield(self.queue_work(self._primary_worker,'check_status'))
-                
-        # Update widgets with new status
+
         for state in self.status_states:
             if self.status[state]:
                 icon = QtGui.QIcon(':/qtutils/fugue/tick')
             else:
                 icon = QtGui.QIcon(':/qtutils/fugue/cross')
-            
+
             pixmap = icon.pixmap(QtCore.QSize(16, 16))
             self.status_widgets[state].setPixmap(pixmap)
-                        
-    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
+
+    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)
     def start(self,widget=None):
         yield(self.queue_work(self._primary_worker,'start_run'))
         self.update_status()
-        
-    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
+
+    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)
     def stop(self,widget=None):
         yield(self.queue_work(self._primary_worker,'pb_stop'))
         self.update_status()
-        
-    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)  
+
+    @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)
     def reset(self,widget=None):
         yield(self.queue_work(self._primary_worker,'pb_reset'))
         self.update_status()
@@ -176,16 +157,15 @@ class DDSPulseBlasterTabMixin:
     them. It comes before :class:`PulseBlasterBaseTab` in a board's bases."""
 
     def initialise_GUI(self):
-        # Capabilities
         self.base_units     = {'freq':'Hz',        'amp':'Arb', 'phase':'Degrees'}
         self.base_min       = {'freq':0.3,         'amp':0.0,   'phase':0}
         self.base_max       = {'freq':150000000.0, 'amp':1.0,   'phase':360}
         self.base_step      = {'freq':1000000,     'amp':0.01,  'phase':1}
         self.base_decimals  = {'freq':1,           'amp':3,     'phase':3}
         self.num_DDS = 2
-        
+
         dds_prop = {}
-        for i in range(self.num_DDS): # 2 is the number of DDS outputs on this device
+        for i in range(self.num_DDS):
             dds_prop['dds %d'%i] = {}
             for subchnl in ['freq', 'amp', 'phase']:
                 dds_prop['dds %d'%i][subchnl] = {'base_unit':self.base_units[subchnl],
@@ -196,7 +176,7 @@ class DDSPulseBlasterTabMixin:
                                                 }
             dds_prop['dds %d'%i]['gate'] = {}
             dds_prop['dds %d'%i]['amp']['base_unit'] = self.legacy_amplitude_unit(i)
-        
+
         # Create the output objects, before the base class makes the flags
         self.create_dds_outputs(dds_prop)
         super().initialise_GUI()
