@@ -17,8 +17,7 @@ from labscript_utils.file_utils import warn_legacy_file
 class NovaTechDDS9MTab(DeviceTab):
     # LEGACY 'channel n' NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
     def upgrade_front_panel(self, settings):
-        """Rename the outputs of a front panel saved before the channels were
-        named 'dds n'."""
+        """Rename the front panel's 'channel n' entries to 'dds n'."""
         saved = settings.setdefault('front_panel_settings', {})
         for name in list(saved):
             if name.startswith('channel '):
@@ -32,20 +31,18 @@ class NovaTechDDS9MTab(DeviceTab):
         self.upgrade_front_panel(settings)
         super().update_from_settings(settings)
 
-    def initialise_GUI(self):        
-        # Capabilities
+    def initialise_GUI(self):
         self.base_units =    {'freq':'Hz',          'amp':'Arb',   'phase':'Degrees'}
         self.base_min =      {'freq':0.0,           'amp':0,       'phase':0}
         self.base_max =      {'freq':170.0*10.0**6, 'amp':1,       'phase':360}
         self.base_step =     {'freq':10**6,         'amp':1/1023., 'phase':1}
         self.base_decimals = {'freq':1,             'amp':4,       'phase':3}
         self.num_DDS = 4
-        
+
         self.upgrade_front_panel(self.settings)
 
-        # Create DDS Output objects
         dds_prop = {}
-        for i in range(self.num_DDS): # 4 is the number of DDS outputs on this device
+        for i in range(self.num_DDS):
             dds_prop['dds %d'%i] = {}
             for subchnl in ['freq', 'amp', 'phase']:
                 dds_prop['dds %d'%i][subchnl] = {'base_unit':self.base_units[subchnl],
@@ -54,16 +51,13 @@ class NovaTechDDS9MTab(DeviceTab):
                                                      'step':self.base_step[subchnl],
                                                      'decimals':self.base_decimals[subchnl]
                                                     }
-        # Create the output objects    
-        self.create_dds_outputs(dds_prop)        
-        # Create widgets for output objects
+        self.create_dds_outputs(dds_prop)
         dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
-        # and auto place the widgets in the UI
         self.auto_place_widgets(("DDS Outputs",dds_widgets))
-        
+
         connection_object = self.settings['connection_table'].find_by_name(self.device_name)
         connection_table_properties = connection_object.properties
-        
+
         self.phase_mode = connection_table_properties.get('phase_mode', 'continuous')
 
         self.com_port = connection_table_properties.get('com_port', None)
@@ -89,8 +83,9 @@ class NovaTechDDS9MTab(DeviceTab):
                 "gives the NovaTechDDS9M the phase_mode 'default', not 'continuous'",
             )
             self.phase_mode = 'continuous'
-        
-        # Backward compat:
+
+        # BLACS_connection is 'com_port,baud_rate', each filling in what the saved
+        # properties lack. With no comma it is the port alone, and the baud rate is 115200.
         blacs_connection =  str(connection_object.BLACS_connection)
         if ',' in blacs_connection:
             com_port, baud_rate = blacs_connection.split(',')
@@ -102,12 +97,10 @@ class NovaTechDDS9MTab(DeviceTab):
             self.com_port = blacs_connection
             self.baud_rate = 115200
 
-        # Set the capabilities of this device
         self.supports_remote_value_check(True)
         self.supports_smart_programming(True)
 
     def initialise_workers(self):
-        # Create and set the primary worker
         self.create_worker("main_worker",'labscript_devices.NovaTechDDS9M.blacs_workers.NovaTechDDS9MWorker',{'com_port':self.com_port,
                                                               'baud_rate': self.baud_rate,
                                                               'default_baud_rate': self.default_baud_rate,

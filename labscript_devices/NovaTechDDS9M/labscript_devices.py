@@ -18,28 +18,25 @@ import warnings
 
 import numpy as np
 
-bauds = {9600: b'Kb 78', 
+# Each baud rate, with the command that sets the NovaTech to it.
+bauds = {9600: b'Kb 78',
          19200: b'Kb 3c',
          38400: b'Kb 1e',
          57600: b'Kb 14',
          115200: b'Kb 0a'}
 
 class NovaTechDDS9M(IntermediateDevice):
-    """
-    This class is initilzed with the key word argument  
-    'update_mode' -- synchronous or asynchronous\
-    'baud_rate',  -- operating baud rate
-    'default_baud_rate' -- assumed baud rate at startup
-    """
+    """A NovaTech DDS9M with four DDS outputs; 'dds 2' and 'dds 3' cannot change during a shot."""
     description = 'NT-DDS9M'
     allowed_children = [DDS, StaticDDS]
-    clock_limit = 9990 # This is a realistic estimate of the max clock rate (100us for TS/pin10 processing to load next value into buffer and 100ns pipeline delay on pin 14 edge to update output values)
+    # A realistic estimate of the max clock rate: 100us for TS/pin10 processing to load
+    # the next value into the buffer and 100ns pipeline delay on a pin 14 edge to update
+    # the output values.
+    clock_limit = 9990
 
-    # This is longer than the technical requirement on the NovaTech. However, I
-    # suspect the tri-state buffer or similar electronics that some groups have
-    # in front of their NovaTech clock inputs might limit how fast this can be.
-    # 1us should be a good compromise, but can always be overridden by a
-    # subclass of monkey-patched if needed.
+    # Longer than the NovaTech's technical requirement, because the tri-state buffer or
+    # similar electronics some groups put in front of its clock input might limit how
+    # fast it can go. 1us is a compromise; a subclass or a monkey-patch can override it.
     minimum_clock_high_time = 1e-6
 
     @set_passed_properties(
@@ -66,25 +63,67 @@ class NovaTechDDS9M(IntermediateDevice):
         phase_mode='continuous',
         **kwargs
     ):
+        """
+        Parameters
+        ----------
+        name : str
+            Python variable name of the device.
+        parent_device : :class:`~labscript.ClockLine`
+            Clock line that clocks the device.
+        com_port : str, optional
+            Serial port of the NovaTech, such as ``'COM1'``; ``''`` by default.
+        baud_rate : int, optional
+            Baud rate BLACS switches the NovaTech to and programs it at: 9600, 19200,
+            38400, 57600 or 115200; 115200 by default.
+        default_baud_rate : int or None, optional
+            Baud rate the NovaTech starts at, one of the values for `baud_rate`, or
+            ``None``, the default, for none assumed. BLACS connects at it first, or
+            at `baud_rate` if it is ``None``, and sets the NovaTech back to it on
+            shutdown.
+        update_mode : str, optional
+            ``'synchronous'``, the default, has the NovaTech update its outputs by
+            hardware on rising clock edges (BLACS sends ``I e``); ``'asynchronous'``
+            leaves it in automatic update, which updates them on falling edges.
+        synchronous_first_line_repeat : bool, optional
+            Repeat the first line of the table in synchronous mode, as asynchronous
+            mode always does; ``False`` by default. A simple delay line in front of
+            the NovaTech's clock input seems to need it; the tristate driver described
+            in the Novatech DDS 9m documentation, the way its manual says to clock it
+            and so likely the most reliable, does not.
+        phase_mode : str, optional
+            ``'continuous'``, the default, or ``'aligned'``: the phase mode BLACS sets
+            on the NovaTech, with ``m n`` or ``m a``.
+        **kwargs
+            Passed to :class:`~labscript.IntermediateDevice`.
+        """
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
-        self.BLACS_connection = '%s,%s'%(com_port, str(baud_rate))
+        self.BLACS_connection = f'{com_port},{baud_rate}'
 
         if not update_mode in ['synchronous', 'asynchronous']:
-            raise LabscriptError('update_mode must be \'synchronous\' or \'asynchronous\'')            
-        
-        if not baud_rate in bauds:     
-            raise LabscriptError('baud_rate must be one of {0}'.format(list(bauds)))            
+            raise LabscriptError(
+                f"update_mode must be 'synchronous' or 'asynchronous', not {update_mode!r}."
+            )
 
-        if not default_baud_rate in bauds and default_baud_rate is not None:     
-            raise LabscriptError('default_baud_rate must be one of {0} or None (to indicate no default)'.format(list(bauds)))            
+        if not baud_rate in bauds:
+            raise LabscriptError(
+                f"baud_rate must be one of {list(bauds)}, not {baud_rate!r}."
+            )
+
+        if not default_baud_rate in bauds and default_baud_rate is not None:
+            raise LabscriptError(
+                f"default_baud_rate must be one of {list(bauds)} or None (for no default), "
+                f"not {default_baud_rate!r}."
+            )
 
         if not phase_mode in ['aligned', 'continuous']:
-            raise LabscriptError('phase_mode must be \'aligned\' or \'continuous\'')
+            raise LabscriptError(
+                f"phase_mode must be 'aligned' or 'continuous', not {phase_mode!r}."
+            )
 
         self.update_mode = update_mode
-        self.phase_mode = phase_mode 
+        self.phase_mode = phase_mode
         self.synchronous_first_line_repeat = synchronous_first_line_repeat
-        
+
     def add_device(self, device):
         # LEGACY 'channel n' CONNECTION COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
         if device.connection.startswith('channel '):
@@ -97,14 +136,11 @@ class NovaTechDDS9M(IntermediateDevice):
         Device.add_device(self, device)
         # The Novatech doesn't support 0Hz output; set the default frequency of the DDS to 0.1 Hz:
         device.frequency.default_value = 0.1
-            
+
     def get_default_unit_conversion_classes(self, device):
-        """Child devices call this during their __init__ (with themselves
-        as the argument) to check if there are certain unit calibration
-        classes that they should apply to their outputs, if the user has
-        not otherwise specified a calibration class"""
+        """Return the frequency, amplitude and phase unit conversion classes, None for phase."""
         return NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion, None
-        
+
     # Each takes a DDS's output, or a subclass's transformed copy of it, and the
     # DDS, and returns the output in the device's units, with the scale: 0.1 Hz,
     # 1/45.5111 of a degree and 1/1023 of full amplitude.
@@ -121,55 +157,60 @@ class NovaTechDDS9M(IntermediateDevice):
     def generate_code(self, hdf5_file):
         DDSs = {}
         for output in self.child_devices:
-            # Check that the instructions will fit into RAM:
-            if isinstance(output, DDS) and len(output.frequency.raw_output) > 16384 - 2: # -2 to include space for dummy instructions
-                raise LabscriptError('%s can only support 16383 instructions. '%self.name +
-                                     'Please decrease the sample rates of devices on the same clock, ' + 
-                                     'or connect %s to a different pseudoclock.'%self.name)
+            # Check that the instructions will fit into RAM; the -2 includes space for
+            # dummy instructions.
+            if isinstance(output, DDS) and len(output.frequency.raw_output) > 16384 - 2:
+                raise LabscriptError(
+                    f"{self.name} can only support 16382 instructions, but {output.name} "
+                    f"has {len(output.frequency.raw_output)}. Decrease the sample rates of "
+                    f"devices on the same clock, or connect {self.name} to a different "
+                    "pseudoclock."
+                )
             try:
                 prefix, channel = output.connection.split()
                 channel = int(channel)
             except:
-                raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(output.description,output.name,str(output.connection)) + 
-                                     'Format must be \'dds n\' with n from 0 to 3.')
+                raise LabscriptError(
+                    f"{output.description} {output.name} has invalid connection string: "
+                    f"{output.connection!r}. Format must be 'dds n' with n from 0 to 3."
+                )
             DDSs[channel] = output
         for connection in DDSs:
             dds = DDSs[connection]
             if connection in range(4):
-                # Dynamic DDS
                 dds.frequency.raw_output, dds.frequency.scale_factor = self.quantise_freq(dds.frequency.raw_output, dds)
                 dds.phase.raw_output, dds.phase.scale_factor = self.quantise_phase(dds.phase.raw_output, dds)
                 dds.amplitude.raw_output, dds.amplitude.scale_factor = self.quantise_amp(dds.amplitude.raw_output, dds)
             else:
-                raise LabscriptError('%s %s has invalid connection string: \'%s\'. '%(dds.description,dds.name,str(dds.connection)) + 
-                                     'Format must be \'dds n\' with n from 0 to 3.')
-                                
+                raise LabscriptError(
+                    f"{dds.description} {dds.name} has invalid connection string: "
+                    f"{dds.connection!r}. Format must be 'dds n' with n from 0 to 3."
+                )
+
         dtypes = [('freq%d'%i,np.uint32) for i in range(2)] + \
                  [('phase%d'%i,np.uint16) for i in range(2)] + \
                  [('amp%d'%i,np.uint16) for i in range(2)]
-                 
+
         static_dtypes = [('freq%d'%i,np.uint32) for i in range(2,4)] + \
                         [('phase%d'%i,np.uint16) for i in range(2,4)] + \
                         [('amp%d'%i,np.uint16) for i in range(2,4)]
-         
+
         clockline = self.parent_clock_line
         pseudoclock = clockline.parent_device
         times = pseudoclock.times[clockline]
-       
+
         out_table = np.zeros(len(times),dtype=dtypes)
         out_table['freq0'].fill(1)
         out_table['freq1'].fill(1)
-        
+
         static_table = np.zeros(1, dtype=static_dtypes)
         static_table['freq2'].fill(1)
         static_table['freq3'].fill(1)
-        
+
         for connection in range(2):
             if not connection in DDSs:
                 continue
             dds = DDSs[connection]
-            # The last two instructions are left blank, for BLACS
-            # to fill in at program time.
             out_table['freq%d'%connection][:] = dds.frequency.raw_output
             out_table['amp%d'%connection][:] = dds.amplitude.raw_output
             out_table['phase%d'%connection][:] = dds.phase.raw_output
@@ -180,30 +221,16 @@ class NovaTechDDS9M(IntermediateDevice):
             static_table['freq%d'%connection] = dds.frequency.raw_output[0]
             static_table['amp%d'%connection] = dds.amplitude.raw_output[0]
             static_table['phase%d'%connection] = dds.phase.raw_output[0]
-            
+
         if self.update_mode == 'asynchronous' or self.synchronous_first_line_repeat:
-            # Duplicate the first line of the table. Otherwise, we are one step
-            # ahead in the table from the start of a run. In asynchronous
-            # updating mode, this is necessary since the first line of the
-            # table is already being output before the first trigger from
-            # the master clock. When using a simple delay line for synchronous
-            # output, this also seems to be required, in which case
-            # synchronous_first_line_repeat should be set to True.
-            # However, when a tristate driver is used as described at
-            # http://labscriptsuite.org/blog/implementation-of-the-novatech-dds9m/
-            # then is is not neccesary to duplicate the first line. Use of a
-            # tristate driver in this way is the correct way to use
-            # the novatech DDS, as per its instruction manual, and so is likely
-            # to be the most reliable. However, through trial and error we've
-            # determined that duplicating the first line like this gives correct
-            # output in asynchronous mode and in synchronous mode when using a
-            # simple delay line, at least for the specific device we tested.
-            # Your milage may vary.
+            # Repeat the first line, or we are one step ahead in the table from the start of
+            # a run. Asynchronous mode outputs it before the first trigger from the master
+            # clock; a simple delay line in synchronous mode also seems to need it.
             out_table = np.concatenate([out_table[0:1], out_table])
 
         grp = self.init_device_group(hdf5_file)
-        grp.create_dataset('TABLE_DATA',compression=compiler.compression,data=out_table) 
-        grp.create_dataset('STATIC_DATA',compression=compiler.compression,data=static_table) 
+        grp.create_dataset('TABLE_DATA',compression=compiler.compression,data=out_table)
+        grp.create_dataset('STATIC_DATA',compression=compiler.compression,data=static_table)
         self.set_property('frequency_scale_factor', 10, location='device_properties')
         self.set_property('amplitude_scale_factor', 1023, location='device_properties')
         self.set_property('phase_scale_factor', 45.511111111111113, location='device_properties')

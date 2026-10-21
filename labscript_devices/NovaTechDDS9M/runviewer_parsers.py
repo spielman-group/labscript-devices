@@ -18,20 +18,19 @@ from labscript_utils.file_utils import warn_legacy_file
 from labscript_devices.runviewer_parsing import rising_edge_times
 
 
-class NovaTechDDS9MParser(object):    
+class NovaTechDDS9MParser:
     def __init__(self, path, device):
         self.path = path
         self.name = device.name
         self.device = device
-            
+
     def get_traces(self, add_trace, clock=None):
         if clock is None:
-            # we're the master pseudoclock, software triggered. So we don't have to worry about trigger delays, etc
-            raise Exception('No clock passed to %s. The NovaTechDDS9M must be clocked by another device.'%self.name)
-        
+            # runviewer passes a clock to every device but the master pseudoclock.
+            raise Exception(f'No clock passed to {self.name}. The NovaTechDDS9M must be clocked by another device.')
+
         clock_ticks = rising_edge_times(clock)
-        
-        # get the data out of the H5 file
+
         data = {}
         with h5py.File(self.path, 'r') as hdf5_file:
             if 'TABLE_DATA' in hdf5_file['devices/%s' % self.name]:
@@ -52,18 +51,17 @@ class NovaTechDDS9MParser(object):
                 for i in range(2):
                     for sub_chnl in ['freq', 'amp', 'phase']:
                         data['dds %d_%s'%(i,sub_chnl)] = table_data['%s%d'%(sub_chnl,i)][:]
-                                
+
             if 'STATIC_DATA' in hdf5_file['devices/%s'%self.name]:
                 static_data = hdf5_file['devices/%s/STATIC_DATA'%self.name][:]
                 for i in range(2,4):
                     for sub_chnl in ['freq', 'amp', 'phase']:
                         data['dds %d_%s'%(i,sub_chnl)] = np.empty((len(clock_ticks),))
                         data['dds %d_%s'%(i,sub_chnl)].fill(static_data['%s%d'%(sub_chnl,i)][0])
-            
-        
+
         for channel, channel_data in data.items():
             data[channel] = (clock_ticks, channel_data)
-        
+
         for channel_name, channel in self.device.child_list.items():
             # LEGACY 'channel n' CONNECTION COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
             # Shot files compiled before the DDSs were connected as 'dds n'.
@@ -76,5 +74,5 @@ class NovaTechDDS9MParser(object):
                 connection = '%s_%s'%(port, subchnl.parent_port)
                 if connection in data:
                     add_trace(subchnl.name, data[connection], self.name, connection)
-        
+
         return {}
