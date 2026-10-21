@@ -101,7 +101,7 @@ class DummyIntermediateDevice(IntermediateDevice):
             elif isinstance(device, AnalogOut):
                 device_dtype = np.float64
             dtypes.append((device.name, device_dtype))
-        # HDF5 has no table of no columns.
+        # h5py cannot write a table whose rows have no fields.
         if not dtypes:
             return
 
