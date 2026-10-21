@@ -112,9 +112,9 @@ The script is run from within the testing folder using
 
 .. code-block:: python
 
-   python ExposureTiming.py [camera_sn]
+   python ExposureTiming.py -sn SERIAL
    
-with `[camera_sn]` being the serial number of the camera to connect to and test.
+with `SERIAL` being the serial number of the camera to connect to and test. Without it, the script lists the available cameras.
 
 The script reports the minimum recovery time between two shots of 1 ms exposure each, without the use of overlapped exposure mode.
 Editing the script to include your typical experiment parameters will help in more accurately determining your minimum recovery time.

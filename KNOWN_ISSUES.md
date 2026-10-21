@@ -12,8 +12,6 @@
 - `LightCrafterDMD/blacs_workers.py`: `_receive` reads the header and the body with one `recv` each, so a reply split across TCP segments is misread.
 - `FlyCapture2Camera/blacs_workers.py`: `set_image_mode` rounds the width and height to the offset step sizes, not the image step sizes PyCapture2 also reports; unchecked against a camera.
 - `FlyCapture2Camera/blacs_workers.py`: `is_transient_grab_error` retries every Fc2error, so a fault that raises at once has `grab_multiple` retry it without pause until the shot ends.
-- `docs/source/devices/pylon.rst`: gives the usage as `python ExposureTiming.py [camera_sn]`, which the script's argparse refuses; it takes `-sn SERIAL`.
-- `PylonCamera/testing/ExposureTiming.py`: the last print labels `min_time_between_triggers` end-to-start, but when the exposure is at least the readout time it is start-to-start.
 - `SpinnakerCamera/blacs_workers.py`, `FlyCapture2Camera/blacs_workers.py`, `PylonCamera/blacs_workers.py`: TriggerableCamera reads a string `serial_number` as hexadecimal, but these cameras look the int up as a decimal serial, so a serial given as a string finds the wrong camera or none.
 - `SpinnakerCamera/blacs_workers.py`: `_decode_image_data` reads every Mono format not ending in 8 as uint16, so a packed format such as Mono12Packed is misread.
 - `SpinnakerCamera/blacs_workers.py`, `FlyCapture2Camera/blacs_workers.py`: Spinnaker's `get_attribute_names` and FlyCapture2's `get_attributes_as_dict` ignore the visibility level, so `saved_attribute_visibility_level` saves every readable attribute.

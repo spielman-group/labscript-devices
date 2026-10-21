@@ -145,12 +145,11 @@ if __name__ == '__main__':
         # second exposure will always finish after readout
         # min time between triggers is just the exposure time
         min_time_between_triggers = exp_time
+        between = "beginnings of the two exposures"
     else:
         min_time_between_triggers = readout_time - exp_time
+        between = "end of first exposure and beginning of second"
 
-    print(
-        "  Time between end of first exposure and beginning of second must be > "
-        f"{min_time_between_triggers} us"
-    )
+    print(f"  Time between {between} must be > {min_time_between_triggers} us")
 
     camera.Close()
