@@ -6,74 +6,101 @@ from .utils import serialise_function
 
 
 class FunctionRunner(Device):
-    """A labscript device to run custom functions before, after, or during (not yet
-    implemented) the experiment in software time"""
+    """Runs functions in BLACS at the start or the end of a shot, in software time."""
 
     def __init__(self, name, **kwargs):
+        """
+        Parameters
+        ----------
+        name : str
+            Python variable name of the device.
+        start_order : int, optional
+            BLACS transitions the devices to buffered mode in ascending
+            `start_order`, and runs this device's start functions in its turn. 0 by
+            default.
+        stop_order : int, optional
+            BLACS transitions the devices to manual mode in ascending `stop_order`,
+            and runs this device's stop functions in its turn. 0 by default.
+        **kwargs
+            Passed to :class:`~labscript.Device`. `parent_device` and `connection`
+            are fixed at `None`, so cannot be given.
+        """
         Device.__init__(self, name=name, parent_device=None, connection=None, **kwargs)
         self.functions = []
         self.BLACS_connection = name
 
     def add_function(self, t, function, *args, **kwargs):
-        """Add a function to be run at time t. If t='start', then the function will run
-        prior to the shot beginning, and if t='stop', it will run after the experiment
-        has completed. Tip: use `start_order` and `stop_order` keyword arguments when
-        instantiating this device to control the relative order that its 'start' and
-        'stop' functions run compared to the transition_to_manual and
-        transition_to_buffered functions of other devices. Multiple functions added to
-        run at the same time will be run in the order added. Running functions mid-shot
-        in software time is yet to be implemented.
+        """Add a function for BLACS to run at the start or the end of the shot.
 
-        The function must have a call signature like the following:
+        Functions with the same `t` run in the order they were added. The device's
+        `start_order` and `stop_order` set when they run relative to other devices.
 
-            def func(shot_context, t, ...):
-                ...
+        Parameters
+        ----------
+        t : {'start', 'stop'}
+            ``'start'`` runs the function before the shot begins, and ``'stop'``
+            after it has completed. Any other value is refused, a number with
+            `NotImplementedError`, since running a function during the shot is not
+            implemented.
+        function : function
+            Defined as ``def func(shot_context, t, ...)``, so its first two
+            parameters must be named ``shot_context`` and ``t``. It is saved in the
+            shot file as source code and run from that, so it must be
+            self-contained, with any imports it needs inside it.
+        *args, **kwargs
+            The arguments the function is called with after `shot_context` and `t`.
+            They are saved in the shot file by
+            `labscript_utils.properties.serialise`, so a tuple becomes a list.
 
-        When it is called, a ShotContext instance will be passed in as the first
-        argument, and the time at which the function was requested to run as the second
-        argument. The ShotContext instance will be the same for all calls for the same
-        shot, so it can be used to store state for that shot (but not from one shot to
-        the next), the same way you would use the 'self' argument of a method to store
-        state in an instance. As an example, you might set shot_context.serial to be an
-        open serial connection to a device during a function set to run at t='start',
-        and refer back to it in subsequent functions to read and write data. Other than
-        state stored in shot_context, the functions must be self-contained, containing
-        any imports that they need.
+        Raises
+        ------
+        ValueError
+            If the first two parameters of `function` are not ``shot_context`` and
+            ``t``.
+        TypeError
+            If `function` is not a function, or `args` and `kwargs` do not fit its
+            signature or cannot be serialised.
+        NotImplementedError
+            If `t` is a number.
 
-        This object has a number of attributes:
+        Notes
+        -----
+        BLACS calls ``function(shot_context, t, *args, **kwargs)``, where `t` is
+        ``'start'`` or ``'stop'`` as given here. `shot_context` is the same object for
+        every call in one shot, but a new one for the next shot, so a function can
+        keep state for the shot in it, as a method does in ``self``. For example, a
+        ``'start'`` function can set ``shot_context.serial`` to an open serial
+        connection that the later functions use. `shot_context` has the attributes:
 
-        - self.globals: the shot globals
-        - self.h5_file: the filepath to the shot's HDF5 file
-        - self.device_name: the name of this FunctionRunner
+        - ``globals``: the shot's globals.
+        - ``h5_file``: the path of the shot's HDF5 file.
+        - ``device_name``: the name of this FunctionRunner.
 
-        If you want to save raw data to the HDF5 file at the end of a shot, the
-        recommended place to do it is within the group 'data/<device_name>', for
-        example:
+        Examples
+        --------
+        A ``'stop'`` function saves raw data in the group ``data/<device_name>`` of
+        the shot file::
 
-            with h5py.File(self.h5_file, 'r+') as f:
-                data_group = f['data'].create_group(self.device_name)
-                # save datasets/attributes within this group
+            import h5py
+            with h5py.File(shot_context.h5_file, 'r+') as f:
+                data_group = f['data'].create_group(shot_context.device_name)
+                # Save datasets and attributes within this group.
 
-        Or, if you are doing analysis and want to save results that will be accessible
-        to lyse analysis routines in the usual way, you can instantiate a lyse.Run
-        object and call Run.save_result() etc:
+        To save results that lyse analysis routines read in the usual way, make a
+        `lyse.Run`. It names its results group after the main script of the running
+        process, not after this device, so set the group::
 
             import lyse
             run = lyse.Run(shot_context.h5_file)
+            run.set_group(shot_context.device_name)
             run.save_result('x', 7)
 
-        The group that the results will be saved to, which is usually the filename of
-        the lyse analysis routine, will instead be the device name of the
-        FunctionRunner.
-
-        The use case for which this device was implemented was to update runmanager's
-        globals immediately after a shot, based on measurement data, such that
-        just-in-time compiled shots imme. This is done by calling the runmanager remote API
-        from within a function to be run at the end of a shot, like so:
+        This device was made to update runmanager's globals right after a shot, from
+        measurement data, so that the shots compiled after it use the new values. A
+        ``'stop'`` function calls the runmanager remote API::
 
             import runmanager.remote
             runmanager.remote.set_values({'x': 7})
-
         """
         name, source, args, kwargs = serialise_function(function, *args, **kwargs)
         if t == 'start':
@@ -82,14 +109,13 @@ class FunctionRunner(Device):
             t = np.inf
         else:
             t = float(t)
-            msg = """Running functions mid-experiment not yet implemented. For now, t
-                must be "start" or "stop"."""
+            msg = f"""{self.name}: running functions during the shot is not implemented.
+                Give t as 'start' or 'stop'."""
             raise NotImplementedError(dedent(msg))
         self.functions.append((t, name, source, args, kwargs))
 
     def generate_code(self, hdf5_file):
-        # Python's sorting is stable, so items with equal times will remain in the order
-        # they were added
+        # The sort is stable, so functions at the same time stay in the order added.
         self.functions.sort(key=lambda item: item[0])
         vlenstr = h5py.special_dtype(vlen=str)
         table_dtypes = [

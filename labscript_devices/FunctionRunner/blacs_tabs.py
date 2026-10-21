@@ -15,9 +15,11 @@ from blacs.device_base_class import DeviceTab
 
 
 class FunctionRunnerTab(DeviceTab):
+    """A tab with no controls, showing the output of the functions its worker runs."""
+
     def restore_builtin_save_data(self, data):
         DeviceTab.restore_builtin_save_data(self, data)
-        # Override restored settings and show and maximise the outputbox for this tab:
+        # Whatever was restored, show the output box and give it the whole tab.
         self.set_terminal_visible(True)
         self._ui.splitter.setSizes([0, 0, 1])
 

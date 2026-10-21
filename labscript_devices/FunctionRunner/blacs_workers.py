@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/FunctionRunner/blacs_worker.py                 #
+# /labscript_devices/FunctionRunner/blacs_workers.py                #
 #                                                                   #
 # Copyright 2019, Monash University and contributors                #
 #                                                                   #
@@ -24,7 +24,8 @@ from .utils import deserialise_function
 BLUE = '#66D9EF'
 PURPLE = '#AE81FF'
 GREEN = '#A6E22E'
-GREY = '#75715E' 
+GREY = '#75715E'
+
 
 def deserialise_function_table(function_table, device_name):
     table = []
@@ -33,10 +34,6 @@ def deserialise_function_table(function_table, device_name):
             t = 'start'
         elif t == np.inf:
             t = 'stop'
-        # We deserialise the functions in a namespace with the given __name__ and
-        # __file__ so that if the user instantiates a lyse.Run object, that the results
-        # will automatically be saved to a results group with the name of this
-        # FunctionRunner, since lyse.Run inspects the filename to determine this.
         function, args, kwargs = deserialise_function(
             name, source, args, kwargs, __name__=device_name, __file__=device_name
         )
@@ -44,7 +41,9 @@ def deserialise_function_table(function_table, device_name):
     return table
 
 
-class ShotContext(object):
+class ShotContext:
+    """The `shot_context` that functions get; see `FunctionRunner.add_function`."""
+
     def __init__(self, h5_file, device_name):
         self.h5_file = h5_file
         self.device_name = device_name
@@ -52,6 +51,8 @@ class ShotContext(object):
 
 
 class FunctionRunnerWorker(Worker):
+    """Runs the shot's start functions before the shot and its stop functions after."""
+
     def program_manual(self, front_panel_values):
         return {}
 
@@ -93,7 +94,7 @@ class FunctionRunnerWorker(Worker):
         while self.function_table:
             t, name, function, args, kwargs = self.function_table.pop(0)
             assert t == 'stop'
-            rich_print(f"  t={t}: {name}()",color=BLUE)
+            rich_print(f"  t={t}: {name}()", color=BLUE)
             function(self.shot_context, t, *args, **kwargs)
         rich_print("[finished stop functions]", color=PURPLE)
 
@@ -109,8 +110,8 @@ class FunctionRunnerWorker(Worker):
         return self.abort()
 
     def abort_transition_to_buffered(self):
-        # The start functions may have run, so the stop functions do too. A start
-        # function that raised leaves the ones after it, which do not run.
+        # Start functions may have run, so the stop functions run too. If a start
+        # function raised, the start functions after it are dropped, not run.
         if self.function_table:
             self.function_table = [row for row in self.function_table if row[0] == 'stop']
         return self.abort()
