@@ -25,16 +25,13 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
     TriggerableCameraWorker,
 )
 
-# Don't import nv yet so as not to throw an error: subclasses import this module to
-# inherit its classes, and doing so must not require nivision
+# nivision is imported when an IMAQdxCameraInterface is created, not here: a subclass
+# imports this module for its classes, and that must not require nivision.
 nv = None
 
 
 def _monkeypatch_imaqdispose():
-    """Monkeypatch a fix to a memory leak bug in pynivision. The pynivision project is
-    no longer active, so we can't contribute this fix upstream. In the long run,
-    hopefully someone (perhaps us) forks it so that bugs can be addressed in the
-    normal way"""
+    """Fix a memory leak in pynivision, whose project is no longer active."""
 
     import nivision.core
     import ctypes
@@ -56,21 +53,24 @@ def _monkeypatch_imaqdispose():
 
 
 class IMAQdxCameraInterface(TriggerableCameraInterface):
+    """A camera driven through nivision's IMAQdx functions, found by serial number."""
+
     def __init__(self, serial_number):
         global nv
         import nivision as nv
         _monkeypatch_imaqdispose()
 
-        # Find the camera:
         print("Finding camera...")
         for cam in nv.IMAQdxEnumerateCameras(True):
             if serial_number == (cam.SerialNumberHi << 32) + cam.SerialNumberLo:
                 self.camera = cam
                 break
         else:
-            msg = f"No connected camera with serial number {serial_number:X} found"
+            msg = (
+                f"No connected camera has serial number {serial_number:X}. Check that "
+                "the camera is connected and that serial_number is right."
+            )
             raise Exception(msg)
-        # Connect to the camera:
         print("Connecting to camera...")
         self.imaqdx = nv.IMAQdxOpenCamera(
             self.camera.InterfaceName, nv.IMAQdxCameraControlModeController
@@ -79,20 +79,19 @@ class IMAQdxCameraInterface(TriggerableCameraInterface):
         self.img = nv.imaqCreateImage(nv.IMAQ_IMAGE_U16)
 
     def set_attribute(self, name, value):
-        """Set the value of the attribute of the given name to the given value"""
-        _value = value  # Keep the original for the sake of the error message
+        # A str is encoded to bytes for IMAQdx; value stays as given, for the error
+        # message.
+        _value = value
         if isinstance(_value, str):
             _value = _value.encode('utf8')
         try:
             nv.IMAQdxSetAttribute(self.imaqdx, name.encode('utf8'), _value)
         except Exception as e:
-            # Add some info to the exception:
-            msg = f"failed to set attribute {name} to {value}"
+            msg = f"Failed to set attribute {name} to {value}"
             raise Exception(msg) from e
 
     def get_attribute_names(self, visibility_level, writeable_only=True):
-        """Return a list of all attribute names of readable attributes, for the given
-        visibility level. Optionally return only writeable attributes"""
+        """Return the readable attributes' names; by default only the writeable ones."""
         visibilities = {
             'simple': nv.IMAQdxAttributeVisibilitySimple,
             'intermediate': nv.IMAQdxAttributeVisibilityIntermediate,
@@ -109,7 +108,6 @@ class IMAQdxCameraInterface(TriggerableCameraInterface):
         return attributes
 
     def get_attribute(self, name):
-        """Return current value of attribute of the given name"""
         try:
             value = nv.IMAQdxGetAttribute(self.imaqdx, name.encode('utf8'))
             if isinstance(value, nv.core.IMAQdxEnumItem):
@@ -118,11 +116,9 @@ class IMAQdxCameraInterface(TriggerableCameraInterface):
                 value = value.decode('utf8')
             return value
         except Exception as e:
-            # Add some info to the exception:
             raise Exception(f"Failed to get attribute {name}") from e
 
     def snap(self):
-        """Acquire a single image and return it"""
         nv.IMAQdxSnap(self.imaqdx, self.img)
         return self._decode_image_data(self.img)
 
@@ -146,7 +142,7 @@ class IMAQdxCameraInterface(TriggerableCameraInterface):
         )
 
     def is_skippable_grab_error(self, exception):
-        """Anything else IMAQdx itself reports, as against a fault above it."""
+        """Any error that IMAQdx itself reports, a timeout included."""
         return isinstance(exception, nv.ImaqDxError)
 
     def stop_acquisition(self):
@@ -167,18 +163,15 @@ class IMAQdxCameraInterface(TriggerableCameraInterface):
 
 
 class IMAQdxCameraWorker(TriggerableCameraWorker):
-    """Worker for :obj:`IMAQdxCameraInterface`.
-
-    A subclass of this may name a camera that does not subclass
-    :obj:`TriggerableCameraInterface`, and the camera's attributes are then read
-    one at a time. That route is deprecated, and says so when the worker starts.
-    """
+    """Worker for IMAQdxCameraInterface; a subclass may name another camera class."""
 
     interface_class = IMAQdxCameraInterface
 
     def init(self):
         super().init()
-        # Here rather than in get_camera, which a lab's own worker may override.
+        # A camera without get_attributes_as_dict, such as one that does not subclass
+        # TriggerableCameraInterface, is given that class's, with a deprecation warning.
+        # Here, not in get_camera, which a lab's own worker may override.
         if not hasattr(self.camera, 'get_attributes_as_dict'):
             msg = f"""Warning: {type(self.camera).__name__} does not subclass
                 TriggerableCameraInterface. Driving such a camera by subclassing

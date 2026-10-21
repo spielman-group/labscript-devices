@@ -15,6 +15,6 @@ from labscript_devices.TriggerableCamera.labscript_devices import TriggerableCam
 
 
 class IMAQdxCamera(TriggerableCamera):
-    """Thin sub-class of :obj:`TriggerableCamera`."""
+    """A camera driven through National Instruments IMAQdx."""
 
     description = 'IMAQdx Camera'

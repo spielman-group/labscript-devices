@@ -15,10 +15,6 @@ from labscript_devices.TriggerableCamera.blacs_tabs import TriggerableCameraTab
 
 
 class IMAQdxCameraTab(TriggerableCameraTab):
-    """Thin sub-class of :obj:`TriggerableCameraTab`.
+    """TriggerableCameraTab with IMAQdxCameraWorker as its worker."""
 
-    This sub-class only defines :obj:`worker_class` to point to the correct
-    :obj:`IMAQdxCameraWorker`."""
-
-    # override worker class
     worker_class = 'labscript_devices.IMAQdxCamera.blacs_workers.IMAQdxCameraWorker'
