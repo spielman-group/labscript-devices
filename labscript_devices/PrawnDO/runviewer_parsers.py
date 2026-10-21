@@ -44,6 +44,7 @@ class PrawnDOParser:
                     self.path, "names the PrawnDO's pulse program pulse_program, not PULSE_PROGRAM"
                 )
             pulse_program = group[dataset][()]
+            wait_times = np.sort(f['waits']['time'])
 
         # remove final element from program (2nd part of stop instruction)
         pulse_program = np.delete(pulse_program, -1)
@@ -59,10 +60,11 @@ class PrawnDOParser:
         # insert t=0 for cumsum, remove final value (from stop instruction)
         times_table = np.cumsum(np.insert(time_deltas_table,0,0.0))[:-1]
         if clock is not None:
-            # After each wait, resume a trigger delay after the master's first tick
-            # since the wait began, as the master is drawn
-            for wait_idx in wait_idxs:
-                tick = clock_ticks[np.searchsorted(clock_ticks, times_table[wait_idx])]
+            # The nth wait resumes a trigger delay after the master's tick at the shot's
+            # nth wait time, not at this device's own, which its coarser clock can round
+            # past that tick. 1 ps allows for the float error in the drawn ticks.
+            for wait_idx, wait_time in zip(wait_idxs, wait_times):
+                tick = clock_ticks[np.searchsorted(clock_ticks, wait_time - 1e-12)]
                 times_table[wait_idx + 1:] += tick + self.trigger_delay - times_table[wait_idx + 1]
 
         # Convert bit sets back to individual bits for each output: reshape so each
