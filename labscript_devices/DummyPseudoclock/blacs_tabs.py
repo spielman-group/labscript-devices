@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/DummyPseudoclock/blacs_tab.py                  #
+# /labscript_devices/DummyPseudoclock/blacs_tabs.py                 #
 #                                                                   #
 # Copyright 2017, Christopher Billington                            #
 #                                                                   #
@@ -11,6 +11,7 @@
 #                                                                   #
 #####################################################################
 from blacs.device_base_class import DeviceTab, define_state, MODE_BUFFERED
+
 
 class DummyPseudoclockTab(DeviceTab):
     def initialise_workers(self):
@@ -28,13 +29,12 @@ class DummyPseudoclockTab(DeviceTab):
 
     @define_state(MODE_BUFFERED, True)
     def wait_until_done(self, notify_queue):
-        """Call shot_finished repeatedly in the worker until the shot is complete"""
+        """Call shot_finished repeatedly in the worker until the shot is complete."""
         done = yield (self.queue_work(self.primary_worker, 'shot_finished'))
-        # Experiment is over. Tell the queue manager about it:
+        # The shot is over: tell the queue manager.
         if done:
             notify_queue.put('done')
         else:
-            # Not actual recursion since this just queues up another call
-            # after we return:
+            # Not actual recursion: this only queues another call, to run after this
+            # one returns.
             self.wait_until_done(notify_queue)
-    

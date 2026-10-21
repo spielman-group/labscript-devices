@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/DummyPseudoclock/blacs_worker.py               #
+# /labscript_devices/DummyPseudoclock/blacs_workers.py              #
 #                                                                   #
 # Copyright 2017, Christopher Billington                            #
 #                                                                   #
@@ -16,20 +16,22 @@ import h5py
 from labscript_devices.pseudoclock import PseudoclockWorker
 import labscript_utils.properties as properties
 
+
 class DummyPseudoclockWorker(PseudoclockWorker):
     def program_manual(self, front_panel_values):
         return {}
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
-        # get stop time:
+        # labscript saves stop_time, in seconds, for every pseudoclock device.
         with h5py.File(h5_file, 'r') as f:
             device_properties = properties.get(f, self.device_name, 'device_properties')
             self.stop_time = device_properties['stop_time']
         return {}
-    
+
     def shot_finished(self):
-        # Wait up to 1 second for the shot to be done, returning True if it is
-        # or False if not.
+        # The shot is timed from the first call, which the tab makes as the run starts.
+        # Wait up to 1 s for stop_time seconds to pass since then, returning True if
+        # they have and False if not.
         if getattr(self, 'start_time', None) is None:
             self.start_time = time.time()
         timeout = min(self.start_time + self.stop_time - time.time(), 1)

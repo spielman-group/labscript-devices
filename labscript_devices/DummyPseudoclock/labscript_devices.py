@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/DummyPseudoclock/DummyPseudoclock.py           #
+# /labscript_devices/DummyPseudoclock/labscript_devices.py          #
 #                                                                   #
 # Copyright 2017, Christopher Billington                            #
 #                                                                   #
@@ -11,14 +11,21 @@
 #                                                                   #
 #####################################################################
 
-# This file represents a dummy labscript device for purposes of testing BLACS
-# and labscript. The device is a PseudoclockDevice, and can be the sole device
-# in a connection table or experiment.
-
-from labscript import PseudoclockDevice, Pseudoclock, ClockLine, compiler, LabscriptError
+from labscript import (
+    PseudoclockDevice,
+    Pseudoclock,
+    ClockLine,
+    compiler,
+    LabscriptError,
+)
 import numpy as np
 
+
 class DummyPseudoclock(PseudoclockDevice):
+    """A pseudoclock without hardware, for testing BLACS and labscript.
+
+    A shot can use it as its only device.
+    """
 
     description = 'Dummy pseudoclock'
     clock_limit = 10e6
@@ -32,6 +39,20 @@ class DummyPseudoclock(PseudoclockDevice):
     def __init__(
         self, name='dummy_pseudoclock', BLACS_connection='dummy_connection', **kwargs
     ):
+        """
+        Parameters
+        ----------
+        name : str, optional
+            Python variable name of the device; ``'dummy_pseudoclock'`` by default.
+        BLACS_connection : str, optional
+            Connection string BLACS shows on the device's tab; ``'dummy_connection'``
+            by default. It must not be empty, or BLACS makes no tab for the device.
+            The device has no hardware, so nothing else uses it.
+        **kwargs
+            Passed to :class:`~labscript.PseudoclockDevice`, except `trigger_device`
+            and `trigger_connection`, which are not accepted: this is always the
+            master pseudoclock.
+        """
         self.BLACS_connection = BLACS_connection
         PseudoclockDevice.__init__(self, name, None, None, **kwargs)
         self._pseudoclock = Pseudoclock(
@@ -40,6 +61,7 @@ class DummyPseudoclock(PseudoclockDevice):
             connection='pseudoclock',
             max_clock_lines=1,
         )
+        # The runviewer parser finds the clock line by its connection, 'internal'.
         self._clock_line = ClockLine(
             name=f'{name}_clock_line',
             pseudoclock=self.pseudoclock,
@@ -48,46 +70,43 @@ class DummyPseudoclock(PseudoclockDevice):
 
     @property
     def pseudoclock(self):
+        """The pseudoclock the device creates."""
         return self._pseudoclock
 
     @property
     def clockline(self):
+        """The clock line the device creates, the parent of the devices it clocks."""
         return self._clock_line
 
-
     def generate_code(self, hdf5_file):
+        """Write PULSE_PROGRAM, rows of period and reps, to the shot file."""
         PseudoclockDevice.generate_code(self, hdf5_file)
         group = self.init_device_group(hdf5_file)
 
-        # Compress clock instructions with the same period
-        # This will halve the number of instructions roughly,
-        # since the DummyPseudoclock does not have a 'slow clock'
+        # Merge consecutive instructions of the same period, ignoring their
+        # enabled_clocks: there is only one clock line.
         reduced_instructions = []
         for instruction in self.pseudoclock.clock:
             if instruction == 'WAIT':
-                # The following period and reps indicates a wait instruction
+                # A period of 0 with 1 rep is a wait.
                 reduced_instructions.append({'period': 0, 'reps': 1})
                 continue
             reps = instruction['reps']
-            # period is in quantised units:
+            # The period is in whole ticks of clock_resolution.
             period = self.quantise_to_pseudoclock(instruction['step'], ticks=True)
             if reduced_instructions and reduced_instructions[-1]['period'] == period:
                 reduced_instructions[-1]['reps'] += reps
             else:
                 reduced_instructions.append({'period': period, 'reps': reps})
-        # The following period and reps indicates a stop instruction:
+        # A period of 0 with 0 reps is the stop instruction.
         reduced_instructions.append({'period': 0, 'reps': 0})
         if len(reduced_instructions) > self.max_instructions:
             raise LabscriptError(
-                "%s %s has too many instructions. It has %d and can only support %d"
-                % (
-                    self.description,
-                    self.name,
-                    len(reduced_instructions),
-                    self.max_instructions,
-                )
+                f"{self.description} {self.name} has too many instructions: it has "
+                f"{len(reduced_instructions)} and can support only "
+                f"{int(self.max_instructions)}. Reduce the number of waits and "
+                "clock-period changes."
             )
-        # Store these instructions to the h5 file:
         dtypes = [('period', int), ('reps', int)]
         pulse_program = np.zeros(len(reduced_instructions), dtype=dtypes)
         for i, instruction in enumerate(reduced_instructions):
