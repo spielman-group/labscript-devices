@@ -12,12 +12,15 @@
 #####################################################################
 from blacs.tab_base_classes import Worker
 
+
 class DummyIntermediateDeviceWorker(Worker):
+    """A worker that programs no hardware: every transition and abort succeeds."""
+
     def init(self):
         pass
 
     def program_manual(self, front_panel_values):
-        return front_panel_values 
+        return front_panel_values
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         return front_panel_values
@@ -30,7 +33,7 @@ class DummyIntermediateDeviceWorker(Worker):
 
     def abort_transition_to_buffered(self):
         return self.abort()
-        
+
     def abort_buffered(self):
         return self.abort()
 

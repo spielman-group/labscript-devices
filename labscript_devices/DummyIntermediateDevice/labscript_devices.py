@@ -15,14 +15,15 @@
 Overview
 ~~~~~~~~
 
-This file represents a dummy labscript device for purposes of testing BLACS
-and labscript. The device is a Intermediate Device, and can be attached to
-a pseudoclock in labscript in order to test the pseudoclock behaviour
-without needing a real Intermediate Device. 
+A dummy intermediate device, for testing BLACS and labscript. Attached to a
+clock line of a pseudoclock device, it tests the pseudoclock's behaviour
+without a real intermediate device.
 
-You can attach an arbitrary number of outputs to this device, however we
-currently only support outputs of type AnalogOut and DigitalOut. I would be
-easy to extend this is anyone needed further functionality.
+Any number of :class:`~labscript.DigitalOut` and :class:`~labscript.AnalogOut`
+outputs, or subclasses of them, can be attached; a device of any other class
+raises ``LabscriptError`` when attached. The device writes the raw values of its
+outputs, one row for each clock tick, to the ``OUTPUTS`` table of its group in
+the shot file.
 
 Usage
 ~~~~~
@@ -30,16 +31,16 @@ Usage
 .. code-block:: python
 
     from labscript import *
-    
+
     from labscript_devices.DummyPseudoclock.labscript_devices import DummyPseudoclock
     from labscript_devices.DummyIntermediateDevice import DummyIntermediateDevice
 
-    DummyPseudoclock(name='dummy_clock',BLACS_connection='dummy')
-    DummyIntermediateDevice(name='dummy_device',BLACS_connection='dummy2',
+    DummyPseudoclock(name='dummy_clock', BLACS_connection='dummy')
+    DummyIntermediateDevice(name='dummy_device', BLACS_connection='dummy2',
                             parent_device=dummy_clock.clockline)
 
-    DigitalOut(name='do1',parent_device=dummy_device,connection='dummy_do1')
-    DigitalOut(name='do2',parent_device=dummy_device,connection='dummy_do2')
+    DigitalOut(name='do1', parent_device=dummy_device, connection='dummy_do1')
+    DigitalOut(name='do2', parent_device=dummy_device, connection='dummy_do2')
 
     start()
     stop(1)
@@ -52,19 +53,40 @@ Detailed Documentation
 from labscript import IntermediateDevice, DigitalOut, AnalogOut, compiler
 import numpy as np
 
+
 class DummyIntermediateDevice(IntermediateDevice):
+    """An intermediate device without hardware, for testing BLACS and labscript."""
 
     description = 'Dummy IntermediateDevice'
     clock_limit = 1e6
 
-    # If this is updated, then you need to update generate_code to support whatever types you add
+    # generate_code chooses a dtype for each of these classes: one added here needs
+    # a dtype there too.
     allowed_children = [DigitalOut, AnalogOut]
 
-    def __init__(self, name, parent_device, BLACS_connection='dummy_connection', **kwargs):
+    def __init__(
+        self, name, parent_device, BLACS_connection='dummy_connection', **kwargs
+    ):
+        """
+        Parameters
+        ----------
+        name : str
+            Python variable name of the device.
+        parent_device : :class:`~labscript.ClockLine`
+            Clock line that clocks the device, such as a DummyPseudoclock's
+            `clockline`.
+        BLACS_connection : str, optional
+            Connection string BLACS shows on the device's tab; ``'dummy_connection'``
+            by default. It must not be empty, or BLACS makes no tab for the device.
+            The device has no hardware, so nothing else uses it.
+        **kwargs
+            Passed to :class:`~labscript.IntermediateDevice`.
+        """
         self.BLACS_connection = BLACS_connection
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
 
     def generate_code(self, hdf5_file):
+        """Write OUTPUTS, a row for each clock tick and a column for each output."""
         IntermediateDevice.generate_code(self, hdf5_file)
         group = self.init_device_group(hdf5_file)
 
@@ -72,7 +94,6 @@ class DummyIntermediateDevice(IntermediateDevice):
         pseudoclock = clockline.parent_device
         times = pseudoclock.times[clockline]
 
-        # determine dtypes
         dtypes = []
         for device in self.child_devices:
             if isinstance(device, DigitalOut):
@@ -81,9 +102,10 @@ class DummyIntermediateDevice(IntermediateDevice):
                 device_dtype = np.float64
             dtypes.append((device.name, device_dtype))
 
-        # create dataset
         out_table = np.zeros(len(times), dtype=dtypes)
         for device in self.child_devices:
             out_table[device.name][:] = device.raw_output
 
-        group.create_dataset('OUTPUTS', compression=compiler.compression, data=out_table)
+        group.create_dataset(
+            'OUTPUTS', compression=compiler.compression, data=out_table
+        )

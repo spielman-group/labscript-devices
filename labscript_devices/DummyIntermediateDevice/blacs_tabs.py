@@ -12,7 +12,10 @@
 #####################################################################
 from blacs.device_base_class import DeviceTab
 
+
 class DummyIntermediateDeviceTab(DeviceTab):
+    """A tab with no outputs, whose worker programs no hardware."""
+
     def initialise_workers(self):
         self.create_worker(
             "main_worker",
