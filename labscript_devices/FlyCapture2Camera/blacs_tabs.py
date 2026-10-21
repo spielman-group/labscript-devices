@@ -13,12 +13,8 @@
 
 from labscript_devices.TriggerableCamera.blacs_tabs import TriggerableCameraTab
 
-class FlyCapture2CameraTab(TriggerableCameraTab):
-    """Thin sub-class of obj:`TriggerableCameraTab`.
-    
-    This sub-class only defines :obj:`worker_class` to point to the correct
-    :obj:`FlyCapture2CameraWorker`."""
-    
-    # override worker class
-    worker_class = 'labscript_devices.FlyCapture2Camera.blacs_workers.FlyCapture2CameraWorker'
 
+class FlyCapture2CameraTab(TriggerableCameraTab):
+    """TriggerableCameraTab with FlyCapture2CameraWorker as its worker."""
+
+    worker_class = 'labscript_devices.FlyCapture2Camera.blacs_workers.FlyCapture2CameraWorker'

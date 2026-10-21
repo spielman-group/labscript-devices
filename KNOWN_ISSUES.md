@@ -21,3 +21,5 @@
 - `TriggerableCamera/labscript_devices.py`: `__init__` formats its message for a bad `saved_attribute_visibility_level` with a 4-tuple into one `%s`, so it raises TypeError, not the ValueError meant.
 - `TriggerableCamera/blacs_workers.py`: `transition_to_buffered` pauses continuous acquisition, but `transition_to_manual` returns early for a shot with no exposures for the camera, so the acquisition is never resumed while the tab still shows it running.
 - `TriggerableCamera/attributes_dialog.ui`, `blacs_tab.ui`: the text says IMAQdx, and tells every camera's users to pass the attributes as `imaqdx_attributes` to IMAQdxCamera; the keyword is `camera_attributes`.
+- `FlyCapture2Camera/blacs_workers.py`: `set_image_mode` rounds the width and height to the offset step sizes, not the image step sizes PyCapture2 also reports; unchecked against a camera.
+- `FlyCapture2Camera/blacs_workers.py`: `is_transient_grab_error` retries every Fc2error, so a fault that raises at once has `grab_multiple` retry it without pause until the shot ends.

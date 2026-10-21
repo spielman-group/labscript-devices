@@ -13,8 +13,8 @@
 
 from labscript_devices.TriggerableCamera.labscript_devices import TriggerableCamera
 
-class FlyCapture2Camera(TriggerableCamera):
-    """Thin sub-class of :obj:`TriggerableCamera`."""
-    
-    description = 'FlyCapture2 Camera'
 
+class FlyCapture2Camera(TriggerableCamera):
+    """A FLIR camera driven through the FlyCapture2 SDK's PyCapture2 wrapper."""
+
+    description = 'FlyCapture2 Camera'
