@@ -3,7 +3,6 @@
 - `PhaseMatrixQuickSyn/blacs_workers.py`: the worker's `update_reference_out`, `update_blanking` and `update_lock_recovery` do nothing, and `transition_to_buffered` writes `OUTP:STAT 1` without the `\r` every other command ends with and ignores the shot's gate, so `QuickSynDDS.disable()` has no effect.
 - `FlyCapture2Camera/blacs_workers.py`: `_send_format7_config` skips Format7 settings that fail validation without saying so.
 - `PulseBlaster/labscript_devices.py`, `PulseBlaster_No_DDS/labscript_devices.py`: each delay reaches SpinAPI as float nanoseconds (`delaydouble`), about 9% of them ~1e-12 cycles below a whole core cycle. Linux's `libspinapi64.so` (spinapi 3.2.2) rounds `length * clock - 3` to the nearest cycle in `pb_inst_pbonly64` and `pb_inst_dds2`, so loses nothing; the labs' Windows `spinapi64.dll` is a separate binary, unchecked. If it truncates, every repetition of such a looped step runs one cycle short (about 39 µs over a 2,905-step ramp). Needed: the same disassembly of that DLL, or a long looped ramp timed on a board.
-- `AlazarTechBoard/blacs_workers.py`: `find_nearest_internal_clock` makes a 0-d array of the `dict_keys` it is given, so `transition_to_buffered` with the default `INTERNAL_CLOCK` raises TypeError (as upstream).
 - `RFBlaster/blacs_workers.py`: the board has no status readback, so `shot_finished` is the default True, and the transition to manual does not wait for a secondary RFBlaster to end. Deferred: it needs the board's protocol.
 - `PrawnDO/blacs_workers.py`: smart programming of a program longer than the cached one, by at most 10%, writes past the end of the cached array in `transition_to_buffered` and raises IndexError.
 - `PrawnDO/blacs_workers.py`: `transition_to_buffered` reports the final values from the stop row's ignored bit set, so BLACS shows every output low after a shot.
@@ -33,10 +32,7 @@
 - `AndorSolis/blacs_workers.py`: `grab_multiple` never polls the abort flag, so after an abort ends one acquisition the loop starts the next and waits for its timeout, and the worker's `abort()` joins it without one.
 - `AndorSolis/blacs_workers.py`: the interface's `attributes` is AndorCam's `default_acquisition_attrs` dict itself, so `set_attribute` changes the defaults.
 - `AndorSolis/andor_sdk/andor_structures.py`: `AndorCapabilities` sets `ulSize` to `sys.getsizeof`, the Python object's size, not `ctypes.sizeof`, the structure's.
-- `AlazarTechBoard/blacs_workers.py`: `channels=ats.CHANNEL_B` alone passes the checks, but the worker takes a lone channel to be A, and `transition_to_manual` raises TypeError slicing B from a one-channel stream.
 - `AlazarTechBoard/blacs_workers.py`: the DMA buffers are freed only by a successful `transition_to_manual`; after an abort, a trigger timeout or a failure the next shot overwrites `self.buffers` and the memory leaks.
-- `AlazarTechBoard/blacs_workers.py`: with `ats.EXTERNAL_CLOCK_10MHz_REF` and the default `requested_acquisition_rate` of 0, the divider is 0 and the decimation -1, and the board acquires no samples without an error.
-- `docs/source/devices/alazartechboard.rst`: says atsapi.py must be installed separately; it ships as `labscript_devices/atsapi.py`.
 - `NI_DAQmx/labscript_devices.py`: `static_AO=False` is accepted on a device without `supports_buffered_AO` when it has buffered DO, so an `AnalogOut` it cannot clock compiles.
 - `TekScope/TekScope.py`: `waveform` reads 16-bit points with datatype `'i'`, 4 bytes, so with `int16` each value joins two points and the trace is garbage; the "only every second pt" comment describes this.
 - `TekScope/blacs_workers.py`: with no channel displayed, `transition_to_manual` raises UnboundLocalError, as the time axis comes from the last channel downloaded.

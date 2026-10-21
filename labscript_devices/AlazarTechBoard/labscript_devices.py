@@ -8,7 +8,7 @@ import numpy as np
 # Importing atsapi loads AlazarTech's SDK library, ATSApi.dll or libATSApi.so.
 import labscript_devices.atsapi as ats
 
-from labscript import Device, AnalogIn, compiler, set_passed_properties
+from labscript import Device, AnalogIn, LabscriptError, compiler, set_passed_properties
 
 
 class AlazarTechBoard(Device):
@@ -96,8 +96,9 @@ class AlazarTechBoard(Device):
             usable rate: set it. With ``ats.INTERNAL_CLOCK`` the worker takes the
             nearest rate in its ``atsSampleRates``, 1 kS/s to 180 MS/s. With
             ``ats.EXTERNAL_CLOCK_10MHz_REF`` it takes a rate at or just above this,
-            from a PLL clock of 150 to 180 MHz over a divider, and raises if the
-            divider would exceed 10000.
+            from a PLL clock of 150 to 180 MHz over a divider; a rate that is not
+            positive raises :class:`~labscript.LabscriptError`, and the worker raises
+            if the divider would exceed 10000.
         acquisition_duration : float, optional
             Duration of the acquisition in seconds, rounded to a whole number of
             samples; 1 by default. The inputs' ``acquire`` calls do not set it.
@@ -146,8 +147,8 @@ class AlazarTechBoard(Device):
             forever.
         channels : int, optional
             Channels to acquire: ``ats.CHANNEL_A``, or both as
-            ``ats.CHANNEL_A | ats.CHANNEL_B`` (the default). Channel B alone is not
-            supported: the worker takes a lone channel to be channel A.
+            ``ats.CHANNEL_A | ats.CHANNEL_B`` (the default). Channel B alone raises
+            :class:`~labscript.LabscriptError`.
         chA_coupling_id, chB_coupling_id : int, optional
             ``ats.AC_COUPLING``, the default, or ``ats.DC_COUPLING``.
         chA_input_range, chB_input_range : int, optional
@@ -163,11 +164,19 @@ class AlazarTechBoard(Device):
         """
         Device.__init__(self, name, None, None, **kwargs)
         self.name = name
+        if not channels & ats.CHANNEL_A:
+            raise LabscriptError(
+                f"{name}'s channels must include ats.CHANNEL_A, as the worker cannot "
+                "acquire channel B alone. Use ats.CHANNEL_A, or ats.CHANNEL_A | "
+                "ats.CHANNEL_B for both."
+            )
+        if clock_source_id == ats.EXTERNAL_CLOCK_10MHz_REF and requested_acquisition_rate <= 0:
+            raise LabscriptError(
+                f"{name} uses the external clock, so it needs a positive "
+                "requested_acquisition_rate."
+            )
         # BLACS starts and stops only devices that have a BLACS_connection.
         self.BLACS_connection = server
-
-    def add_device(self, output):
-        Device.add_device(self, output)
 
     def generate_code(self, hdf5_file):
         """Write the inputs' acquisitions to the shot file as the ACQUISITIONS table."""

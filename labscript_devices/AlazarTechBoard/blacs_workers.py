@@ -60,7 +60,7 @@ atsExternalClockAdvice = {
 def find_nearest_internal_clock(array, value):
     """Return the element of `array` nearest to `value`."""
     if not isinstance(array, np.ndarray):
-        array = np.array(array)
+        array = np.array(list(array))
     ix = np.abs(array - value).argmin()
     return array[ix]
 
@@ -250,9 +250,6 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
               f"level: {device_properties['trig_level_id2']:d}.")
 
         # The trigger delay is always 0: trig_delay_samples is not read.
-        triggerDelay_sec = 0
-        triggerDelay_samples = int(
-            triggerDelay_sec * actual_acquisition_rate + 0.5)
         self.board.setTriggerDelay(0)
 
         # The board triggers itself if no trigger event comes within the timeout; 0 makes
@@ -360,7 +357,6 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         while True:
             command = self.acquisition_queue.get()
             assert command == 'start'
-            start = time.perf_counter()
             self.acquisition_exception = None
             # Only an earlier acquisition can have left this set.
             self.acquisition_done.clear()
