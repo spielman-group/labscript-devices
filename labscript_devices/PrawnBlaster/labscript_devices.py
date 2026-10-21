@@ -27,18 +27,10 @@ import numpy as np
 
 
 class _PrawnBlasterPseudoclock(Pseudoclock):
-    """Customized Clockline for use with the PrawnBlaster.
+    """A pseudoclock with one clockline that knows its hardware index `i`."""
 
-    This Pseudoclock retains information about which hardware clock
-    it is associated with, and ensures only one clockline per
-    pseudoclock.
-    """
     def __init__(self, i, *args, **kwargs):
-        """
-        Args:
-            i (int): Specifies which hardware pseudoclock this device
-                is associated with.
-        """
+        """`i` is the pseudoclock's index on the board; the rest go to `Pseudoclock`."""
         super().__init__(*args, **kwargs)
         self.i = i
 
@@ -46,6 +38,8 @@ class _PrawnBlasterPseudoclock(Pseudoclock):
 
 
 class PrawnBlaster(PseudoclockDevice):
+    """A Raspberry Pi Pico with the PrawnBlaster firmware, providing one to four pseudoclocks."""
+
     description = "PrawnBlaster"
     clock_limit = 1 / 100e-9
     """Maximum allowable clock rate."""
@@ -67,7 +61,7 @@ class PrawnBlaster(PseudoclockDevice):
     allowed_children = [Pseudoclock]
     allowed_boards = ['pico1', 'pico2']
     max_instructions_map = {'pico1' : 30000, 'pico2' : 60000}
-    """Maximum number of instructions per pseudoclock for each pico board. """
+    """Each pico board's instruction table, shared equally between its pseudoclocks."""
     max_frequency_map = {'pico1' : 133e6, 'pico2' : 150e6}
 
     @set_passed_properties(
@@ -107,60 +101,68 @@ class PrawnBlaster(PseudoclockDevice):
         use_wait_monitor=True,
         **kwargs,
     ):
-        """PrawnBlaster Pseudoclock labscript device.
-
-        This labscript device creates Pseudoclocks based on the PrawnBlaster,
-        a Raspberry Pi Pico with custom firmware.
-
-        Args:
-            name (str): python variable name to assign to the PrawnBlaster
-            com_port (str): COM port assigned to the PrawnBlaster by the OS. Takes 
-                the form of `'COMd'`, where `d` is an integer.
-            pico_board (str): The version of pico board used, pico1 or pico2.
-            num_pseudoclocks (int): Number of pseudoclocks to create. Ranges from 1-4.
-            trigger_device (:class:`~labscript.IntermediateDevice`, optional): Device
-                that will send the hardware start trigger when using the PrawnBlaster
-                as a secondary Pseudoclock.
-            trigger_connection (str, optional): Which output of the `trigger_device`
-                is connected to the PrawnBlaster hardware trigger input.
-            out_pins (list, optional): What outpins to use for the pseudoclock outputs.
-                Must have length of at least `num_pseudoclocks`. Defaults to `[9,11,13,15]`
-            in_pins (list, optional): What inpins to use for the pseudoclock hardware
-                triggering. Must have length of at least `num_pseudoclocks`. 
-                Defaults to `[0,0,0,0]`
-            clock_frequency (float, optional): Frequency of clock. Standard range
-                accepts up to 133 MHz for pico1, 150 MHz for pico2. An experimental overclocked 
-                firmware is available that allows higher frequencies.
-            external_clock_pin (int, optional): If not `None` (the default), 
-                the PrawnBlaster uses an external clock on the provided pin. Valid
-                options are `20` and `22`. The external frequency must be defined
-                using `clock_frequency`.
-            use_wait_monitor (bool, optional): Configure the PrawnBlaster to
-                perform its own wait monitoring.
-
         """
-
+        Parameters
+        ----------
+        name : str
+            Python variable name of the device.
+        trigger_device : :class:`~labscript.IntermediateDevice`, optional
+            Device that sends the hardware start trigger when this is a secondary
+            pseudoclock.
+        trigger_connection : str, optional
+            Output of `trigger_device` wired to the hardware trigger input.
+        com_port : str, optional
+            Serial port the OS assigned, of the form ``'COMd'``; ``'COM1'`` by
+            default.
+        pico_board : str, optional
+            ``'pico1'``, the default, or ``'pico2'``.
+        num_pseudoclocks : int, optional
+            Number of pseudoclocks, from 1, the default, to 4.
+        out_pins : list of int, optional
+            Pins for the pseudoclock outputs, at least `num_pseudoclocks` of them;
+            ``[9, 11, 13, 15]`` by default. The firmware takes pins 0 to 19 or 25.
+        in_pins : list of int, optional
+            Pins for the pseudoclocks' hardware trigger inputs, at least
+            `num_pseudoclocks` of them; ``[0, 0, 0, 0]`` by default. The firmware
+            takes pins 0 to 19, none of them an out pin.
+        clock_frequency : float, optional
+            Clock frequency in Hz; 100 MHz by default, at most 133 MHz for pico1 and
+            150 MHz for pico2. The class's timings are for 100 MHz and scale with it.
+        external_clock_pin : int, optional
+            If not `None` (the default), the pin, 20 or 22, of an external clock whose
+            frequency is `clock_frequency`.
+        use_wait_monitor : bool, optional
+            Let the PrawnBlaster monitor waits itself, as it does by default. Only a
+            master pseudoclock can.
+        **kwargs
+            Passed to :class:`~labscript.PseudoclockDevice`.
+        """
         if pico_board in self.allowed_boards:
             self.pico_board = pico_board
         else:
-            raise LabscriptError(f'Pico board specified not in {self.allowed_boards}')
-        
-        # Check number of pseudoclocks is within range
+            raise LabscriptError(
+                f"Pico board {pico_board!r} is not supported. "
+                f"Use one of {self.allowed_boards}."
+            )
+
         if num_pseudoclocks < 1 or num_pseudoclocks > 4:
             raise LabscriptError(
-                f"The PrawnBlaster {name} only supports between 1 and 4 pseudoclocks"
+                f"The PrawnBlaster {name} supports between 1 and 4 pseudoclocks, "
+                f"not {num_pseudoclocks}."
             )
-        
-        # Set max instructions based on board
+
         self.max_instructions = self.max_instructions_map[self.pico_board]
-        # Update the specs based on the number of pseudoclocks
+        # The instruction table is shared equally between the pseudoclocks.
         self.max_instructions = self.max_instructions // num_pseudoclocks
 
         self.max_frequency = self.max_frequency_map[self.pico_board]
 
         if clock_frequency > self.max_frequency:
-            raise ValueError(f'Clock frequency must be less than {int(self.max_frequency * 10**-6)} MHz')
-        # Update the specs based on the clock frequency
+            raise ValueError(
+                f"Clock frequency must be at most {int(self.max_frequency * 10**-6)} MHz "
+                f"for {self.pico_board}."
+            )
+        # The class-level timings are for a 100 MHz clock; scale them to this one.
         if self.clock_resolution != 2 / clock_frequency:
             factor = (2 / clock_frequency) / self.clock_resolution
             self.clock_limit *= factor
@@ -170,7 +172,6 @@ class PrawnBlaster(PseudoclockDevice):
             self.trigger_minimum_duration *= factor
             self.wait_delay *= factor
 
-        # Instantiate the base class
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.num_pseudoclocks = num_pseudoclocks
         # Wait monitor can only be used if this is the master pseudoclock
@@ -178,23 +179,25 @@ class PrawnBlaster(PseudoclockDevice):
         # One pseudoclock per output, and the internal one a wait monitor hangs from.
         self.max_pseudoclocks = num_pseudoclocks + self.use_wait_monitor
 
-        # Set the BLACS connections
         self.BLACS_connection = com_port
 
-        # Check in/out pins
         if out_pins is None:
             out_pins = [9, 11, 13, 15]
         if in_pins is None:
             in_pins = [0, 0, 0, 0]
         if len(out_pins) < num_pseudoclocks:
             raise LabscriptError(
-                f"The PrawnBlaster {self.name} is configured with {num_pseudoclocks} but only has pin numbers specified for {len(out_pins)}."
+                f"The PrawnBlaster {self.name} has {num_pseudoclocks} pseudoclocks "
+                f"but out_pins gives {len(out_pins)}. "
+                "Give one out pin for each pseudoclock."
             )
         else:
             self.out_pins = out_pins[:num_pseudoclocks]
         if len(in_pins) < num_pseudoclocks:
             raise LabscriptError(
-                f"The PrawnBlaster {self.name} is configured with {num_pseudoclocks} but only has pin numbers specified for {len(in_pins)}."
+                f"The PrawnBlaster {self.name} has {num_pseudoclocks} pseudoclocks "
+                f"but in_pins gives {len(in_pins)}. "
+                "Give one in pin for each pseudoclock."
             )
         else:
             self.in_pins = in_pins[:num_pseudoclocks]
@@ -222,9 +225,8 @@ class PrawnBlaster(PseudoclockDevice):
             # Create internal devices for connecting to a wait monitor
             self.__wait_monitor_intermediate_device = internal_wait_monitor_outputs(self)
 
-            # Create the wait monitor
             WaitMonitor(
-                "%s__wait_monitor" % name,
+                f"{name}__wait_monitor",
                 self.internal_wait_monitor_outputs,
                 "internal",
                 self.internal_wait_monitor_outputs,
@@ -235,39 +237,27 @@ class PrawnBlaster(PseudoclockDevice):
 
     @property
     def internal_wait_monitor_outputs(self):
+        """The intermediate device the internal wait monitor is attached to."""
         return self.__wait_monitor_intermediate_device
 
     @property
     def pseudoclocks(self):
-        """Returns a list of the automatically generated
-        :class:`_PrawnBlasterPseudoclock` objects."""
-
+        """The device's pseudoclocks, as a new list of :class:`_PrawnBlasterPseudoclock`."""
         return copy.copy(self._pseudoclocks)
 
     @property
     def clocklines(self):
-        """Returns a list of the automatically generated 
-        :class:`~labscript.ClockLine` objects."""
-
+        """The device's clocklines, as a new list of :class:`~labscript.ClockLine`."""
         return copy.copy(self._clocklines)
 
-
     def generate_code(self, hdf5_file):
-        """Generates the hardware instructions for the pseudoclocks.
-
-        This is automatically called by the labscript compiler.
-
-        Args:
-            hdf5_file (:class:`h5py.File`): h5py file object for shot 
-        """
-
+        """Write each pseudoclock's pulse program to the shot file."""
         PseudoclockDevice.generate_code(self, hdf5_file)
         group = self.init_device_group(hdf5_file)
 
         current_wait_index = 0
         wait_table = sorted(compiler.wait_table)
 
-        # For each pseudoclock
         for i, pseudoclock in enumerate(self.pseudoclocks):
             current_wait_index = 0
 
@@ -277,7 +267,6 @@ class PrawnBlaster(PseudoclockDevice):
                 if instruction == "WAIT":
                     # If we're using the internal wait monitor, set the timeout
                     if self.use_wait_monitor:
-                        # Get the wait timeout value
                         wait_timeout = compiler.wait_table[
                             wait_table[current_wait_index]
                         ][1]
@@ -309,7 +298,6 @@ class PrawnBlaster(PseudoclockDevice):
                         )
                         continue
 
-                # Normal instruction
                 reps = instruction["reps"]
                 # half_period is in quantised units:
                 half_period = self.quantise_to_pseudoclock(instruction["step"], ticks=True)
@@ -323,29 +311,28 @@ class PrawnBlaster(PseudoclockDevice):
                     # And the sum of the previous reps and current reps won't push it over the limit
                     and (reduced_instructions[-1]["reps"] + reps) < (2 ** 32 - 1)
                 ):
-                    # Combine instructions!
                     reduced_instructions[-1]["reps"] += reps
                 else:
-                    # New instruction
                     reduced_instructions.append(
                         {"half_period": half_period, "reps": reps}
                     )
 
-            # Only add this if there is room in the instruction table. The PrawnBlaster
-            # firmware has extre room at the end for an instruction that is always 0
-            # and cannot be set over serial!
+            # Only add this if there is room in the instruction table. The firmware
+            # keeps a zero instruction after each pseudoclock's share, which stops a
+            # program that fills it.
             if len(reduced_instructions) != self.max_instructions:
                 # The following half_period and reps indicates a stop instruction:
                 reduced_instructions.append({"half_period": 0, "reps": 0})
 
-            # Check we have not exceeded the maximum number of supported instructions
-            # for this number of speudoclocks
+            # max_instructions is already the share of each pseudoclock.
             if len(reduced_instructions) > self.max_instructions:
                 raise LabscriptError(
-                    f"{self.description} {self.name}.clocklines[{i}] has too many instructions. It has {len(reduced_instructions)} and can only support {self.max_instructions}"
+                    f"{self.description} {self.name}.clocklines[{i}] has too many "
+                    f"instructions: it has {len(reduced_instructions)} and can support "
+                    f"only {self.max_instructions}. Reduce the number of waits and "
+                    "clock-period changes, or use fewer pseudoclocks on this device."
                 )
 
-            # Store these instructions to the h5 file:
             dtypes = [("half_period", int), ("reps", int)]
             pulse_program = np.zeros(len(reduced_instructions), dtype=dtypes)
             for j, instruction in enumerate(reduced_instructions):

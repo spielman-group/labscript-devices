@@ -19,38 +19,20 @@ import labscript_utils.properties as properties
 from labscript_devices.runviewer_parsing import rising_edge_times
 
 
-class PrawnBlasterParser(object):
+class PrawnBlasterParser:
     """Runviewer parser for the PrawnBlaster Pseudoclocks."""
     def __init__(self, path, device):
-        """
-        Args:
-            path (str): path to h5 shot file
-            device (str): labscript name of PrawnBlaster device
-        """
         self.path = path
         self.name = device.name
         self.device = device
 
     def get_traces(self, add_trace, clock=None):
-        """Reads the shot file and extracts hardware instructions to produce
-        runviewer traces.
-
-        Args:
-            add_trace (func): function handle that adds traces to runviewer
-            clock (tuple, optional): clock times from timing device, if not
-                the primary pseudoclock
-
-        Returns:
-            dict: Dictionary of clocklines and triggers derived from instructions
-        """
-
+        """Add the clock lines' traces to runviewer and return them."""
         if clock is not None:
             clock_ticks = rising_edge_times(clock)
 
-        # get the pulse program
         pulse_programs = []
         with h5py.File(self.path, "r") as f:
-            # Get the device properties
             device_properties = properties.get(f, self.name, "device_properties")
             connection_table_properties = properties.get(f, self.name, "connection_table_properties")
 
@@ -58,23 +40,19 @@ class PrawnBlasterParser(object):
             self.trigger_delay = device_properties["trigger_delay"]
             self.wait_delay = device_properties["wait_delay"]
 
-            # Extract the pulse programs
             num_pseudoclocks = connection_table_properties["num_pseudoclocks"]
             for i in range(num_pseudoclocks):
                 pulse_programs.append(f[f"devices/{self.name}/PULSE_PROGRAM_{i}"][:])
 
-        # Generate clocklines and triggers
         clocklines_and_triggers = {}
-        
+
         for pseudoclock_name, pseudoclock in self.device.child_list.items():
-            # Get pseudoclock index
             connection_parts = pseudoclock.parent_port.split()
             # Skip if not one of the 4 possible pseudoclock outputs (there is one for
             # the wait monitor too potentially)
             if connection_parts[0] != "pseudoclock":
                 continue
 
-            # Get the pulse program
             index = int(connection_parts[1])
             pulse_program = pulse_programs[index]
 

@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/PrawnBlaster/blacs_tab.py                      #
+# /labscript_devices/PrawnBlaster/blacs_tabs.py                     #
 #                                                                   #
 # Copyright 2021, Philip Starkey                                    #
 #                                                                   #
@@ -28,11 +28,6 @@ class PrawnBlasterTab(PseudoclockTab):
     """BLACS Tab for the PrawnBlaster Device."""
 
     def initialise_GUI(self):
-        """Initialises the Tab GUI.
-
-        This method is called automatically by BLACS.
-        """
-
         self.connection_table_properties = (
             self.settings["connection_table"].find_by_name(self.device_name).properties
         )
@@ -41,35 +36,22 @@ class PrawnBlasterTab(PseudoclockTab):
         for pin in self.connection_table_properties["out_pins"]:
             digital_outs[f"GPIO {pin:02d}"] = {}
 
-        # Create a single digital output
         self.create_digital_outputs(digital_outs)
-        # Create widgets for output objects
         _, _, do_widgets = self.auto_create_widgets()
-        # and auto place the widgets in the UI
         self.auto_place_widgets(("Flags", do_widgets))
 
-        # Create status labels
         self.status_label = QtWidgets.QLabel("Status: Unknown")
         self.clock_status_label = QtWidgets.QLabel("Clock status: Unknown")
         self.get_tab_layout().addWidget(self.status_label)
         self.get_tab_layout().addWidget(self.clock_status_label)
 
-        # Set the capabilities of this device
         self.supports_smart_programming(True)
 
         # Refresh the status labels every 2 s, in every mode
         self.statemachine_timeout_add(2000, self.update_status)
 
     def get_child_from_connection_table(self, parent_device_name, port):
-        """Finds the attached ClockLines.
-
-        Args:
-            parent_device_name (str): name of parent_device
-            port (str): port of parent_device
-
-        Returns:
-            :class:`~labscript.ClockLine`: PrawnBlaster interal Clocklines
-        """
+        """Finds the attached ClockLines."""
 
         # Pass down channel name search to the pseudoclocks (so we can find the
         # clocklines)
@@ -78,7 +60,6 @@ class PrawnBlasterTab(PseudoclockTab):
 
             for pseudoclock_name, pseudoclock in device.child_list.items():
                 for child_name, child in pseudoclock.child_list.items():
-                    # store a reference to the internal clockline
                     if child.parent_port == port:
                         return DeviceTab.get_child_from_connection_table(
                             self, pseudoclock.name, port
@@ -87,12 +68,6 @@ class PrawnBlasterTab(PseudoclockTab):
         return None
 
     def initialise_workers(self):
-        """Initialises the PrawnBlaster Workers.
-
-        This method is called automatically by BLACS.
-        """
-
-        # Find the COM port to be used
         com_port = str(
             self.settings["connection_table"]
             .find_by_name(self.device_name)

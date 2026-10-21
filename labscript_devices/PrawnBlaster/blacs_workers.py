@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/PrawnBlaster/blacs_worker.py                   #
+# /labscript_devices/PrawnBlaster/blacs_workers.py                  #
 #                                                                   #
 # Copyright 2021, Philip Starkey                                    #
 #                                                                   #
@@ -21,19 +21,9 @@ import labscript_utils.properties as properties
 
 
 class PrawnBlasterWorker(PseudoclockWorker):
-    """The primary worker for the PrawnBlaster.
-
-    This worker handles configuration and communication
-    with the hardware.
-    """
+    """The primary worker for the PrawnBlaster."""
 
     def init(self):
-        """Initialises the hardware communication.
-
-        This function is automatically called by BLACS
-        and configures hardware communication with the device.
-        """
-
         # fmt: off
         global h5py; import labscript_utils.h5_lock, h5py
         global serial; import serial
@@ -62,17 +52,15 @@ class PrawnBlasterWorker(PseudoclockWorker):
         self.conn = serial.Serial(self.com_port, 115200, timeout=1)
         self.check_status()
 
-        # configure number of pseudoclocks
         self.send_command_ok(f"setnumpseudoclocks {self.num_pseudoclocks}")
 
-        # Configure pins
         for i, (out_pin, in_pin) in enumerate(zip(self.out_pins, self.in_pins)):
             self.send_command_ok(f"setoutpin {i} {out_pin}")
             self.send_command_ok(f"setinpin {i} {in_pin}")
 
         version, _ = self.get_version()
         print(f'Connected to version: {version}')
-        assert version >= self.min_version, f'Incompatible firmware, must be >= {self.min_version}'
+        assert version >= self.min_version, f'Incompatible firmware {version}, must be >= {self.min_version}. Update the PrawnBlaster firmware.'
         
         if version >= (1, 2, 0):
             board = self.get_board()
@@ -82,32 +70,21 @@ class PrawnBlasterWorker(PseudoclockWorker):
         
         print(f'Connected to board: {board}')
         if board.strip() != self.pico_board.strip():
-            raise LabscriptError(f'firmware reports {board} attached, labscript expects {self.pico_board}')
+            raise LabscriptError(f'Firmware reports {board} attached, but labscript expects {self.pico_board}. Set pico_board to match the attached board.')
 
         current_status = self.read_status()
         print(f'Current status is {current_status}')
 
     def _read_full_buffer(self):
-        '''Used to get any extra lines from device after a failed send_command'''
+        """Read every line the device sends, after a failed command or for a multi-line reply."""
 
         resp = self.conn.readlines()
         str_resp = ''.join([st.decode() for st in resp])
 
         return str_resp
-    
-    def send_command(self, command, readlines=False):
-        '''Sends the supplied string command and checks for a response.
-        
-        Automatically applies the correct termination characters.
-        
-        Args:
-            command (str): Command to send. Termination and encoding is done automatically.
-            readlines (bool, optional): Use pyserial's readlines functionality to read multiple
-                response lines. Slower as it relies on timeout to terminate reading.
 
-        Returns:
-            str: String response from the PrawnBlaster
-        '''
+    def send_command(self, command, readlines=False):
+        """Send command and return the response; readlines reads several lines, waiting for the timeout."""
         command += '\r\n'
         self.conn.write(command.encode())
 
@@ -119,24 +96,17 @@ class PrawnBlasterWorker(PseudoclockWorker):
         return str_resp
     
     def send_command_ok(self, command):
-        '''Sends the supplied string command and confirms 'ok' response.
-
-        Args:
-            command (str): String command to send.
-
-        Raises:
-            LabscriptError: If response is not `ok\\r\\n`
-        '''
+        """Send command and raise LabscriptError unless the response is 'ok'."""
 
         resp = self.send_command(command)
         if resp != 'ok\r\n':
             # get complete error message
             resp += self._read_full_buffer()
-            raise LabscriptError(f"Command '{command:s}' failed. Got response '{repr(resp)}'")
+            raise LabscriptError(f"Command '{command}' failed. Got response {resp!r}.")
     
     def get_version(self):
         version_str = self.send_command('version', readlines=True)
-        assert version_str.startswith("version: ")
+        assert version_str.startswith("version: "), f"Version command failed, got: {version_str}"
         version = version_str[9:].strip()
 
         version_overclock_list = version.split('-')
@@ -146,15 +116,12 @@ class PrawnBlasterWorker(PseudoclockWorker):
                 overclock = True
 
         version = tuple(int(v) for v in version_overclock_list[0].split('.'))
-        assert len(version) == 3
+        assert len(version) == 3, f"Firmware version {version_overclock_list[0]} does not have three numbers."
 
         return version, overclock
-    
-    def get_board(self):
-        '''Responds with pico board version.
 
-        Returns:
-            (str): Either "pico1" for a Pi Pico 1 board or "pico2" for a Pi Pico 2 board.'''
+    def get_board(self):
+        """Return "pico1" or "pico2", the board the firmware reports."""
         resp = self.send_command('board')
         assert resp.startswith('board:'), f'Board command failed, got: {resp}'
         pico_str = resp.split(':')[-1].strip()
@@ -162,33 +129,7 @@ class PrawnBlasterWorker(PseudoclockWorker):
         return pico_str
 
     def check_status(self):
-        """Checks the operational status of the PrawnBlaster.
-
-        This is automatically called by BLACS to update the status
-        of the PrawnBlaster. It also reads the lengths of any 
-        accumulated waits during a shot.
-
-        Returns:
-            (int, int, bool): Tuple containing:
-
-            - **run_status** (int): Possible values are: 
-
-                * 0 : manual-mode
-                * 1 : transitioning to buffered execution
-                * 2 : buffered execution
-                * 3 : abort requested
-                * 4 : currently aborting buffered execution
-                * 5 : last buffered execution aborted
-                * 6 : transitioning to manual mode
-
-            - **clock_status** (int): Possible values are:
-
-                * 0 : internal clock
-                * 1 : external clock
-
-            - **waits_pending** (bool): Indicates if all expected waits have
-              not been read out yet.
-        """
+        """Read out the next wait if it has ended; return (run_status, clock_status, waits_pending)."""
 
         if (
             self.started
@@ -201,12 +142,9 @@ class PrawnBlasterWorker(PseudoclockWorker):
             if response != "wait not yet available\r\n":
                 # Parse the response from the PrawnBlaster
                 wait_remaining = int(response)
-                # Divide by two since the clock_resolution is for clock pulses, which
-                # have twice the clock_resolution of waits
-                # Technically, waits also only have a resolution of `clock_resolution`
-                # but the PrawnBlaster firmware accepts them in half of that so that
-                # they are easily converted to seconds via the clock frequency.
-                # Maybe this was a mistake, but it's done now.
+                # clock_resolution is a whole clock pulse, two system ticks; the firmware
+                # counts wait timeouts in single ticks, so they convert to seconds via
+                # the clock frequency.
                 clock_resolution = self.device_properties["clock_resolution"] / 2
                 input_response_time = self.device_properties["input_response_time"]
                 timeout_length = round(
@@ -221,11 +159,9 @@ class PrawnBlasterWorker(PseudoclockWorker):
                     )
                     self.wait_timeout[self.current_wait] = True
                 else:
-                    # Calculate wait length
-                    # This is a measurement of between the end of the last pulse and the
-                    # retrigger signal. We obtain this by subtracting off the time it takes
-                    # to detect the pulse in the ASM code once the trigger has hit the input
-                    # pin (stored in input_response_time)
+                    # The count runs from the end of the last pulse to the retrigger's
+                    # detection; less input_response_time, the time the ASM code takes to
+                    # detect it, it is the time to the retrigger itself.
                     self.measured_waits[self.current_wait] = (
                         (timeout_length - wait_remaining) * clock_resolution
                     ) - input_response_time
@@ -241,15 +177,12 @@ class PrawnBlasterWorker(PseudoclockWorker):
                     data=ensure_str(self.wait_table[self.current_wait]["label"]),
                 )
 
-                # increment the wait we are looking for!
                 self.current_wait += 1
 
-                # post message if all waits are done
                 if len(self.wait_table) == self.current_wait:
                     self.logger.info("All waits finished")
                     self.all_waits_finished.post(self.h5_file)
 
-        # Determine if we are still waiting for wait information
         waits_pending = False
         if self.wait_table is not None:
             if self.current_wait == len(self.wait_table):
@@ -260,15 +193,11 @@ class PrawnBlasterWorker(PseudoclockWorker):
         run_status, clock_status = self.read_status()
         return run_status, clock_status, waits_pending
 
+    # Run status: 0 manual, 1 transitioning to buffered, 2 buffered, 3 abort requested,
+    # 4 aborting, 5 last buffered run aborted, 6 transitioning to manual.
+    # Clock status: 0 internal clock, 1 external clock.
     def read_status(self):
-        """Reads the status of the PrawnBlaster.
-
-        Returns:
-            (int, int): Tuple containing
-
-                - **run-status** (int): Run status code
-                - **clock-status** (int): Clock status code
-        """
+        """Return the firmware's (run_status, clock_status) codes."""
 
         response = self.send_command("status", readlines=False)
         match = re.match(r"run-status:(\d) clock-status:(\d)(\r\n)?", response)
@@ -277,20 +206,10 @@ class PrawnBlasterWorker(PseudoclockWorker):
         else:
             response += self._read_full_buffer()
             raise Exception(
-                f"PrawnBlaster is confused: saying '{response}' instead of 'run-status:<int> clock-status:<int>'"
+                f"PrawnBlaster returned '{response}' instead of 'run-status:<int> clock-status:<int>'. Check the serial connection and that the board runs PrawnBlaster firmware."
             )
 
     def program_manual(self, front_panel_values):
-        """Manually sets the state of output pins for the pseudoclocks.
-
-        Args:
-            front_panel_values (dict): Dictionary of pseudoclock: value pairs to set.
-
-        Returns:
-            dict: `front_panel_values` from arguments on successful programming
-            reflecting current output state.
-        """
-
         for channel, value in front_panel_values.items():
             pin = int(channel.split()[1])
             pseudoclock = self.out_pins.index(pin)
@@ -302,19 +221,6 @@ class PrawnBlasterWorker(PseudoclockWorker):
         return front_panel_values
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
-        """Configures the PrawnBlaster for buffered execution.
-
-        Args:
-            device_name (str): labscript name of PrawnBlaster
-            h5_file (str): path to shot file to be run
-            front_panel_values (dict): Dictionary of output states at start of shot
-            fresh (bool): When `True`, clear the local :py:attr:`smart_cache`, forcing
-                a complete reprogramming of the output table.
-
-        Returns:
-            dict: Dictionary of the expected final output states.
-        """
-
         if fresh:
             self.smart_cache = {}
 
@@ -322,10 +228,9 @@ class PrawnBlasterWorker(PseudoclockWorker):
         self.h5_file = h5_file  # store reference to h5 file for wait monitor
         self.current_wait = 0  # reset wait analysis
         self.started = False   # Prevent status check from detecting previous wait values
-        #                        betwen now and when we actually send the start signal
+        #                        between now and when we actually send the start signal
         # fmt: on
 
-        # Get data from HDF5 file
         pulse_programs = []
         with h5py.File(h5_file, "r") as hdf5_file:
             group = hdf5_file[f"devices/{device_name}"]
@@ -337,15 +242,13 @@ class PrawnBlasterWorker(PseudoclockWorker):
             )
             self.is_master_pseudoclock = self.device_properties["is_master_pseudoclock"]
 
-            # waits
             dataset = hdf5_file["waits"]
             acquisition_device = dataset.attrs["wait_monitor_acquisition_device"]
             timeout_device = dataset.attrs["wait_monitor_timeout_device"]
             if (
                 len(dataset) > 0
-                and acquisition_device
-                == "%s_internal_wait_monitor_outputs" % device_name
-                and timeout_device == "%s_internal_wait_monitor_outputs" % device_name
+                and acquisition_device == f"{device_name}_internal_wait_monitor_outputs"
+                and timeout_device == f"{device_name}_internal_wait_monitor_outputs"
             ):
                 self.wait_table = dataset[:]
                 self.measured_waits = numpy.zeros(len(self.wait_table))
@@ -370,15 +273,12 @@ class PrawnBlasterWorker(PseudoclockWorker):
                 )
         clock_frequency = self.device_properties["clock_frequency"]
 
-        # Now set the clock details
         response = self.send_command_ok(f"setclock {clock_mode} {clock_frequency}")
 
-        # Program instructions
         for pseudoclock, pulse_program in enumerate(pulse_programs):
             total_inst = len(pulse_program)
             # check if it is more efficient to fully refresh
             if not fresh and self.smart_cache[pseudoclock] is not None:
-                # get more convenient handles to smart cache arrays
                 curr_inst = self.smart_cache[pseudoclock]
 
                 # if arrays aren't of same shape, only compare up to smaller array size
@@ -447,21 +347,16 @@ class PrawnBlasterWorker(PseudoclockWorker):
         return final
 
     def start_run(self):
-        """When used as the primary pseudoclock, starts execution
-        in software time to engage the shot."""
+        """Start execution in software, for the primary pseudoclock."""
 
-        # Start in software:
         self.logger.info("sending start")
         self.send_command_ok("start")
 
-        # set started = True
         self.started = True
 
     def wait_for_trigger(self):
-        """When used as a secondary pseudoclock, sets the PrawnBlaster
-        to wait for an initial hardware trigger to begin execution."""
+        """Arm a secondary pseudoclock to start on its hardware trigger, returning once it waits for it."""
 
-        # Set to wait for trigger:
         self.logger.info("sending hwstart")
         self.send_command_ok("hwstart")
 
@@ -471,7 +366,7 @@ class PrawnBlasterWorker(PseudoclockWorker):
             # and we should raise an exception
             if run_status not in (1, 2):
                 raise RuntimeError(
-                    f"Prawnblaster did not return an expected status. Status was {run_status}"
+                    f"PrawnBlaster returned run-status {run_status} while arming for its trigger, expected 1 or 2."
                 )
             # If we are running, great, the PrawnBlaster is waiting for a trigger
             return run_status == 2
@@ -480,7 +375,6 @@ class PrawnBlasterWorker(PseudoclockWorker):
         # 5 s is stuck
         Deadline(self.device_name, 'arm to wait for its trigger', 5).wait(armed)
 
-        # set started = True
         self.started = True
 
     def shot_finished(self):
@@ -489,27 +383,17 @@ class PrawnBlasterWorker(PseudoclockWorker):
         run_status, clock_status, waits_pending = self.check_status()
         if run_status in [3, 4, 5]:
             raise RuntimeError(
-                f"Prawnblaster status returned run-status={run_status} during the shot"
+                f"PrawnBlaster reported run-status={run_status} during the shot, so the run was aborted."
             )
         return run_status == 0 and not waits_pending
 
     def transition_to_manual(self):
-        """Transition the PrawnBlaster back to manual mode from buffered execution at
-        the end of a shot.
-
-        Returns:
-            bool: `True` if transition to manual is successful.
-        """
-
         # The master's tab has seen it finish already:
         if not self.is_master_pseudoclock:
             self.wait_for_end_of_shot()
         if self.wait_table is not None:
             with h5py.File(self.h5_file, "a") as hdf5_file:
-                # Work out how long the waits were, save em, post an event saying so
-                # "S" rather than the "a" this used to say: "a" was only ever
-                # an alias for it, and numpy 2.0 removed the alias. Same bytes
-                # on disk, so earlier shot files still read back.
+                # Work out how long the waits were, save them, post an event saying so
                 dtypes = [
                     ("label", "S256"),
                     ("time", float),
@@ -533,16 +417,10 @@ class PrawnBlasterWorker(PseudoclockWorker):
         return True
 
     def shutdown(self):
-        """Cleanly shuts down the connection to the PrawnBlaster hardware."""
-
         self.conn.close()
 
     def abort(self):
-        """Aborts a currently running buffered execution, or a transition to it.
-
-        Returns:
-            bool: `True` is abort is successful.
-        """
+        """Abort a running buffered execution, or the transition to it."""
         # Only a secondary told to wait for its trigger needs an abort, and the
         # firmware aborts only a board at run status 1 or 2
         if not self.is_master_pseudoclock and self.read_status()[0] in (1, 2):
