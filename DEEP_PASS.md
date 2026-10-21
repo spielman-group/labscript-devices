@@ -86,8 +86,10 @@ Each stage's commits on `CodeHealth`, for review:
   validation"): `83b11ce..` `c2d217d`.
 - Codex's findings on step 2.6: `fd44105..` `828ab6c`.
 - Runviewer's model of a triggered device (Ian: "agree with all three
-  recommendations", "whichever is the cleanest should be accepted", then "yes,
-  drop the reader"): `1fea8d6..` the commit that records this line.
+  recommendations", "whichever is the cleanest should be accepted", "yes, drop
+  the reader", then "yes, bring C forward now"): `1fea8d6..` the commit that
+  records this line. Coupled with labscript `4d88c40`, which saves the trigger
+  times the model reads.
 
 ## The test contract
 
@@ -1023,11 +1025,18 @@ one commit a package, the top-level modules last.
 - `e9d1a54`: one model, `PseudoclockParser` in `runviewer_parsing.py`, on the
   script's time, in which a wait takes no time.
   - Each device resumes where its wait begins. A master's own program places
-    its waits, so it carries on from there. A secondary starts `trigger_delay`
-    after the first edge of its clock, and resumes `trigger_delay` after the
-    edge nearest each wait's time: labscript rounds a trigger to the nearest
-    tick of its clock and keeps the wait's time unrounded. That holds for a
-    trigger line and for a shared clock line alike, with no tolerance.
+    its waits, so it carries on from there. A secondary starts and resumes
+    `trigger_delay` after its trigger times, which labscript saves as it
+    rounded them (`4d88c40`, `0297dee`). That holds for a trigger line and for
+    a shared clock line alike.
+  - A shot file compiled before `4d88c40` falls back, under a LEGACY marker, to
+    the clock's first edge and then the edge nearest each wait's time:
+    labscript rounds a trigger to the nearest tick and keeps the wait's time
+    unrounded.
+  - Drawn against `bf3f10a`'s nearest edge, on the sweep's shots compiled with
+    `4d88c40` and three PrawnDO wait shots, 183 of 187 traces are identical.
+    Four PrawnDO traces differ by at most 7e-21 s, the float difference between
+    the saved times and the drawn edges. None of these shots has a tie.
   - A class, not a pure function, as the parsers also shared the tick loop and
     the clock-line dict, four copies of each. The change is 79 lines shorter,
     the class included. pseudoclock.py imports BLACS, so the class lives with
@@ -1035,12 +1044,12 @@ one commit a package, the top-level modules last.
   - No shared reader of `/waits` (Ian: "yes, drop the reader"). labscript
     writes the table already sorted, so a reader would only pass the column
     through; the class reads `f['waits']['time']` itself.
-  - Labscript saving each pseudoclock's trigger times would make the
-    retriggers exact; it is deferred, in `docs/source/improvements.rst`.
   - `tests/test_runviewer_waits.py`: a PrawnDO on a shared clock line and one
-    on a trigger line, over four waits with a shared tick at 39.9 µs and two
-    off the master's grid, rounding down and up, change at their script times,
-    and no drawn time runs backward. It fails on `1fea8d6` and on `41ed060`.
+    on a trigger line, over four waits with a shared tick at 39.9 µs and three
+    off the master's grid, rounding down, up and from an exact tie, change at
+    their script times, and no drawn time runs backward. It fails on `1fea8d6`
+    and on `41ed060`. The nearest edge drew the tie the same, as the tie's
+    other neighbouring tick carries no edge.
   - Codex's finding on `e9d1a54`, fixed in `9070de8`: a master
     resumed at the unrounded wait time, before its own wait began, and a
     secondary took the first edge at or after it, which misses a retrigger
