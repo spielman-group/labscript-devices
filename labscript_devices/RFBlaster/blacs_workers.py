@@ -16,15 +16,16 @@ from labscript_devices.pseudoclock import PseudoclockWorker
 from labscript_utils.setup_logging import setup_logging
 
 
-class MultiPartForm(object):
+class MultiPartForm:
     """Accumulate the data to be used when posting a form."""
+
     def __init__(self):
         self.form_fields = []
         self.files = []
-    
+
     def add_field(self, name, value):
         """Add a simple field to the form data."""
-        self.form_fields.append( (name, value) )
+        self.form_fields.append((name, value))
 
     def add_file_content(self, fieldname, filename, body, mimetype=None):
         import mimetypes
@@ -33,27 +34,32 @@ class MultiPartForm(object):
         if mimetype is None:
             mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
         self.files.append((fieldname, filename, mimetype, body))
-    
+
+
 class RFBlasterWorker(PseudoclockWorker):
     def init(self):
         exec('from numpy import *', globals())
         global h5py; import labscript_utils.h5_lock, h5py
         global re; import re
-        self.timeout = 10   # How long do we wait until we assume that the RFBlaster is dead? (in seconds)
-        self.retries = 3    # Retry attempts before (a) giving up, or (b) attempting to restart kloned (uniform timeout)
+        # Seconds the RFBlaster has to answer an HTTP request.
+        self.timeout = 10
+        # The number of caught failures after which http_request restarts kloned, and
+        # again after which it raises; it catches none of the errors requests raises.
+        self.retries = 3
         p = re.compile('http://([0-9.]+):[0-9]+')
         m = p.match(self.address)
         self.ip = m.group(1)
-        self.netlogger = setup_logging('rfBlaster_%s' % self.ip)
+        self.netlogger = setup_logging(f'rfBlaster_{self.ip}')
         self.netlogger.info('init: Started logging')
-        self.http_request() # See if the RFBlaster answers
+        # See if the RFBlaster answers
+        self.http_request()
         self._last_program_manual_values = {}
 
     def restart_kloned(self, respawn_netcat=True):
         import socket, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(self.timeout)
-        self.netlogger.info('restart_kloned: Connecting to %s...' % self.ip)
+        self.netlogger.info(f'restart_kloned: Connecting to {self.ip}...')
         s.connect((self.ip, 8009))
         self.netlogger.info('restart_kloned: Connected!')
         if respawn_netcat:
@@ -67,46 +73,50 @@ class RFBlasterWorker(PseudoclockWorker):
         self.netlogger.info('restart_kloned: Finished. Closing socket.')
         s.close()
 
-    def program_manual(self,front_panel_values):
+    def program_manual(self, front_panel_values):
         self._last_program_manual_values = front_panel_values
         form = MultiPartForm()
         for i in range(self.num_DDS):
-            # Program the frequency, amplitude and phase
-            # The board takes the amplitude in %
-            form.add_field("a_ch%d_in"%i,str(100*front_panel_values['dds %d'%i]['amp']*front_panel_values['dds %d'%i]['gate']))
-            form.add_field("f_ch%d_in"%i,str(front_panel_values['dds %d'%i]['freq']*1e-6)) # method expects MHz
-            form.add_field("p_ch%d_in"%i,str(front_panel_values['dds %d'%i]['phase']))
+            # The board takes the amplitude in % and the frequency in MHz.
+            form.add_field(
+                f"a_ch{i}_in",
+                str(
+                    100*front_panel_values[f'dds {i}']['amp']
+                    * front_panel_values[f'dds {i}']['gate']
+                ),
+            )
+            form.add_field(f"f_ch{i}_in", str(front_panel_values[f'dds {i}']['freq']*1e-6))
+            form.add_field(f"p_ch{i}_in", str(front_panel_values[f'dds {i}']['phase']))
         form.add_field("set_dds", "Set device")
         return_vals = self.get_web_values(self.http_request(form))
         return return_vals
-        
-    def transition_to_buffered(self,device_name,h5_file,front_panel_values,fresh):
-        with h5py.File(h5_file,'r') as hdf5_file:
+
+    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
+        with h5py.File(h5_file, 'r') as hdf5_file:
             group = hdf5_file['devices'][device_name]
-            # Strip out the binary files and submit to the webserver
+            # The form carries each DDS's binary program, and is posted below.
             form = MultiPartForm()
             self.final_values = {}
             finalfreq = zeros(self.num_DDS)
             finalamp = zeros(self.num_DDS)
             finalphase = zeros(self.num_DDS)
             for i in range(self.num_DDS):
-                #Find the final value from the human-readable part of the h5 file to use for
-                #the front panel values at the end
-                self.final_values['dds %d'%i] = {'freq':group['TABLE_DATA']["freq%d"%i][-1],
-                                                 'amp':group['TABLE_DATA']["amp%d"%i][-1],
-                                                 'phase':group['TABLE_DATA']["phase%d"%i][-1],
-                                                 'gate':True
+                # The front panel's final values are the last row of TABLE_DATA, the
+                # table before quantising.
+                self.final_values[f'dds {i}'] = {'freq': group['TABLE_DATA'][f"freq{i}"][-1],
+                                                 'amp': group['TABLE_DATA'][f"amp{i}"][-1],
+                                                 'phase': group['TABLE_DATA'][f"phase{i}"][-1],
+                                                 'gate': True
                                                 }
-                data = group['BINARY_CODE/DDS%d'%i][()]
-                form.add_file_content("pulse_ch%d"%i, "output_ch%d.bin"%i, data)
-                
+                data = group[f'BINARY_CODE/DDS{i}'][()]
+                form.add_file_content(f"pulse_ch{i}", f"output_ch{i}.bin", data)
+
         form.add_field("upload_and_run", "Upload and start")
         self.http_request(form)
         return self.final_values
-                 
+
     def abort(self):
         form = MultiPartForm()
-        # Tell the rfblaster to stop
         form.add_field("halt", "Halt execution")
         self.http_request(form)
         return True
@@ -116,35 +126,39 @@ class RFBlasterWorker(PseudoclockWorker):
 
     def abort_buffered(self):
         return self.abort()
-     
+
     def transition_to_manual(self):
-        # The RFBlaster cannot say whether its program has finished, so this
-        # takes shot_finished's default:
+        # The RFBlaster cannot say whether its program has finished, so this takes
+        # shot_finished's default, True.
         self.wait_for_end_of_shot()
         return True
-     
-    def http_request(self, form=None): 
-        """Make a HTTP request to the RFBlaster, optionally submitting a form"""
+
+    def http_request(self, form=None):
+        """Fetch the board's page, or post `form` to it, and return the page's text."""
         import requests
         from urllib3.exceptions import ReadTimeoutError
         from urllib.request import urlopen, Request
-        from urllib.error import URLError, HTTPError 
-    
+        from urllib.error import URLError, HTTPError
+
         self._connection_attempt = 1
         self._kloned_attempted = False
         response = None
         while not response:
             try:
-                self.netlogger.info('Connection attempt %i.' % self._connection_attempt)
+                self.netlogger.info(f'Connection attempt {self._connection_attempt}.')
                 deadline = Deadline(self.device_name, 'answer an HTTP request', self.timeout)
                 with deadline.timeout_for(requests.exceptions.Timeout, TimeoutError) as timeout:
                     try:
                         if form is not None:
-                            # For some reason the MultiPartForm object stored form_fields as a list of key,value tuples...
-                            # ... rather than a dict. No matter. it seems requests sucks this up anyway.
-                            # However we need to rearrange the file data into a nested tuple for requests. No big deal:
-                            filelist = [(field_name, (filename, bytes(body), content_type)) for field_name, filename, content_type, body in form.files]
-                            r = requests.post(self.address, data=form.form_fields, files=filelist, timeout=timeout) # Needs to actually send the form
+                            # requests takes form_fields, a list of (key, value) tuples, as it
+                            # is, but wants each file as (field name, (filename, body, type)).
+                            filelist = [
+                                (field_name, (filename, bytes(body), content_type))
+                                for field_name, filename, content_type, body in form.files
+                            ]
+                            r = requests.post(
+                                self.address, data=form.form_fields, files=filelist, timeout=timeout
+                            )
                         else:
                             r = requests.get(self.address, timeout=timeout)
                     except requests.exceptions.ConnectionError as e:
@@ -152,55 +166,58 @@ class RFBlasterWorker(PseudoclockWorker):
                         if e.args and isinstance(e.args[0], ReadTimeoutError):
                             raise TimeoutError from e
                         raise
-                r.raise_for_status() 
+                r.raise_for_status()
                 self.netlogger.info('Connected!')
                 break
-            # Not the Deadline's TimeoutError, so a board that stops answering fails
-            # in one timeout
+            # This catches no error of requests, none being a URLError or ConnectionError, nor
+            # the Deadline's TimeoutError, so a board that stops answering fails in one timeout.
             except (URLError, HTTPError, ConnectionError) as e:
                 self.netlogger.warning(str(e))
                 if self._connection_attempt < self.retries:
-                    self.netlogger.info('Connection failed. Trying again (%i more attempts remain).' % (self.retries - self._connection_attempt))
+                    self.netlogger.info(
+                        'Connection failed. Trying again '
+                        f'({self.retries - self._connection_attempt} more attempts remain).'
+                    )
                     self._connection_attempt += 1
                 elif not self._kloned_attempted:
                     self._kloned_attempted = True
                     self.restart_kloned()
                     self._connection_attempt = 1
                 else:
-                    self.netlogger.error(str(e))   
+                    self.netlogger.error(str(e))
                     raise e
         return r.text
 
-    def get_web_values(self, page): 
+    def get_web_values(self, page):
         import re
-        # Prepare regular expressions for finding the values:
         search = re.compile(r'name="([fap])_ch(\d+?)_in"\s*?value="([0-9.]+?)"')
         webvalues = re.findall(search, page)
-        
+
         register_name_map = {'f': 'freq', 'a': 'amp', 'p': 'phase'}
         newvals = {}
         for i in range(self.num_DDS):
-            newvals['dds %d'%i] = {}
-        for register,channel,value in webvalues:
-            newvals['dds %d'%int(channel)][register_name_map[register]] = float(value)
+            newvals[f'dds {i}'] = {}
+        for register, channel, value in webvalues:
+            newvals[f'dds {int(channel)}'][register_name_map[register]] = float(value)
         for i in range(self.num_DDS):
-            if 'dds %d'%i in self._last_program_manual_values and newvals['dds %d'%i]['amp'] == 0:
-                newvals['dds %d'%i]['gate'] = self._last_program_manual_values['dds %d'%i]['gate']
+            if f'dds {i}' in self._last_program_manual_values and newvals[f'dds {i}']['amp'] == 0:
+                newvals[f'dds {i}']['gate'] = self._last_program_manual_values[f'dds {i}']['gate']
             else:
-                newvals['dds %d'%i]['gate'] = True
-                
-            newvals['dds %d'%i]['freq'] *= 1e6 # BLACS expects it in the base unit (Hz)
-            newvals['dds %d'%i]['amp'] /= 100 # and the amplitude as a fraction of full scale
-            
-            # if the gate is off, keep the front panel amplitude
-            if not newvals['dds %d'%i]['gate']:
-                newvals['dds %d'%i]['amp'] = self._last_program_manual_values['dds %d'%i]['amp']
-            
+                newvals[f'dds {i}']['gate'] = True
+
+            # BLACS takes the frequency in Hz and the amplitude as a fraction of full scale.
+            newvals[f'dds {i}']['freq'] *= 1e6
+            newvals[f'dds {i}']['amp'] /= 100
+
+            # If the gate is off, keep the front panel amplitude.
+            if not newvals[f'dds {i}']['gate']:
+                newvals[f'dds {i}']['amp'] = self._last_program_manual_values[f'dds {i}']['amp']
+
         return newvals
-    
+
     def check_remote_values(self):
         # Read the webserver page to see what values it puts in the form
         return self.get_web_values(self.http_request())
-        
+
     def shutdown(self):
         pass

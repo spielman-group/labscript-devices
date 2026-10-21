@@ -12,7 +12,12 @@
 #####################################################################
 
 from blacs.tab_base_classes import define_state
-from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED  
+from blacs.tab_base_classes import (
+    MODE_MANUAL,
+    MODE_TRANSITION_TO_BUFFERED,
+    MODE_TRANSITION_TO_MANUAL,
+    MODE_BUFFERED,
+)
 from blacs.device_base_class import DeviceTab
 from labscript_utils.file_utils import warn_legacy_file
 
@@ -20,8 +25,7 @@ from labscript_utils.file_utils import warn_legacy_file
 class RFBlasterTab(DeviceTab):
     # LEGACY PERCENT AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
     def upgrade_front_panel(self, settings):
-        """Convert the amplitudes of a front panel saved when they were shown in
-        %."""
+        """Convert the amplitudes of a front panel saved when they were shown in %."""
         saved = settings.setdefault('front_panel_settings', {})
         # Only the fields saved are converted, BLACS defaulting the rest, and each
         # output is replaced whole, so a failure leaves it as it was.
@@ -42,89 +46,87 @@ class RFBlasterTab(DeviceTab):
         super().update_from_settings(settings)
 
     def initialise_GUI(self):
-        # Capabilities 
         self.base_units =     {'freq':'Hz',        'amp':'Arb',       'phase':'Degrees'}
         self.base_min =       {'freq':500000,      'amp':0.0,         'phase':0}
         self.base_max =       {'freq':350000000.0, 'amp':0.9999389648, 'phase':360}
         self.base_step =      {'freq':1000000,     'amp':0.01,        'phase':1}
         self.base_decimals =  {'freq':1,           'amp':5,           'phase':3}
-        self.num_DDS = 2  
+        self.num_DDS = 2
 
         self.upgrade_front_panel(self.settings)
 
-        # Create DDS Output objects
         dds_prop = {}
-        for i in range(self.num_DDS): # 2 is the number of DDS outputs on this device
-            dds_prop['dds %d'%i] = {}
+        for i in range(self.num_DDS):
+            dds_prop[f'dds {i}'] = {}
             for subchnl in ['freq', 'amp', 'phase']:
-                dds_prop['dds %d'%i][subchnl] = {'base_unit':self.base_units[subchnl],
+                dds_prop[f'dds {i}'][subchnl] = {'base_unit':self.base_units[subchnl],
                                                  'min':self.base_min[subchnl],
                                                  'max':self.base_max[subchnl],
                                                  'step':self.base_step[subchnl],
                                                  'decimals':self.base_decimals[subchnl]
                                                 }
-            dds_prop['dds %d'%i]['gate'] = {}
-                
-        # Create the output objects    
-        self.create_dds_outputs(dds_prop)        
-        # Create widgets for output objects
-        dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
-        # and auto place the widgets in the UI
-        self.auto_place_widgets(("DDS Outputs",dds_widgets))
-        
-        # Store the COM port to be used
-        self.address = "http://" + str(self.BLACS_connection) + ":8080"
-        
+            dds_prop[f'dds {i}']['gate'] = {}
 
-        # Set the capabilities of this device
+        self.create_dds_outputs(dds_prop)
+        dds_widgets, ao_widgets, do_widgets = self.auto_create_widgets()
+        self.auto_place_widgets(("DDS Outputs", dds_widgets))
+
+        # The URL of the board's web interface, which the worker contacts.
+        self.address = f"http://{self.BLACS_connection}:8080"
+
         self.supports_remote_value_check(True)
         self.supports_smart_programming(False)
 
     def initialise_workers(self):
-        # Create and set the primary worker
-        self.create_worker("main_worker", 'labscript_devices.RFBlaster.blacs_workers.RFBlasterWorker', {'address': self.address, 'num_DDS': self.num_DDS})
+        self.create_worker(
+            "main_worker",
+            'labscript_devices.RFBlaster.blacs_workers.RFBlasterWorker',
+            {'address': self.address, 'num_DDS': self.num_DDS},
+        )
         self.primary_worker = "main_worker"
 
     def get_child_from_connection_table(self, parent_device_name, port):
-        # This is a direct output, let's search for it on the internal intermediate device called 
-        # RFBlasterDirectOutputs
         if parent_device_name == self.device_name:
             device = self.connection_table.find_by_name(self.device_name)
-            pseudoclock = device.child_list[list(device.child_list.keys())[0]] # there should always be one (and only one) child, the Pseudoclock
-            clockline = pseudoclock.child_list[list(pseudoclock.child_list.keys())[0]] # there should always be one (and only one) child, the clockline
-            direct_outputs = clockline.child_list[list(clockline.child_list.keys())[0]] # There should only be one child of this clock line, the direct outputs
-            # look to see if the port is used by a child of the direct outputs
+            # An output of the board is on its RFBlasterDirectOutputs, the only child of
+            # the clock line, which is the only child of the pseudoclock, the board's only
+            # child. Look for the port there.
+            pseudoclock = device.child_list[list(device.child_list.keys())[0]]
+            clockline = pseudoclock.child_list[list(pseudoclock.child_list.keys())[0]]
+            direct_outputs = clockline.child_list[list(clockline.child_list.keys())[0]]
             return DeviceTab.get_child_from_connection_table(self, direct_outputs.name, port)
         else:
-            # else it's a child of a DDS, so we can use the default behaviour to find the device
+            # Otherwise it is a child of a DDS, which the default lookup finds.
             return DeviceTab.get_child_from_connection_table(self, parent_device_name, port)
-    
-    # We override this because the RFBlaster doesn't really support remote_value_checking properly
-    # Here we specifically do not program the device (it's slow!) nor do we update the last programmed value to the current
-    # front panel state. This is because the remote value returned from the RFBlaster is always the last *manual* values programmed.
-    @define_state(MODE_BUFFERED,False)
-    def transition_to_manual(self,notify_queue,program=False):
+
+    # Unlike the base class's, this neither programs the device (slow) nor sets the last
+    # programmed values to the front panel's, as the values the RFBlaster reports are
+    # always the last manual ones programmed.
+    @define_state(MODE_BUFFERED, False)
+    def transition_to_manual(self, notify_queue, program=False):
         self.mode = MODE_TRANSITION_TO_MANUAL
-        
-        success = yield(self.queue_work(self._primary_worker,'transition_to_manual'))
+
+        success = yield(self.queue_work(self._primary_worker, 'transition_to_manual'))
         for worker in self._secondary_workers:
-            transition_success = yield(self.queue_work(worker,'transition_to_manual'))
+            transition_success = yield(self.queue_work(worker, 'transition_to_manual'))
             if not transition_success:
                 success = False
                 # don't break here, so that as much of the device is returned to normal
-        
+
         # Update the GUI with the final values of the run:
         for channel, value in self._final_values.items():
             if channel in self._AO:
-                self._AO[channel].set_value(value,program=False)
+                self._AO[channel].set_value(value, program=False)
             elif channel in self._DO:
-                self._DO[channel].set_value(value,program=False)
+                self._DO[channel].set_value(value, program=False)
             elif channel in self._DDS:
-                self._DDS[channel].set_value(value,program=False)
-        
+                self._DDS[channel].set_value(value, program=False)
+
         if success:
-            notify_queue.put([self.device_name,'success'])
+            notify_queue.put([self.device_name, 'success'])
             self.mode = MODE_MANUAL
         else:
-            notify_queue.put([self.device_name,'fail'])
-            raise Exception('Could not transition to manual. You must restart this device to continue')
+            notify_queue.put([self.device_name, 'fail'])
+            raise Exception(
+                'Could not transition to manual. You must restart this device to continue'
+            )
