@@ -16,13 +16,14 @@ from labscript_utils import dedent
 def split_conn_DO(connection):
     """Return (port, line) from 'port<N>/line<M>', which a ' (PFI<K>)' may follow."""
     try:
+        port_line = connection
         if len(connection.split()) == 2:
             # Just raise a ValueError if the second bit isn't of the form ('PFI<n>')
-            connection, PFI_bit = connection.split()
+            port_line, PFI_bit = connection.split()
             if not (PFI_bit.startswith('(') and PFI_bit.endswith(')')):
                 raise ValueError
             split_conn_PFI(PFI_bit[1:-1])
-        port, line = [int(n) for n in connection.split('port', 1)[1].split('/line')]
+        port, line = [int(n) for n in port_line.split('port', 1)[1].split('/line')]
     except (ValueError, IndexError):
         msg = f"""Digital output connection string {connection!r} does not match
             'port<N>/line<M>' for integers N, M, optionally followed by ' (PFI<K>)'

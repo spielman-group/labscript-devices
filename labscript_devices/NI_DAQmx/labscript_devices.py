@@ -358,11 +358,6 @@ class NI_DAQmx(IntermediateDevice):
         if self.ports and not static_DO:
             self.allowed_children += [DigitalOut]
 
-        if clock_terminal is None and not (static_AO and static_DO):
-            msg = f"""{name} needs a clock_terminal unless static_AO and static_DO are
-                both True. Pass the terminal the parent clockline is connected to."""
-            raise LabscriptError(dedent(msg))
-
         self.BLACS_connection = self.MAX_name
 
         # Called late: the parent clockline reads clock_limit when this device joins it.

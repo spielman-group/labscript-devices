@@ -494,7 +494,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
         with self.tasklock:
             if self.task is None:
                 raise RuntimeError('Task not running')
-            self.read(self.task, None, -1)
+            self.read(self.task.taskHandle.value, None, -1)
             self.task.StopTask()
             self.task.ClearTask()
             self.task = None
