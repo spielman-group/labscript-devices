@@ -28,7 +28,7 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
         global AndorCam
         from .andor_sdk.andor_utils import AndorCam
         self.camera = AndorCam()
-        self.attributes = self.camera.default_acquisition_attrs
+        self.attributes = self.camera.default_acquisition_attrs.copy()
 
     def snap(self):
         """Acquire and return the stack of number_kinetics images."""
@@ -55,7 +55,7 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
         print(f"Actual readout time is {self.camera.readout_time} s.")
         print(f"Keep clean cycle time is {self.camera.keepClean_time} s.")
         if 'kinetic_series' in self.camera.acquisition_mode:
-            print(f"Kinetics number is {self.camera.default_acquisition_attrs['number_kinetics']}.")
+            print(f"Kinetics number is {self.camera.acquisition_attributes['number_kinetics']}.")
             print(f"Actual kinetics period is {self.camera.kinetics_timing} s.")
         print(f"Actual exposure time is {self.camera.exposure_time} s.")
         print(f"Actual digitization speed (HSpeed) is {self.camera.horizontal_shift_speed} MHz.")

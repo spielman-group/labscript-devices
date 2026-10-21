@@ -165,28 +165,25 @@ class AndorCam:
 
     def enable_preamp(self, preamp_gain):
         """Set the preamp gain to `preamp_gain`, one of the camera's gains."""
-        if not preamp_gain in np.linspace(self.preamp_gain_range[0],
-                                          self.preamp_gain_range[-1],
-                                          self.number_of_preamp_gains):
-            raise ValueError(
-                f"Invalid preamp gain {preamp_gain}. Choose one of the camera's "
-                f"{self.number_of_preamp_gains} gains, from "
-                f"{self.preamp_gain_range[0]} to {self.preamp_gain_range[-1]}."
-            )
-
         preamp_options = list(
             [GetPreAmpGain(index) for index in range(self.number_of_preamp_gains)]
         )
+        if not preamp_gain in preamp_options:
+            raise ValueError(
+                f"Invalid preamp gain {preamp_gain}. Choose one of the camera's "
+                f"gains, {preamp_options}."
+            )
         SetPreAmpGain(preamp_options.index(preamp_gain))
         self.preamp_gain = preamp_gain
         self.preamp = True
 
     def enable_emccd(self, emccd_gain):
         """Set the EMCCD gain; the camera must be cooling."""
-        if not emccd_gain in self.emccd_gain_range:
+        low, high = self.emccd_gain_range
+        if not low <= emccd_gain <= high:
             raise ValueError(
                 f"Invalid emccd gain {emccd_gain}. Set the 'emccd_gain' attribute "
-                f"to {self.emccd_gain_range[0]} or {self.emccd_gain_range[1]}."
+                f"to a gain from {low} to {high}."
             )
 
         if not self.cooling:
