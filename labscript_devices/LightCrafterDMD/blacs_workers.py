@@ -225,7 +225,9 @@ class LightCrafterDMDWorker(Worker):
         )
         self.smart_cache['IMAGE_TABLE'] = table_data
 
-        self.final_value = {"None": base64.b64encode(table_data[-1].tobytes())}
+        # The front panel's one image output is keyed by the ImageSet's connection.
+        (connection,) = front_panel_values
+        self.final_value = {connection: base64.b64encode(table_data[-1].tobytes())}
 
         return self.final_value
 

@@ -41,9 +41,6 @@ class LightCrafterDMDTab(DeviceTab):
         self.create_worker(
             "main_worker",
             'labscript_devices.LightCrafterDMD.blacs_workers.LightCrafterDMDWorker',
-            {
-                'server': self.server,
-                'slm_properties': {'width': self.width, 'height': self.height},
-            },
+            {'server': self.server},
         )
         self.primary_worker = "main_worker"
