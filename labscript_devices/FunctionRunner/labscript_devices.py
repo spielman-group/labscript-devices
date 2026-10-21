@@ -53,10 +53,10 @@ class FunctionRunner(Device):
         ------
         ValueError
             If the first two parameters of `function` are not ``shot_context`` and
-            ``t``.
+            ``t``, or `t` is a string other than ``'start'`` and ``'stop'``.
         TypeError
-            If `function` is not a function, or `args` and `kwargs` do not fit its
-            signature or cannot be serialised.
+            If `function` is not a function defined with ``def``, or `args` and
+            `kwargs` do not fit its signature or cannot be serialised.
         NotImplementedError
             If `t` is a number.
 
@@ -104,6 +104,8 @@ class FunctionRunner(Device):
             t = -np.inf
         elif t == 'stop':
             t = np.inf
+        elif isinstance(t, str):
+            raise ValueError(f"{self.name}: t is {t!r}. Give t as 'start' or 'stop'.")
         else:
             t = float(t)
             msg = f"""{self.name}: running functions during the shot is not implemented.

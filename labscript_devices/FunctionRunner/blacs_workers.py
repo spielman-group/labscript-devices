@@ -11,7 +11,6 @@
 #                                                                   #
 #####################################################################
 import os
-from time import monotonic
 import numpy as np
 import labscript_utils.h5_lock
 from labscript_utils.shot_utils import get_shot_globals

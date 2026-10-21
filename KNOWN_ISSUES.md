@@ -27,7 +27,5 @@
 - `ZaberStageController/blacs_tabs.py`: `auto_place_widgets` is given no sort key, so with 10 or more stages the front panel orders them 'device 1', 'device 10', 'device 2'.
 - `ZaberStageController/utils.py`: `get_device_number` catches TypeError and ValueError, but a non-string connection raises AttributeError, so it escapes the message meant for a bad connection.
 - `FunctionRunner/blacs_workers.py`: the functions are deserialised with `__name__` and `__file__` set to the device name, for `lyse.Run` to name its results group after the device, but lyse takes the group from `sys.modules['__main__'].__file__`, so the group is named after the worker's main script.
-- `FunctionRunner/utils.py`: a lambda passes `add_function`, but the worker cannot find it by its name, `<lambda>`, in its source, and raises KeyError.
-- `FunctionRunner/labscript_devices.py`: `add_function` with a string `t` other than 'start' or 'stop' raises float()'s ValueError, not a message about `t`.
 - `PulseBlaster/labscript_devices.py`: `PulseBlasterDDS` does not refuse a `digital_gate`; `DDSQuantity` makes a gate from it, and the PulseBlaster's own gate then fails on the name, with an error that does not mention `digital_gate`.
 - runviewer draws nothing below a device that has no runviewer parser, such as a secondary pseudoclock triggered from a DummyIntermediateDevice: loading that device raises, and runviewer skips its children.

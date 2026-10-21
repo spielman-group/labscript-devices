@@ -32,6 +32,10 @@ def serialise_function(function, *args, **kwargs):
         msg = f"""A callable of type {type(function).__name__} cannot be added. Only a
             function defined with def can, because it is saved by its source code."""
         raise TypeError(dedent(msg))
+    if function.__name__ == '<lambda>':
+        msg = """A lambda cannot be added. Define the function with def, because the
+            worker finds it by its name in its source code."""
+        raise TypeError(dedent(msg))
 
     source = textwrap.dedent(inspect.getsource(function))
     args = properties.serialise(args)
