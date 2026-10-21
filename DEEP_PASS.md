@@ -93,6 +93,8 @@ Each stage's commits on `CodeHealth`, for review:
   `6506f94` is clean, and step 2.6 is closed.
 - The whole pass's open findings, steps 1 to 2.6, triaged for Ian, in place
   of step 2.6's triage: the commit that records this line, a table only.
+- Its 35 simple rows (Ian: "have all of the simple no-brainers fixed and
+  checked off"): `0e17cfe..` the commit that records this line.
 
 ## The test contract
 
@@ -1189,3 +1191,53 @@ In all, 82 rows:
 - already decided 25: 2, 3, 7, 10, 12, 19, 42, 49 to 51, 53, 69 to 82.
 
 On the master's proposal for 38 and 39, fix now is 44 and defer 8.
+
+### Built
+
+The 35 simple rows (Ian: "have all of the simple no-brainers fixed and checked
+off. I will consider the remaining issues with actual repercussions later this
+evening"): 1, 4, 9, 13, 14, 16 to 18, 20, 22, 23, 25, 27, 30 to 34, 37, 43 to 48
+and 59 to 68. One commit a device, naming its rows; each fixed row's
+`KNOWN_ISSUES.md` line goes, 28 of them, and 24 remain.
+
+| Rows | Commit |
+| --- | --- |
+| 1, 9, 68 | `0e17cfe` NI_DAQmx |
+| 4 | `462bc30` NovaTechDDS9M |
+| 13, 25, 32, 60, 66 | `2279ec9` AlazarTechBoard |
+| 14, 33, 37 | `50bc1d8` AndorSolis |
+| 16, 17, 18 | `7ab4679` PrawnDO |
+| 20, 44 | `66645fa` TekScope |
+| 22, 23, 30, 43 | `9eaf4f6` TriggerableCamera |
+| 27, 65 | `5ed79fa` LightCrafterDMD |
+| 31, 62 | `d16c7f1` RFBlaster |
+| 34, 45, 67 | `6a940b2` FunctionRunner |
+| 46, 47 | `27210f5` ZaberStageController |
+| 48 | `4f1b717`, `e7d10e0` DummyIntermediateDevice |
+| 59, 61 | `aa4dcfd` PylonCamera |
+| 63 | `35dac4b` CiceroOpalKellyXEM3001 |
+| 64 | `b5b9901` PhaseMatrixQuickSyn |
+
+- Where a fix went beyond its row's line:
+  - 20: the time axis had half the points at twice the spacing, to match the
+    old 4-byte read; it now has one per point, and is unchanged for 8-bit.
+  - 4: only the four lines used are checked, so a NovaTech that sends no
+    fifth line still works.
+  - 25: any `channels` without channel A is refused; 32: rate 0 is refused only
+    with the external clock, as the internal clock takes its nearest rate.
+  - 62: RFBlaster's request no longer loops; its errors were never caught, so
+    a request raises as it did, and no retry remains (Ian, step 2.3: "do not
+    have RFBlaster retry").
+- Each fault's fix was probed, with fakes for the hardware, and most also
+  against `4938a2a`, where the fault shows; RFBlaster's requests behave as they
+  did. The removals and text changes had no probe.
+- Shots, against `4938a2a`: every test shot is identical or fails the same
+  way, but for row 31's intended refusal: `RFBlaster_shot1` and
+  `RFBlaster_shot3` make an RFBlaster the master, which BLACS cannot run, and
+  `RFBlaster_err1` has no trigger device either, so it now stops at that.
+  Traces are identical; the docs build adds no warning; the suite passes, and
+  every `Parameters` block names its signature's arguments.
+- Lab checks, on Development:
+  - row 1: an NI shot's analog input keeps the samples after its last full
+    chunk, and that last read raises no buffer error;
+  - row 20: a TekScope shot with `int16`, its points and time axis.
