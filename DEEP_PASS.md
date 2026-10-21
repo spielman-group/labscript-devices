@@ -81,6 +81,10 @@ Each stage's commits on `CodeHealth`, for review:
   - Coupled with labscript `06820ed`, where `quantise_channel` rounds a phase
     before it wraps it. RFBlaster's phase (row 2 of step 2.5) and
     NovaTechDDS9M's rely on it.
+- Step 2.6's build, the style pass (Ian, through the master: "Do the rest of
+  step 2.6 the same way, Parameters blocks on __init__ included"; then "fix the
+  two PrawnBlaster bugs before the final validation"): `83b11ce..` the commit
+  that records this line.
 
 ## The test contract
 
@@ -928,3 +932,62 @@ Possible improvements, as the page would word them:
     same edge.
 - Seen, not changed: PulseBlaster's compile code is written for two DDS, though
   the deleted `n_dds` TODO read as done. The one DDS board has two.
+
+## Step 2.6: style
+
+Each package restyled after the PrawnBlaster sample Ian approved (`83b11ce`),
+one commit a package, the top-level modules last.
+
+### Built
+
+- NumPy docstrings on the public surface only: the device classes, with a
+  one-line summary and the `Parameters` block on `__init__`, so that the docs'
+  `autoclass_content='both'` shows each class's own keywords, and the methods a
+  script calls. Internal code has one line or none. Comments are at most three
+  lines and say why; error messages say what to do where it is not obvious.
+  - Code changed only by f-strings, dropped `(object)`, scoped Qt enums and
+    message text, apart from the fixes below; each package's other code was
+    checked unchanged with its docstrings stripped.
+  - Left as they are: `atsapi.py`, AndorSolis's `andor_solis.py` and
+    `andor_capabilities.py`, and NI_DAQmx's generated models but for one line.
+- The two PrawnBlaster fixes:
+  - `3fd37cf`: for a clock other than 100 MHz, `clock_limit` was scaled by the
+    ratio of the clock periods, as the times are; a rate scales the other way.
+  - `eeedd65`: the firmware's `setb` refuses a block that reaches the end of
+    its table, which a one-pseudoclock program can fill. The worker now sends
+    that last row with `set`. A limit in the compiler would have needed two
+    fewer instructions plus a stop to stay safe, giving up capacity the class
+    documents. Ordinary programs' serial traffic is unchanged.
+- `f2a954c`: the NI_DAQmx models' `__init__` docstring, "Class for <model>",
+  rendered in place of NI_DAQmx's `Parameters`; it is removed from the template
+  and from the 19 generated models, one line each.
+- `e46f6c2`, the overall review: fix-its that could not work and sentences
+  false of the code, corrected, and four more faults listed.
+- Shot files: every test shot is identical to `44d9251`, or fails the same way
+  with its reworded message (NovaTechDDS9M_err1, PhaseMatrixQuickSyn_err3,
+  PulseBlaster_err1 to 3, PulseBlaster_SP2_24_100_32k_err2, RFBlaster_err1 and
+  2, LightCrafterDMD_err1 to 8, test_device_shot2,
+  myshots_my_prawndo_repeat). Parsed traces are identical. The docs build adds
+  no warning, and every `Parameters` block names its signature's arguments.
+- Faults found, listed in `KNOWN_ISSUES.md` and not fixed: 48 lines. Those an
+  ordinary setup meets:
+  - NI_DAQmx's `stop_task` never reads the samples after the last full chunk
+    of an analog input acquisition.
+  - AndorSolis refuses its default EMCCD gain, and EMCCD with cooldown on the
+    first setup.
+  - PrawnDO reports its outputs low after a shot; LightCrafterDMD's front panel
+    keeps the image from before a shot.
+  - TekScope's `int16` traces are garbage.
+  - A serial number given as a string finds the wrong FLIR or Basler camera.
+- Dead code seen, not removed:
+  - RFBlaster's retry and `restart_kloned` path, which no error requests raises
+    reaches, and its unused final values.
+  - PineBlaster's `clock_type`; Cicero's `ReadU32` and `current_value`;
+    PhaseMatrixQuickSyn's `generation` and worker `final_values`;
+    LightCrafterDMD's `slm_properties`; AlazarTechBoard's `start` and
+    `triggerDelay_samples`; FunctionRunner's `monotonic` import; NI_DAQmx's
+    last `clock_terminal` check, which the two before it make unreachable.
+- For other owners: FunctionRunner deserialises its functions with `__name__`
+  and `__file__` set to the device name, for `lyse.Run` to name its results
+  group after the device, but lyse takes the group from
+  `sys.modules['__main__'].__file__`.
