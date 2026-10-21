@@ -25,53 +25,46 @@ import numpy as np
 
 
 class _PrawnDigitalOutputs(IntermediateDevice):
+    """The 16 digital outputs of a PrawnDO, connected as 'do0' to 'do15'."""
+
     allowed_children = [DigitalOut]
 
     allowed_channels = tuple(range(16))
 
     def __init__(self, name, parent_device,
                  **kwargs):
-        """Collective output class for the PrawnDO.
-        
-        This class aggregates the 16 individual digital outputs of the PrawnDO.
-        It is for internal use of the PrawnDO only.
-
-        Args:
-            name (str): name to assign
-            parent_device (Device): Parent device PrawnDO is connected to
-        """
-
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
         self.connected_channels = []
 
     def add_device(self, device):
-        """Confirms channel specified is valid before adding
-        
-        Args:
-            device (): Device to attach. Must be a digital output.
-                Allowed connections are a string of the form `doXX`
-        """
-
         conn = device.connection
         chan = int(conn.split('do')[-1])
 
         if chan not in self.allowed_channels:
-            raise LabscriptError(f'Invalid channel specification: {conn}')
+            raise LabscriptError(
+                f"{conn!r} is not a PrawnDO output. Connect digital outputs as "
+                "'do0' to 'do15'."
+            )
         if chan in self.connected_channels:
-            raise LabscriptError(f'Channel {conn} already connected to {self.parent_device.name}')
-        
+            raise LabscriptError(
+                f"Channel {conn} is already connected to {self.name}. "
+                "Connect each digital output to its own channel."
+            )
+
         self.connected_channels.append(chan)
         super().add_device(device)
-    
+
 
 class PrawnDO(PseudoclockDevice):
+    """A PrawnDO board with 16 digital outputs, connected to its `outputs` as 'do0' to 'do15'."""
+
     description = "PrawnDO device"
 
-    # default specs assuming 100MHz system clock
+    # Specs for a 100 MHz system clock; __init__ scales them to clock_frequency.
     clock_limit = 1 / 100e-9
     "Maximum allowable clock rate"
     clock_resolution = 10e-9
-    "Minimum resolvable unit of time, corresponsd to system clock period."
+    "Minimum resolvable unit of time, corresponds to system clock period."
     minimum_duration = 50e-9
     "Minimum time between updates on the outputs."
     wait_delay = 50e-9
@@ -84,12 +77,11 @@ class PrawnDO(PseudoclockDevice):
 
     allowed_children = [Pseudoclock]
     allowed_boards = ['pico1', 'pico2']
-    
-    max_instructions_map = {'pico1' : 30000, 'pico2' : 60000}
-    """Maximum number of instructions for each pico board. Set by zmq timeout when sending the commands."""
-    
-    max_frequency_map = {'pico1' : 133e6, 'pico2' : 150e6}
 
+    max_instructions_map = {'pico1' : 30000, 'pico2' : 60000}
+    """Maximum number of instructions in the pulse program for each pico board."""
+
+    max_frequency_map = {'pico1' : 133e6, 'pico2' : 150e6}
 
     @set_passed_properties(
         property_names={
@@ -110,63 +102,67 @@ class PrawnDO(PseudoclockDevice):
             ]
         }
     )
-    def __init__(self, name, 
-                 trigger_device = None,
-                 trigger_connection = None,
-                 clock_line = None,
-                 com_port = 'COM1',
-                 pico_board = 'pico1',
-                 clock_frequency = 100e6,
-                 external_clock = False,
+    def __init__(self, name,
+                 trigger_device=None,
+                 trigger_connection=None,
+                 clock_line=None,
+                 com_port='COM1',
+                 pico_board='pico1',
+                 clock_frequency=100e6,
+                 external_clock=False,
                  **kwargs
                 ):
-        """PrawnDO digital output device.
-        
-        This labscript device provides general purpose digital outputs
-        using a Raspberry Pi Pico with custom firmware.
-
-        It supports two types of connections to a parent device:
-        direct to a :class:`~.Clockline` via the `clock_line` argument or
-        through a :class:`~.Trigger` from an :class:`~.IntermediateDevice`
-        via the `trigger_device` and `trigger_connection` arguments.
-        Only one should be supplied.
-
-
-        Args:
-            name (str): python variable name to assign to the PrawnDO
-            trigger_device (:class:`~.IntermediateDevice`, optional):
-                Device that will send the starting hardware trigger.
-                Used when connecting to an `IntermediateDevice` via a `DigitalOut`.
-            trigger_connection (str, optional): Which output of the `trigger_device`
-                is connected to the PrawnDO hardware trigger input.
-                Not required when directly connected to a `Clockline`.
-            clock_line (:class:`~.Clockline`, optional):
-                Used when connected directly to a `Clockline`.
-                Not required if using a trigger device.
-            com_port (str): COM port assinged to the PrawnDO by the OS.
-                Takes the form of `COMd` where `d` is an integer.
-            pico_board (str): The version of pico board used, pico1 or pico2.
-            clock_frequency (float, optional): System clock frequency, in Hz.
-                Must be less than 133 MHz for pico1, 150 MHz for pico2. Default is `100e6`.
-            external_clock (bool, optional): Whether to use an external clock.
-                Default is `False`.
+        """
+        Parameters
+        ----------
+        name : str
+            Python variable name of the device.
+        trigger_device : :class:`~labscript.IntermediateDevice`, optional
+            Device that sends the hardware start trigger when this is a secondary
+            pseudoclock. Not with `clock_line`.
+        trigger_connection : str, optional
+            Output of `trigger_device` wired to the hardware trigger input.
+        clock_line : :class:`~labscript.ClockLine`, optional
+            Clock line, such as a PrawnBlaster's, that triggers this device
+            directly, through an internal intermediate device. Not with
+            `trigger_device`.
+        com_port : str, optional
+            Serial port the OS assigned, such as ``'COM1'``, the default.
+        pico_board : str, optional
+            ``'pico1'``, the default, or ``'pico2'``. labscript allows a pulse
+            program of 30000 instructions on pico1 and 60000 on pico2.
+        clock_frequency : float, optional
+            System clock frequency in Hz; ``100e6`` by default, at most 133 MHz for
+            pico1 and 150 MHz for pico2. The class's timings are for 100 MHz and
+            scale with it.
+        external_clock : bool, optional
+            Take the clock from an external signal on pin 20, whose frequency is
+            `clock_frequency`; ``False`` by default.
+        **kwargs
+            Passed to :class:`~labscript.PseudoclockDevice`.
         """
         if pico_board in self.allowed_boards:
             self.pico_board = pico_board
         else:
-            raise LabscriptError(f'Pico board specified not in {self.allowed_boards}')
-        
+            raise LabscriptError(
+                f"Pico board {pico_board!r} is not supported. "
+                f"Use one of {self.allowed_boards}."
+            )
+
         self.max_instructions = self.max_instructions_map[self.pico_board]
         self.max_frequency = self.max_frequency_map[self.pico_board]
 
         if clock_frequency > self.max_frequency:
-            raise ValueError(f'Clock frequency must be less than {int(self.max_frequency * 10**-6)} MHz')
-        
+            raise ValueError(
+                f"Clock frequency must be at most {int(self.max_frequency * 10**-6)} MHz "
+                f"for {self.pico_board}."
+            )
+
         self.external_clock = external_clock
         self.clock_frequency = clock_frequency
-        # update specs based on clock frequency
+        # The class specs are for a 100 MHz clock; scale them by the ratio of the clock
+        # periods.
         if self.clock_frequency != 100e6:
-            # factor to scale times by
             factor = 100e6/self.clock_frequency
             self.clock_limit *= factor
             self.clock_resolution *= factor
@@ -180,7 +176,8 @@ class PrawnDO(PseudoclockDevice):
             raise LabscriptError("Provide only a trigger_device or a clock_line, not both")
         self.__intermediate = None
         if clock_line is not None:
-            # make internal Intermediate device and trigger to connect it
+            # An internal intermediate device on the clock line, with a trigger on it
+            # that starts this device.
             self.__intermediate = _PrawnDOIntermediateDevice(f'{name:s}__intermediate',
                                                              clock_line)
             PseudoclockDevice.__init__(self, name, self.__intermediate, 'internal', **kwargs)
@@ -188,7 +185,7 @@ class PrawnDO(PseudoclockDevice):
             # normal pseudoclock device triggering
             PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
 
-        # set up internal connections to allow digital outputs
+        # The pseudoclock and clock line that the digital outputs hang from.
         self.__pseudoclock = Pseudoclock(f'{name:s}__pseudoclock', self, '_', max_clock_lines=1)
         self.__clockline = ClockLine(f'{name:s}__clockline', self.__pseudoclock, '_')
         self.outputs = _PrawnDigitalOutputs(f'{name:s}__pod', self.__clockline)
@@ -197,12 +194,12 @@ class PrawnDO(PseudoclockDevice):
 
         self._initial_trigger_time = 0
 
-    # following three defs ensure initial_trigger_time is not modified
-    # when directly triggered from a clockline using an internal IntermediateDevice
+    # These three defs keep initial_trigger_time at 0 when a clock_line triggers this
+    # device through the internal intermediate device.
     @property
     def initial_trigger_time(self):
         return self._initial_trigger_time
-    
+
     @initial_trigger_time.setter
     def initial_trigger_time(self, value):
         if value != 0 and self.__intermediate is not None:
@@ -210,12 +207,12 @@ class PrawnDO(PseudoclockDevice):
         self._initial_trigger_time = value
 
     def set_initial_trigger_time(self, *args, **kwargs):
+        """Set the initial trigger time in seconds, unless `clock_line` triggers this device."""
         if self.__intermediate is not None:
             raise LabscriptError("You cannot set the initial trigger time when the PrawnDO is directly triggered by a clockline")
         return super().set_initial_trigger_time(*args, **kwargs)
 
     def add_device(self, device):
-
         if isinstance(device, Pseudoclock):
             super().add_device(device)
         elif isinstance(device, DigitalOut):
@@ -224,20 +221,17 @@ class PrawnDO(PseudoclockDevice):
             raise LabscriptError(f"You have connected unsupported {device.name:s} (class {device.__class__}) "
                                  f"to {self.name:s}")
 
-
     def generate_code(self, hdf5_file):
         PseudoclockDevice.generate_code(self, hdf5_file)
 
-        # Isolating the Pod child device in order to access the output change 
-        # times to store in the array
-
-        # Retrieving all of the outputs contained within the pods and
-        # collecting/consolidating the times when they change
+        # The clock line ticks where the outputs change; the pseudoclock's clock
+        # instructions also hold its waits.
         outputs = self.get_all_outputs()
         times = self.__pseudoclock.times[self.__clockline]
         instructions = self.__pseudoclock.clock
         if len(times) == 0:
-            # no instructions, so return
+            # No instructions: no PULSE_PROGRAM is written, and the worker does not
+            # program the board.
             return
 
         # get where wait instructions should be added from clock instructions:
@@ -251,38 +245,38 @@ class PrawnDO(PseudoclockDevice):
             else:
                 ticks += instr['reps']
 
-        # Retrieving the time series of each DigitalOut to be stored
-        # as the output word for the pins; an unused pin stays low
+        # Each DigitalOut's raw_output at each tick is its bit of the output word; an
+        # unused pin stays low.
         bits = [np.zeros(len(times), dtype=np.uint16)] * 16
         for output in outputs:
             chan = int(output.connection.split('do')[-1])
             bits[chan] = np.asarray(output.raw_output, dtype = np.uint16)
-        # Merge list of lists into an array with a single 16 bit integer column
+        # Merge the 16 bit arrays into one array of 16-bit integers, bit n being do<n>.
         bit_sets = np.array(bitfield(bits, dtype=np.uint16))
 
-        # Now create the reps array (ie times between changes in number of clock cycles)
+        # reps is the time between changes, in clock cycles.
         reps = self.quantise_to_pseudoclock(np.diff(times), ticks=True).astype(np.uint32)
-        
-        # add stop command sequence
-        # final output already in bit_sets
-        reps = np.append(reps, 0) # causes last instruction to hold
-        # next two indicate the stop
-        bit_sets = np.append(bit_sets, 0) # this value is ignored
+
+        # The final output is already in bit_sets. A reps of 0 holds it, and a second
+        # row of reps 0, whose bit set is ignored, makes the pair a stop.
+        reps = np.append(reps, 0)
+        bit_sets = np.append(bit_sets, 0)
         reps = np.append(reps, 0)
 
-        # Add in wait instructions to reps
-        # have output maintain previous output state during wait
+        # Each wait is a row of reps 0 that outputs the bit set of the tick it resumes on.
         reps = np.insert(reps, wait_idxs, 0)
         bit_sets = np.insert(bit_sets, wait_idxs, bit_sets[wait_idxs])
 
-        # Raising an error if the user adds too many commands
         if reps.size > self.max_instructions:
-            raise LabscriptError (
-                "Too Many Commands"
+            raise LabscriptError(
+                f"{self.name} has {reps.size} instructions, but {self.pico_board} "
+                f"supports only {self.max_instructions}. Reduce the number of output "
+                "changes and waits."
             )
 
         group = hdf5_file['devices'].require_group(self.name)
-        # combining reps and bit sets into single structured array for saving to hdf5 file
+        # The worker sends these bytes to the firmware's adm command as they are: six per
+        # instruction, a little-endian 16-bit output word, then a 32-bit reps.
         dtype = np.dtype([('bit_sets', '<u2'),
                           ('reps', '<u4')])
         pulse_program = np.zeros(len(reps), dtype=dtype)
@@ -292,7 +286,8 @@ class PrawnDO(PseudoclockDevice):
 
 
 class _PrawnDOIntermediateDevice(IntermediateDevice):
+    """The internal device between a clock line and the trigger that starts a PrawnDO."""
+
     description = "PrawnDO Internal Intermediate Device"
 
     allowed_children = [Trigger]
-        

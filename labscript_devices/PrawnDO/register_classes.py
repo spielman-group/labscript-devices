@@ -18,7 +18,8 @@ register_classes(
     runviewer_parser='labscript_devices.PrawnDO.runviewer_parsers.PrawnDOParser',
 )
 
-# private shim class necessary from runviewer parsing of shots
+# Runviewer needs a parser for the internal intermediate device, which hands the
+# clock line's clock on to the trigger that starts the PrawnDO.
 register_classes(
     '_PrawnDOIntermediateDevice',
     BLACS_tab=None,

@@ -18,8 +18,8 @@ from labscript import LabscriptError
 import numpy as np
 import re
 
-class PrawnDOInterface(object):
 
+class PrawnDOInterface:
     min_version = (1, 2, 0)
     """Minimum compatible firmware version tuple"""
 
@@ -30,43 +30,36 @@ class PrawnDOInterface(object):
         self.timeout = 0.2
         self.conn = serial.Serial(com_port, 1000000, timeout=self.timeout)
         self.pico_board = pico_board
-        
+
         version = self.get_version()
         print(f'Connected to version: {version}')
 
-        # ensure firmware is compatible
-        assert version >= self.min_version, f'Incompatible firmware, must be >= {self.min_version}'
-        
+        assert version >= self.min_version, f'Incompatible firmware {version}, must be >= {self.min_version}. Update the PrawnDO firmware.'
+
         if version >= (1, 3, 0):
             board = self.get_board()
         else:
             board = 'pico1'
             print(f'Version {version} too low to use pico2 firmware, consider upgrading firmware')
-            
+
         print(f'Connected to board: {board}')
         if board.strip() != self.pico_board.strip():
-            raise LabscriptError(f'firmware reports {board} attached, labscript expects {self.pico_board}')
-        
+            raise LabscriptError(f'Firmware reports {board} attached, but labscript expects {self.pico_board}. Set pico_board to match the attached board.')
+
         current_status = self.status()
         print(f'Current status is {current_status}')
 
     def get_version(self):
-        '''Sends 'ver' command, which retrieves the Pico firmware version.
-
-        Returns: (int, int, int): Tuple representing semantic version number.'''
-
+        """Return the firmware version as a (major, minor, patch) tuple."""
         version_str = self.send_command('ver')
-        assert version_str.startswith("Version: ")
+        assert version_str.startswith("Version: "), f"Version command failed, got: {version_str!r}"
         version = tuple(int(i) for i in version_str[9:].split('.'))
-        assert len(version) == 3
+        assert len(version) == 3, f"Firmware version {version} does not have three numbers."
 
         return version
-    
-    def get_board(self):
-        '''Responds with pico board version.
 
-        Returns:
-            (str): Either "pico1" for a Pi Pico 1 board or "pico2" for a Pi Pico 2 board.'''
+    def get_board(self):
+        """Return "pico1" or "pico2", the board the firmware reports."""
         resp = self.send_command('brd')
         assert resp.startswith('board:'), f'Board command failed, got: {resp}'
         pico_str = resp.split(':')[-1].strip()
@@ -74,26 +67,14 @@ class PrawnDOInterface(object):
         return pico_str
 
     def _read_full_buffer(self):
-        '''Used to get any extra lines from device after a failed send_command'''
-
+        """Read every line the device sends before the serial timeout."""
         resp = self.conn.readlines()
         str_resp = ''.join([st.decode() for st in resp])
 
         return str_resp
-        
-    def send_command(self, command, readlines=False):
-        '''Sends the supplied string command and checks for a response.
-        
-        Automatically applies the correct termination characters.
-        
-        Args:
-            command (str): Command to send. Termination and encoding is done automatically.
-            readlines (bool, optional): Use pyserial's readlines functionality to read multiple
-                response lines. Slower as it relies on timeout to terminate reading.
 
-        Returns:
-            str: String response from the PrawnDO
-        '''
+    def send_command(self, command, readlines=False):
+        """Send command and return the response; readlines reads several lines, waiting for the timeout."""
         command += '\r\n'
         self.conn.write(command.encode())
 
@@ -103,171 +84,96 @@ class PrawnDOInterface(object):
             str_resp = self.conn.readline().decode()
 
         return str_resp
-    
+
     def send_command_ok(self, command):
-        '''Sends the supplied string command and confirms 'ok' response.
-
-        Args:
-            command (str): String command to send.
-
-        Raises:
-            LabscriptError: If response is not `ok\\r\\n`
-        '''
-
+        """Send command and raise LabscriptError unless the response is 'ok'."""
         resp = self.send_command(command)
         if resp != 'ok\r\n':
             # get complete error message
             resp += self._read_full_buffer()
-            raise LabscriptError(f"Command '{command:s}' failed. Got response '{repr(resp)}'")
-    
-    def status(self):
-        '''Reads the status of the PrawnDO
-        
-        Returns:
-            (int, int): tuple containing
+            raise LabscriptError(f"Command '{command}' failed. Got response {resp!r}.")
 
-                - **run-status** (int): Run status code
-                - **clock-status** (int): Clock status code
-        
-        Raises:
-            LabscriptError: If response is not `ok\\r\\n`
-        '''
+    # Run status: 0 manual, 1 transitioning to buffered, 2 buffered, 3 abort requested,
+    # 4 aborting, 5 last buffered run aborted, 6 transitioning to manual.
+    # Clock status: 0 internal clock, 1 external clock.
+    def status(self):
+        """Return the firmware's (run_status, clock_status) codes."""
         resp = self.send_command('sts')
         match = re.match(r"run-status:(\d) clock-status:(\d)(\r\n)?", resp)
         if match:
             return int(match.group(1)), int(match.group(2))
         else:
             resp += self._read_full_buffer()
-            raise LabscriptError(f'PrawnDO invalid status, returned {repr(resp)}')
-        
-    def output_state(self):
-        '''Reads the current output state of the PrawnDO
-        
-        Returns:
-            int: Output state of all 16 bits
-        
-        Raises:
-            LabscriptError: If response is not `ok\\r\\n`
-        '''
+            raise LabscriptError(
+                f"PrawnDO returned {resp!r} instead of 'run-status:<int> clock-status:<int>'. "
+                "Check the serial connection and that the board runs PrawnDO firmware."
+            )
 
+    def output_state(self):
+        """Return the state of the 16 outputs as an integer, bit n being do<n>."""
         resp = self.send_command('gto')
 
         try:
             resp_i = int(resp, 16)
         except Exception as e:
             resp += self._read_full_buffer()
-            raise LabscriptError(f'Remote value check failed. Got response {repr(resp)}') from e
+            raise LabscriptError(f"PrawnDO returned {resp!r} for its output state, not a hexadecimal number.") from e
 
         return resp_i
 
     def adm_batch(self, pulse_program):
-        '''Sends pulse program as single binary block using `adm` command.
-        
-        Args:
-            pulse_program (numpy.ndarray): Structured array of program to send.
-                Must have first column as bit sets (<u2) and second as reps (<u4).
-        '''
-        self.conn.write('adm 0 {:x}\n'.format(len(pulse_program)).encode())
+        """Send the pulse program as one binary block with the adm command."""
+        self.conn.write(f'adm 0 {len(pulse_program):x}\n'.encode())
         resp = self.conn.readline().decode()
         if resp != 'ready\r\n':
             resp += self._read_full_buffer()
-            raise LabscriptError(f'adm command failed, got response {repr(resp)}')
+            raise LabscriptError(f"The adm command failed: got {resp!r} instead of 'ready'.")
         self.conn.write(pulse_program.tobytes())
         resp = self.conn.readline().decode()
         if resp != 'ok\r\n':
             resp += self._read_full_buffer()
-            raise LabscriptError(f'Program not written successfully, got response {repr(resp)}')
+            raise LabscriptError(f"The board did not accept the pulse program: got {resp!r} instead of 'ok'.")
 
     def close(self):
         self.conn.close()
 
+
 class PrawnDOWorker(PseudoclockWorker):
     def init(self):
-        self.intf = PrawnDOInterface(self.com_port, self.pico_board)        
+        self.intf = PrawnDOInterface(self.com_port, self.pico_board)
 
         self.smart_cache = {'pulse_program':None}
 
     def _dict_to_int(self, d):
-        """Converts dictionary of outputs to an integer mask.
-        
-        Args:
-            d (dict): Dictionary of output states
-
-        Returns:
-            int: Integer mask of the 16 output states.
-        """
+        """Return the integer mask of `d`, a dict of 'do<n>' states, with bit n for do<n>."""
         val = 0
         for conn, value in d.items():
             val |= value << int(conn.split('do')[-1])
 
         return val
-    
+
     def _int_to_dict(self, val):
-        """Converts an integer mask to a dictionary of outputs.
-        
-        Args:
-            val (int): 16-bit integer mask to convert
-            
-        Returns:
-            dict: Dictonary with output channels as keys and values are boolean states
-        """
+        """Return the dict of 'do<n>' states, 0 or 1, for the integer mask `val`."""
         return {f'do{i:d}':((val >> i) & 1) for i in range(16)}
-    
+
     def check_status(self):
-        '''Checks operational status of the PrawnDO.
-
-        Automatically called by BLACS to update status.
-
-        Returns:
-            (int, int): Tuple containing:
-
-            - **run-status** (int): Possible values are:
-
-              * 0 : manual mode
-              * 1 : transitioning to buffered execution
-              * 2 : buffered execution
-              * 3 : abort requested
-              * 4 : aborting buffered execution
-              * 5 : last buffered execution aborted
-              * 6 : transitioning to manual mode
-
-            - **clock-status** (int): Possible values are:
-
-              * 0 : internal clock
-              * 1 : external clock
-        '''
-
+        """Return the firmware's (run_status, clock_status); see PrawnDOInterface.status."""
         return self.intf.status()
 
     def program_manual(self, front_panel_values):
-        """Change output states in manual mode.
-        
-        Returns:
-            dict: Output states after command execution.
-        """
         value = self._dict_to_int(front_panel_values)
-        # send static state
         self.intf.send_command_ok(f'man {value:04x}')
-        # confirm state set correctly
+        # Return the state read back from the board; BLACS sets the front panel to it.
         resp_i = self.intf.output_state()
 
         return self._int_to_dict(resp_i)
-    
-    def check_remote_values(self):
-        """Checks the remote state of the PrawnDO.
-        
-        Called automatically by BLACS.
-        
-        Returns:
-            dict: Dictionary of the digital output states.
-        """
 
-        resp_i = self.intf.output_state()       
+    def check_remote_values(self):
+        resp_i = self.intf.output_state()
 
         return self._int_to_dict(resp_i)
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
-
         if fresh:
             self.smart_cache = {'pulse_program':None}
 
@@ -287,15 +193,14 @@ class PrawnDOWorker(PseudoclockWorker):
                 hdf5_file, device_name, "device_properties")
             pulse_program = group[dataset][()]
 
-        # configure clock from device properties
+        # The firmware's clk takes 0 for the internal clock or 1 for the external one, on
+        # pin 20, then the clock frequency in Hz.
         ext = self.device_properties['external_clock']
         freq = self.device_properties['clock_frequency']
         self.intf.send_command_ok(f"clk {ext:d} {freq:.0f}")
 
         # check if it is more efficient to fully refresh
         if not fresh and self.smart_cache['pulse_program'] is not None:
-
-            # get more convenient handle to smart cache array
             curr_program = self.smart_cache['pulse_program']
 
             # if arrays aren't of same shape, only compare up to smaller array size
@@ -317,7 +222,8 @@ class PrawnDOWorker(PseudoclockWorker):
         # if fresh or not smart cache, program full table as a batch
         # this is faster than going line by line
         if fresh or self.smart_cache['pulse_program'] is None:
-            self.intf.send_command_ok('cls') # clear old program
+            # clear the old program
+            self.intf.send_command_ok('cls')
             self.intf.adm_batch(pulse_program)
             self.smart_cache['pulse_program'] = pulse_program
         else:
@@ -330,7 +236,6 @@ class PrawnDOWorker(PseudoclockWorker):
                     self.smart_cache['pulse_program'][i] = instr
 
                 elif (self.smart_cache['pulse_program'][i] != instr):
-
                     print(f'programming step {i}')
                     self.intf.send_command_ok(f'set {i:x} {instr[0]:x} {instr[1]:x}')
                     self.smart_cache['pulse_program'][i] = instr
@@ -345,15 +250,10 @@ class PrawnDOWorker(PseudoclockWorker):
     def shot_finished(self):
         run_status, _ = self.intf.status()
         if run_status in [3,4,5]:
-            raise LabscriptError(f'PrawnDO returned status {run_status} in transition to manual')
+            raise LabscriptError(f'PrawnDO reported run-status {run_status} during the shot, so the run was aborted.')
         return run_status == 0
 
     def transition_to_manual(self):
-        """Transition to manual mode after buffered execution completion.
-        
-        Returns:
-            bool: `True` if transition to manual is successful.
-        """
         try:
             self.wait_for_end_of_shot()
         except TimeoutError:
@@ -367,11 +267,7 @@ class PrawnDOWorker(PseudoclockWorker):
         return True
 
     def abort(self):
-        """Aborts a currently running buffered execution, or a transition to it.
-        
-        Returns:
-            bool: `True` is abort was successful.
-        """
+        """Abort a running buffered execution, or the transition to it."""
         # The firmware refuses to abort a board that is not at run status 1 or 2,
         # and such a board has nothing to abort.
         if self.intf.status()[0] not in (1, 2):
@@ -387,5 +283,4 @@ class PrawnDOWorker(PseudoclockWorker):
         return self.abort()
 
     def shutdown(self):
-        """Closes serial connection to PrawnDO"""
         self.intf.close()

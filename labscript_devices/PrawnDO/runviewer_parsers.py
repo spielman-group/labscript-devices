@@ -10,7 +10,7 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-import labscript_utils.h5_lock  
+import labscript_utils.h5_lock
 import h5py
 import numpy as np
 
@@ -18,20 +18,17 @@ import labscript_utils.properties as properties
 from labscript_utils.file_utils import warn_legacy_file
 from labscript_devices.runviewer_parsing import rising_edge_times
 
-class PrawnDOParser(object):
+
+class PrawnDOParser:
     def __init__(self, path, device):
         self.path = path
         self.name = device.name
         self.device = device
 
-
-    def get_traces(self, add_trace, clock = None):
-
-
+    def get_traces(self, add_trace, clock=None):
         if clock is not None:
             clock_ticks = rising_edge_times(clock)
 
-        # Getting pulse_program from the shot file
         with h5py.File(self.path, "r") as f:
             device_properties = properties.get(f, self.name, 'device_properties')
             self.clock_resolution = device_properties['clock_resolution']
@@ -68,18 +65,22 @@ class PrawnDOParser(object):
                 tick = clock_ticks[np.searchsorted(clock_ticks, times_table[wait_idx])]
                 times_table[wait_idx + 1:] += tick + self.trigger_delay - times_table[wait_idx + 1]
 
-        
-        # convert bit sets back to individual bits for each output
-        do_bitfield = np.fliplr( # reverse bit order for indexing by label
+        # Convert bit sets back to individual bits for each output: reshape so each
+        # number has its own row, byteswap and view as uint8 so unpackbits reads its high
+        # byte first, then flip so column i is output do<i>.
+        do_bitfield = np.fliplr(
             np.unpackbits(
-                pulse_program['bit_sets'].reshape(pulse_program.shape + (1,) # reshape so unpackbits does each number separate
-                                 ).byteswap().view(np.uint8), # switch endianness, view at uint8 for unpackbits
-                                 axis=1) # unpack along time axis
+                pulse_program['bit_sets']
+                .reshape(pulse_program.shape + (1,))
+                .byteswap()
+                .view(np.uint8),
+                axis=1,
+            )
         )
 
         digital_outs = {}
 
-        # work down the tree of parent devices to the digital outputs
+        # Walk down the device tree from the PrawnDO to its digital outputs.
         for pseudoclock_name, pseudoclock in self.device.child_list.items():
             for clock_line_name, clock_line in pseudoclock.child_list.items():
                 for internal_device_name, internal_device in clock_line.child_list.items():
@@ -89,17 +90,15 @@ class PrawnDOParser(object):
                         digital_outs[channel_name] = output_trace
                         add_trace(channel_name, output_trace,
                                   self.name, channel.parent_port)
-            
+
         return digital_outs
 
 
-class _PrawnDOIntermediateParser(object):
-
+class _PrawnDOIntermediateParser:
     def __init__(self, path, device):
         self.path = path
         self.name = device.name
         self.device = device
 
-    def get_traces(self, add_trace, clock = None):
-
+    def get_traces(self, add_trace, clock=None):
         return {list(self.device.child_list.keys())[0]: clock}

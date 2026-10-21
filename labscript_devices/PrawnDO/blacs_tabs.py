@@ -12,11 +12,12 @@
 #####################################################################
 from blacs.device_base_class import DeviceTab
 
+
 class PrawnDOTab(DeviceTab):
     def initialise_GUI(self):
         do_prop = {}
         for i in range(0, 16):
-            do_prop['do{:01d}'.format(i)] = {}
+            do_prop[f'do{i:01d}'] = {}
         self.create_digital_outputs(do_prop)
 
         def sort(channel):
@@ -32,12 +33,10 @@ class PrawnDOTab(DeviceTab):
         self.supports_remote_value_check(True)
         self.supports_smart_programming(True)
 
-    
     def get_child_from_connection_table(self, parent_device_name, port):
-        # all child direct outputs are actually connected to the internal device _PrawnDigitalOutputs
-        # so we must look under that device for the port
+        # The digital outputs are connected to the internal device _PrawnDigitalOutputs,
+        # named <device>__pod, so look for the port under it.
         return self.connection_table.find_child(f'{self.device_name:s}__pod', port)
-
 
     def initialise_workers(self):
         self.create_worker(

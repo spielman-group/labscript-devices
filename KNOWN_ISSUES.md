@@ -6,3 +6,7 @@
 - `AlazarTechBoard/blacs_workers.py`: `find_nearest_internal_clock` makes a 0-d array of the `dict_keys` it is given, so `transition_to_buffered` with the default `INTERNAL_CLOCK` raises TypeError (as upstream).
 - `RFBlaster/blacs_workers.py`: the board has no status readback, so `shot_finished` is the default True, and the transition to manual does not wait for a secondary RFBlaster to end. Deferred: it needs the board's protocol.
 - `NovaTechDDS9M/blacs_workers.py`: `check_remote_values` catches `socket.timeout`, which pyserial never raises; a NovaTech that does not answer gives empty lines, and the unpacking raises ValueError, not the "Cannot connect to device" error meant for it.
+- `PrawnDO/blacs_workers.py`: smart programming of a program longer than the cached one, by at most 10%, writes past the end of the cached array in `transition_to_buffered` and raises IndexError.
+- `PrawnDO/blacs_workers.py`: `transition_to_buffered` reports the final values from the stop row's ignored bit set, so BLACS shows every output low after a shot.
+- `PrawnDO/labscript_devices.py`: for a clock other than 100 MHz, `__init__` scales `clock_limit` by `factor` as it does the times, but a rate scales by its inverse; PrawnBlaster had the same fault.
+- `PrawnDO/labscript_devices.py`: `generate_code` gives a wait the bit set of the tick it resumes on, so an output change at the wait's own time shows during the wait, not after the retrigger; upstream's comment meant the wait to hold the previous state.
