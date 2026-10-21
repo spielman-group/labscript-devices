@@ -84,8 +84,6 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
         self.measured_waits = None
         self.h5_file = None
 
-        self.current_value = 0
-
         self.dev = ok.okCFrontPanel()
         assert self.dev.OpenBySerial(self.serial_number) == self.dev.NoError
 
@@ -215,12 +213,6 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
         assert self.dev.ActivateTriggerIn(0x40, 0) == self.dev.NoError
 
     def shot_finished(self):
-        def ReadU32(addr):
-            lo = self.dev.GetWireOutValue(addr)
-            hi = self.dev.GetWireOutValue(addr+1)
-            vx = (hi << 16) | lo
-            return vx
-
         # Refresh the wire-out values read below.
         self.dev.UpdateWireOuts()
 
@@ -313,8 +305,6 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
     def abort(self):
         # Send the abort signal, soft_abort_trig_in. The state machine must notice first.
         assert self.dev.ActivateTriggerIn(0x40, 1) == self.dev.NoError
-
-        self.current_value = 0
 
         # Return the aborted bit of the board's status.
         self.dev.UpdateWireOuts()
