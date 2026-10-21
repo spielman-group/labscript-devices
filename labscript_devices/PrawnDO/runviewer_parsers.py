@@ -41,12 +41,16 @@ class PrawnDOParser(PseudoclockParser):
         durations = pulse_program['reps'] * self.clock_resolution
         # Rows of 0 reps are the waits, and last the stop's first part.
         wait_idxs = np.nonzero(pulse_program['reps'] == 0)[0][:-1]
-        # Each stretch of rows up to a wait is drawn from its start.
-        starts = self.start_and_resume_times(clock, self.trigger_delay)
+        # Each stretch of rows up to a wait is drawn from its start, the last row of
+        # a stretch being the wait.
+        resume = self.resume_times(clock, self.trigger_delay)
         bounds = np.concatenate([[0], wait_idxs + 1, [len(pulse_program)]])
         times_table = np.empty(len(pulse_program))
-        for start, first, end in zip(starts, bounds[:-1], bounds[1:]):
+        t = 0.0
+        for n, (first, end) in enumerate(zip(bounds[:-1], bounds[1:])):
+            start = resume(n, t)
             times_table[first:end] = np.cumsum(np.insert(durations[first:end - 1], 0, start))
+            t = times_table[end - 1]
         # The trace starts at 0 with the first row's output.
         times_table[0] = 0
 

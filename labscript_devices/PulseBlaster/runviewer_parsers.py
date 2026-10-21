@@ -68,8 +68,9 @@ class PulseBlasterBaseParser(PseudoclockParser):
             for sub_chnl in ['freq', 'amp', 'phase']:
                 traces['dds %d_%s'%(i,sub_chnl)] = []
 
-        starts = iter(self.start_and_resume_times(clock, PulseBlasterBase.trigger_delay))
-        t = next(starts)
+        resume = self.resume_times(clock, PulseBlasterBase.trigger_delay)
+        t = resume(0, 0.)
+        waits = 0
         i = 0
         while i < len(pulse_program):
             # ignore the first 2 instructions, they are dummy instructions for BLACS
@@ -118,7 +119,9 @@ class PulseBlasterBaseParser(PseudoclockParser):
                 t+= self._duration(row)
 
                 if row['inst'] == 8: # WAIT
-                    t = next(starts)
+                    # It resumes where the wait began, not after the WAIT's delay.
+                    waits += 1
+                    t = resume(waits, times[-1])
 
             i += 1
 

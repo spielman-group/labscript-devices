@@ -1,9 +1,8 @@
-"""Drawing a secondary pseudoclock's program in runviewer across waits.
+"""Runviewer draws the script's time across waits.
 
-Runviewer draws the script's time, in which a wait takes no time, so each output
-of a secondary changes at the time the script gave it, before and after every
-wait. The PrawnDO here is clocked on a line it shares with another device, which
-ticks just before the last wait, and also triggered from an NI line.
+A secondary's outputs change at their script times whether a shared clock line or
+a trigger line resumes it, and no drawn time runs backward, with waits off the
+master's grid that round down and up.
 """
 import textwrap
 import unittest
@@ -11,107 +10,62 @@ import unittest
 import labscript_utils.h5_lock  # must precede h5py, as labscript itself does
 import h5py
 import numpy as np
-
 from labscript_utils import device_registry
 from labscript_utils.connections import ConnectionTable
 
 from test_compile_device_tables import CompileTestCase
 
 
-WAITS_SHOT = textwrap.dedent(
-    '''
-    from labscript import start, stop, wait, DigitalOut
-    from labscript_devices.PrawnBlaster.labscript_devices import PrawnBlaster
-    from labscript_devices.PrawnDO.labscript_devices import PrawnDO
-    from labscript_devices.NI_DAQmx.models.NI_PCIe_6363 import NI_PCIe_6363
-    from labscript_devices.NI_DAQmx.models.NI_PCI_6534 import NI_PCI_6534
-
-    PrawnBlaster(name='prawnblaster', num_pseudoclocks=2, com_port='COM1')
-    PrawnDO(name='on_line', clock_line=prawnblaster.clocklines[0], com_port='COM2')
-    NI_PCI_6534(
-        name='sharing',
-        parent_device=prawnblaster.clocklines[0],
-        clock_terminal='/sharing/PFI0',
-        MAX_name='sharing',
-    )
-    NI_PCIe_6363(
-        name='triggering',
-        parent_device=prawnblaster.clocklines[1],
-        clock_terminal='/triggering/PFI0',
-        MAX_name='triggering',
-    )
-    PrawnDO(
-        name='on_trigger',
-        trigger_device=triggering,
-        trigger_connection='port0/line0',
-        com_port='COM3',
-    )
-    # Even numbers of digital outputs, which the DAQmx library needs.
-    DigitalOut('sharing_out', sharing, 'port0/line0')
-    DigitalOut('sharing_spare', sharing, 'port0/line1')
-    DigitalOut('triggering_spare', triggering, 'port0/line1')
-    DigitalOut('line_out', on_line.outputs, 'do1')
-    DigitalOut('trigger_out', on_trigger.outputs, 'do1')
-
-    start()
-    for n, t in enumerate([10e-6, 20e-6, 30e-6, 40e-6]):
-        line_out.go_high(t - 5e-6)
-        trigger_out.go_high(t - 5e-6)
-        line_out.go_low(t - 3e-6)
-        trigger_out.go_low(t - 3e-6)
-        wait(f'wait {n}', t)
-    sharing_out.go_high(39.9e-6)
-    line_out.go_high(45e-6)
-    trigger_out.go_high(45e-6)
-    stop(50e-6)
-    '''
-)
-
-# The script's changes of each PrawnDO output, in microseconds.
-CHANGES = [5, 7, 15, 17, 25, 27, 35, 37, 45]
-
-
-def draw(path):
-    """Return every trace, walking the devices from the master as runviewer does."""
-    connection_table = ConnectionTable(path)
-    with h5py.File(path, 'r') as f:
-        master = f['connection table'].attrs['master_pseudoclock']
-    traces = {}
-
-    def load(device, clock=None):
-        parser = device_registry.get_runviewer_parser(device.device_class)
-        added = {}
-        returned = parser(path, device).get_traces(
-            lambda name, trace, *args: added.update({name: trace}), clock
-        )
-        traces.update(added)
-        for name, trace in returned.items():
-            for child in connection_table.find_by_name(name).child_list.values():
-                load(child, trace)
-
-    load(connection_table.find_by_name(master))
-    return traces
-
-
 class SecondaryAcrossWaitsTests(CompileTestCase):
-    shot = WAITS_SHOT
+    shot = textwrap.dedent(
+        '''
+        from labscript import start, stop, wait, DigitalOut
+        from labscript_devices.PrawnBlaster.labscript_devices import PrawnBlaster
+        from labscript_devices.PrawnDO.labscript_devices import PrawnDO
+        from labscript_devices.NI_DAQmx.models.NI_PCI_6534 import NI_PCI_6534
 
-    def setUp(self):
-        super().setUp()
+        PrawnBlaster(name='master', com_port='COM1')
+        line = master.clocklines[0]
+        PrawnDO(name='on_line', clock_line=line, com_port='COM2')
+        NI_PCI_6534(name='ni', parent_device=line, clock_terminal='/ni/PFI0')
+        PrawnDO(name='on_trigger', trigger_device=ni, trigger_connection='port0/line0')
+        DigitalOut('shared', ni, 'port0/line1')
+        DigitalOut('line_out', on_line.outputs, 'do1')
+        DigitalOut('trigger_out', on_trigger.outputs, 'do1')
+
+        start()
+        # On a 20 ns grid, 20.006 us rounds down and 30.014 us up.
+        for n, t in enumerate([10e-6, 20.006e-6, 30.014e-6, 40e-6]):
+            for out in (line_out, trigger_out):
+                out.go_high(10e-6 * n + 5e-6)
+                out.go_low(10e-6 * n + 7e-6)
+            wait(f'wait {n}', t)
+        shared.go_high(39.9e-6)
+        line_out.go_high(45e-6)
+        trigger_out.go_high(45e-6)
+        stop(50e-6)
+        '''
+    )
+
+    def test_a_secondary_changes_at_its_script_times_across_waits(self):
         self.compile_the_shot()
-        self.traces = draw(self.run_file)
+        table = ConnectionTable(self.run_file)
+        traces = {}
 
-    def assert_drawn_at_script_times(self, output):
-        times, values = self.traces[output]
-        self.assertTrue(np.all(np.diff(times) >= 0), 'time runs backward')
-        changes = times[1:][np.diff(values) != 0]
-        np.testing.assert_allclose(changes * 1e6, CHANGES, atol=1e-6)
+        def load(device, clock=None):  # as runviewer walks the devices
+            parser = device_registry.get_runviewer_parser(device.device_class)
+            add = lambda name, trace, *args: traces.update({name: trace})
+            for name, trace in parser(self.run_file, device).get_traces(add, clock).items():
+                for child in table.find_by_name(name).child_list.values():
+                    load(child, trace)
 
-    def test_a_prawndo_on_a_shared_clock_line_changes_at_its_script_times(self):
-        self.assert_drawn_at_script_times('line_out')
-
-    def test_a_triggered_prawndo_changes_at_its_script_times(self):
-        self.assert_drawn_at_script_times('trigger_out')
+        load(table.find_by_name('master'))
+        for name, (times, values) in traces.items():
+            self.assertTrue(np.all(np.diff(times) >= 0), f'{name} runs backward')
+        for name in ('line_out', 'trigger_out'):
+            times, values = traces[name]
+            changes = times[1:][np.diff(values) != 0] * 1e6
+            np.testing.assert_allclose(changes, [5, 7, 15, 17, 25, 27, 35, 37, 45], atol=1e-6)
 
 
 if __name__ == '__main__':

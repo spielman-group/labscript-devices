@@ -18,11 +18,11 @@ import numpy as np
 class PseudoclockParser:
     """The base of a pseudoclock device's runviewer parser.
 
-    Runviewer draws the script's time, in which a wait takes no time. A master
-    starts at 0 and resumes at each wait's time. A secondary starts
-    `trigger_delay` after the first rising edge of the `clock` runviewer passes
-    it, its trigger, and resumes `trigger_delay` after the first edge at or after
-    each wait's time, its retrigger.
+    Runviewer draws the script's time, in which a wait takes no time: each device
+    resumes where its wait begins. A master's own program places its waits. A
+    secondary starts `trigger_delay` after its trigger, the first rising edge of
+    the `clock` runviewer passes it, and resumes `trigger_delay` after each
+    retrigger.
     """
 
     def __init__(self, path, device):
@@ -30,16 +30,25 @@ class PseudoclockParser:
         self.name = device.name
         self.device = device
 
-    def start_and_resume_times(self, clock, trigger_delay):
-        """Return when the program starts, then when it resumes after each wait."""
+    def resume_times(self, clock, trigger_delay):
+        """Return ``resume(n, t)``, when the program starts or resumes.
+
+        Call it with 0 and 0 for the start, then with each wait's number and the
+        time the program reaches it. A master carries on from `t`. A secondary's
+        nth retrigger is its clock's edge nearest the nth wait's time: labscript
+        rounds a trigger to the nearest tick of its clock, and keeps the wait's
+        time unrounded.
+        """
+        if clock is None:
+            return lambda n, t: t
         with h5py.File(self.path, 'r') as f:
             wait_times = f['waits']['time']
-        if clock is None:
-            return np.concatenate([[0.0], wait_times])
         edges = rising_edge_times(clock)
-        # 1 ps allows for the float error in the drawn edges.
-        retriggers = edges[np.searchsorted(edges, wait_times - 1e-12)]
-        return np.concatenate([[edges[0]], retriggers]) + trigger_delay
+        after = np.clip(np.searchsorted(edges, wait_times), 1, len(edges) - 1)
+        later = edges[after] - wait_times < wait_times - edges[after - 1]
+        retriggers = np.where(later, edges[after], edges[after - 1])
+        triggers = np.concatenate([[edges[0]], retriggers]) + trigger_delay
+        return lambda n, t: triggers[n]
 
     def clock_trace(self, clock, trigger_delay, segments):
         """Return the ``(times, states)`` of the ticks of `segments`.
@@ -48,9 +57,11 @@ class PseudoclockParser:
         start and one for after each wait: `reps` ticks, each high for `high`
         seconds and then low for `low`.
         """
+        resume = self.resume_times(clock, trigger_delay)
         times, states = [], []
-        starts = self.start_and_resume_times(clock, trigger_delay)
-        for t, rows in zip(starts, segments):
+        t = 0.0
+        for n, rows in enumerate(segments):
+            t = resume(n, t)
             for high, low, reps in rows:
                 for i in range(reps):
                     times.append(t)
