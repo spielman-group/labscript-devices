@@ -11,131 +11,232 @@
 #                                                                   #
 #####################################################################
 
-from labscript import Device, PseudoclockDevice, Pseudoclock, ClockLine, LabscriptError, set_passed_properties, compiler, WaitMonitor, DigitalOut, internal_wait_monitor_outputs, renamed_keyword
+from labscript import (
+    Device,
+    PseudoclockDevice,
+    Pseudoclock,
+    ClockLine,
+    LabscriptError,
+    set_passed_properties,
+    compiler,
+    WaitMonitor,
+    DigitalOut,
+    internal_wait_monitor_outputs,
+    renamed_keyword,
+)
 
 import numpy as np
 
 
-#
-# The labscript device class
-#
 class CiceroOpalKellyXEM3001(PseudoclockDevice):
-    # note: most parameters set in __init__ as they depend on reference clock frequency
+    """A pseudoclock on an Opal Kelly XEM3001 FPGA board, with one clock line, `clockline`."""
+
+    # Most timings are set in __init__, as they depend on the reference clock frequency.
     description = 'CiceroOpalKellyXEM3001'
-    trigger_edge_type = 'rising' 
+    trigger_edge_type = 'rising'
     allowed_children = [Pseudoclock]
     # Its own pseudoclock, and the internal one its wait monitor hangs from.
     max_pseudoclocks = 2
-    
+
     # Determined by confirming that an instruction table that is 2049 long
     # does not output the last instruction
     max_instructions = 2048
-    
-    @set_passed_properties(property_names = {
-        "connection_table_properties": ["reference_clock", "clock_frequency", "trigger_debounce_clock_ticks"],
-        "device_properties": ["trigger_delay", "wait_delay"]}
-        )    
-    def __init__(self, name, trigger_device=None, trigger_connection=None, serial_number='', reference_clock='internal', clock_frequency=100e6, use_wait_monitor=None, trigger_debounce_clock_ticks=10, **kwargs):
+
+    @set_passed_properties(
+        property_names={
+            "connection_table_properties": [
+                "reference_clock",
+                "clock_frequency",
+                "trigger_debounce_clock_ticks",
+            ],
+            "device_properties": ["trigger_delay", "wait_delay"],
+        }
+    )
+    def __init__(
+        self,
+        name,
+        trigger_device=None,
+        trigger_connection=None,
+        serial_number='',
+        reference_clock='internal',
+        clock_frequency=100e6,
+        use_wait_monitor=None,
+        trigger_debounce_clock_ticks=10,
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        name : str
+            Python variable name of the device.
+        trigger_device : :class:`~labscript.IntermediateDevice`, optional
+            Device that sends the hardware start trigger when this is a secondary
+            pseudoclock. If `None`, the default, this is the master pseudoclock.
+        trigger_connection : str, optional
+            Output of `trigger_device` wired to the board's hardware trigger input;
+            required if `trigger_device` is given.
+        serial_number : str, optional
+            Serial number of the Opal Kelly board, as BLACS opens it; ``''`` by
+            default. The old keyword `serial` still works, with a FutureWarning.
+        reference_clock : str, optional
+            ``'internal'``, the default, or ``'external'``: the reference clock the
+            FPGA firmware runs from. BLACS flashes the matching bit file,
+            ``CiceroOpalKellyXEM3001_fpga_internal.bit`` or
+            ``CiceroOpalKellyXEM3001_fpga_external.bit``, from the
+            `labscript_devices` folder.
+        clock_frequency : float, optional
+            Frequency of the reference clock in Hz; ``100e6`` by default.
+            Instructions count its cycles, so its period is the clock resolution
+            and half its frequency is the clock limit.
+        use_wait_monitor : bool, optional
+            Let the board time waits itself. If `None`, the default, a master
+            pseudoclock does and a secondary does not; `True` on a secondary raises
+            a LabscriptError, since only the master times the waits.
+        trigger_debounce_clock_ticks : int, optional
+            Debounce count of the FPGA's trigger input in reference clock cycles,
+            from 0 to 65535; 10 by default. labscript takes the shortest trigger
+            pulse as twice this, and the delay from trigger to output as this plus 5.
+        **kwargs
+            Passed to :class:`~labscript.PseudoclockDevice`.
+        """
         # LEGACY SERIAL KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        serial_number = renamed_keyword(kwargs, 'serial', 'serial_number', serial_number, 'CiceroOpalKellyXEM3001', stacklevel=4)
-        # set device properties based on clock frequency
+        serial_number = renamed_keyword(
+            kwargs, 'serial', 'serial_number', serial_number, 'CiceroOpalKellyXEM3001', stacklevel=4
+        )
         self.clock_limit = clock_frequency/2
         self.clock_resolution = 1/clock_frequency
-        # We'll set this to be 2x the debounce count
+        # Twice the debounce time.
         self.trigger_minimum_duration = 2*trigger_debounce_clock_ticks/clock_frequency
-        # An estimate, not measured: 3 clock cycles through the FPGA's debounce
-        # code (three non-blocking <=), then 2 before the output goes high
+        # An estimate, not measured: 3 clock cycles to reach the FPGA's state machine (three
+        # non-blocking <= in its debounce code), then 2 before the output goes high (one to
+        # leave the wait-for-retrigger code, one for the non-blocking output update).
         self.trigger_delay = (5+trigger_debounce_clock_ticks)/clock_frequency
-        # An estimate, not measured
+        # An estimate, not measured: one clock cycle.
         self.wait_delay = self.clock_resolution
-        
+
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.BLACS_connection = serial_number
-        
+
         if not 0 <= trigger_debounce_clock_ticks < 2**16:
-            raise LabscriptError('The %s %s trigger_debounce_clock_ticks parameter must be between 0 and 65535'%(self.description, self.name))
-        
-        # create Pseudoclock and clockline
-        self._pseudoclock = Pseudoclock('%s_pseudoclock'%name, self, 'clock', max_clock_lines=1) # possibly a better connection name than 'clock'?
-        # Create the internal direct output clock_line
-        self._clock_line = ClockLine('%s_clock_line'%name, self.pseudoclock, 'Clock Out')
-        
-        # Create internal devices for connecting to a wait monitor
+            raise LabscriptError(
+                f"The {self.description} {self.name} trigger_debounce_clock_ticks must be "
+                f"between 0 and 65535, not {trigger_debounce_clock_ticks}."
+            )
+
+        self._pseudoclock = Pseudoclock(
+            f'{name}_pseudoclock', self, 'clock', max_clock_lines=1
+        )
+        # The board's one output, 'Clock Out', is this clock line; its worker and runviewer
+        # parser use that name.
+        self._clock_line = ClockLine(f'{name}_clock_line', self.pseudoclock, 'Clock Out')
+
         self.__wait_monitor_intermediate_device = internal_wait_monitor_outputs(self)
-        
-        # Only the master pseudoclock's board times the waits, as on the PrawnBlaster,
-        # so by default only a master has the wait monitor
+
+        # Only a master pseudoclock times the waits, so by default only a master has the
+        # wait monitor.
         if use_wait_monitor is None:
             use_wait_monitor = self.is_master_pseudoclock
         elif use_wait_monitor and not self.is_master_pseudoclock:
-            raise LabscriptError('The %s %s is a secondary pseudoclock, so cannot have the wait monitor: only the master times the waits'%(self.description, self.name))
+            raise LabscriptError(
+                f"The {self.description} {self.name} is a secondary pseudoclock, so it "
+                "cannot have the wait monitor: only the master times the waits. "
+                "Leave use_wait_monitor as None or set it to False."
+            )
         if use_wait_monitor:
-            WaitMonitor('%s__wait_monitor'%name, self.internal_wait_monitor_outputs, 'internal', self.internal_wait_monitor_outputs, 'internal', self.internal_wait_monitor_outputs, 'internal')
-        
+            WaitMonitor(
+                f'{name}__wait_monitor',
+                self.internal_wait_monitor_outputs,
+                'internal',
+                self.internal_wait_monitor_outputs,
+                'internal',
+                self.internal_wait_monitor_outputs,
+                'internal',
+            )
+
     @property
     def internal_wait_monitor_outputs(self):
+        """The intermediate device the internal wait monitor is attached to."""
         return self.__wait_monitor_intermediate_device
-    
+
     @property
     def pseudoclock(self):
+        """The pseudoclock the device creates."""
         return self._pseudoclock
-    
-    # Note, not to be confused with Device.parent_clock_line which returns the parent ClockLine
-    # This one gives the automatically created ClockLine object
+
     @property
     def clockline(self):
+        """The clock line the device creates, for the devices it clocks to connect to.
+
+        Not to be confused with `parent_clock_line`, the clock line that clocks a device.
+        """
         return self._clock_line
-    
-    
+
     def generate_code(self, hdf5_file):
+        """Write the pulse program to the shot file, as PULSE_PROGRAM."""
         PseudoclockDevice.generate_code(self, hdf5_file)
-        group = self.init_device_group(hdf5_file)   
-        
-        # compress clock instructions with the same period: This will
-        # halve the number of instructions roughly, since the PineBlaster
-        # does not have a 'slow clock':
+        group = self.init_device_group(hdf5_file)
+
         reduced_instructions = []
         current_wait_index = 0
         wait_table = sorted(compiler.wait_table)
-        
+
         if not self.is_master_pseudoclock:
-            reduced_instructions.append({'on': 0, 'off': ((self.trigger_edge_type=='rising') << 1) + 1, 'reps': 0})
-                
+            # A secondary begins with a wait for its first trigger.
+            reduced_instructions.append(
+                {'on': 0, 'off': ((self.trigger_edge_type == 'rising') << 1) + 1, 'reps': 0}
+            )
+
         for instruction in self.pseudoclock.clock:
             if instruction == 'WAIT':
-                # The following period and reps indicates a wait instruction
                 wait_timeout = compiler.wait_table[wait_table[current_wait_index]][1]
                 current_wait_index += 1
-                
-                # The actual wait instruction.
-                # on_counts correspond to teh number of reference clock cycles
-                # to wait for external trigger before auto-resuming. 
-                # It overcounts by 1 here because the logic on the FPGA is different for the first reference clock cycle 
-                # (you cannot resume until the after second reference clock cycle), so we subtract 1 off the on counts
-                # so that it times-out after the correct number of samples
-                reduced_instructions.append({'on': self.quantise_to_pseudoclock(wait_timeout, ticks=True)-1, 'off': ((self.trigger_edge_type=='rising') << 1) + 1, 'reps': 0})
+
+                # A wait has 0 reps. Its 'on' is the number of reference clock cycles to wait
+                # for the trigger before auto-resuming. The FPGA overcounts it by 1, as it
+                # cannot resume until after the second cycle, so 1 is subtracted for the
+                # wait to time out after the correct number of samples.
+                reduced_instructions.append(
+                    {
+                        'on': self.quantise_to_pseudoclock(wait_timeout, ticks=True) - 1,
+                        'off': ((self.trigger_edge_type == 'rising') << 1) + 1,
+                        'reps': 0,
+                    }
+                )
                 continue
             reps = instruction['reps']
-            # period is in quantised units:
+            # The period is in whole ticks of clock_resolution.
             periods = self.quantise_to_pseudoclock(instruction['step'], ticks=True)
-            # Get the "high" half of the clock period
+            # The "high" half of the clock period.
             on_period = int(periods/2)
-            # Use the remainder to calculate the "off period" (allows slightly assymetric clock signals so to minimise timing errors)
+            # The remainder is the "off" period: this allows slightly asymmetric clock
+            # signals, to minimise timing errors.
             off_period = periods-on_period
-            
-            if reduced_instructions and reduced_instructions[-1]['on'] == on_period and reduced_instructions[-1]['off'] == off_period:
+
+            # Merge consecutive instructions of the same periods, to save room in the
+            # instruction table.
+            if (
+                reduced_instructions
+                and reduced_instructions[-1]['on'] == on_period
+                and reduced_instructions[-1]['off'] == off_period
+            ):
                 reduced_instructions[-1]['reps'] += reps
             else:
                 reduced_instructions.append({'on': on_period, 'off': off_period, 'reps': reps})
-        
+
         if len(reduced_instructions) > self.max_instructions:
-            raise LabscriptError("%s %s has too many instructions. It has %d and can only support %d"%(self.description, self.name, len(reduced_instructions), self.max_instructions))
-            
-        # Store these instructions to the h5 file:
-        dtypes = [('on_period',np.int64),('off_period',np.int64),('reps',np.int64)]
-        pulse_program = np.zeros(len(reduced_instructions),dtype=dtypes)
+            raise LabscriptError(
+                f"{self.description} {self.name} has too many instructions: it has "
+                f"{len(reduced_instructions)} and can support only "
+                f"{self.max_instructions}. Reduce the number of waits and "
+                "clock-period changes."
+            )
+
+        dtypes = [('on_period', np.int64), ('off_period', np.int64), ('reps', np.int64)]
+        pulse_program = np.zeros(len(reduced_instructions), dtype=dtypes)
         for i, instruction in enumerate(reduced_instructions):
             pulse_program[i]['on_period'] = instruction['on']
             pulse_program[i]['off_period'] = instruction['off']
             pulse_program[i]['reps'] = instruction['reps']
-        group.create_dataset('PULSE_PROGRAM', compression = compiler.compression, data=pulse_program)
+        group.create_dataset(
+            'PULSE_PROGRAM', compression=compiler.compression, data=pulse_program
+        )
