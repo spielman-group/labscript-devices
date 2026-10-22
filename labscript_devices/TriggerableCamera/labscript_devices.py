@@ -148,10 +148,12 @@ class TriggerableCamera(TriggerableDevice):
                         f"{name}'s serial_number {serial_number!r} is not a decimal "
                         f"number. If it is hex, write '0x{serial_number}'."
                     )
+                # LEGACY HEX SERIAL NUMBER WARNING. DEPRECATED CODE, WILL BE REMOVED.
                 if self.hex_serial_numbers:
                     warnings.warn(
                         f"{name}'s serial_number {serial_number!r} is now read as "
                         f"decimal. If it is hex, write '0x{serial_number}'.",
+                        FutureWarning,
                         stacklevel=3,
                     )
                 serial_number = int(serial_number)
