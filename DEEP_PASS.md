@@ -96,7 +96,10 @@ Each stage's commits on `CodeHealth`, for review:
 - Its 35 simple rows (Ian: "have all of the simple no-brainers fixed and
   checked off"): `0e17cfe..` `a3ee208`.
 - Codex's findings on them, its re-check's, Fable's review, and every NI task
-  released (Ian): `75df455..` the commit that records this line.
+  released (Ian): `75df455..` `9b7a50e`.
+- The NI task-lifetime design, for Ian: `cf3e48e`, a note only.
+- Ian's decisions on it and on the triage's remaining rows, with the Andor and
+  PySpin studies: `28e8656..` the commit that records this line.
 
 ## The test contract
 
@@ -1294,16 +1297,21 @@ remain.
     without a driver reset;
   - row 20: a TekScope shot with `int16`, its points and time axis.
 
-## NI_DAQmx task lifetime: design (for Ian)
+## NI_DAQmx task lifetime
 
 Codex found three more leaks after two rounds of fixes, at sites neither
-reached. By Ian's rule, a design comes before a third patch. Ian's rule for it:
-every DAQmx task is cleared on every path, since a task left uncleared keeps
-its device failing until the driver is reset.
+reached, so a design came before a third patch. Ian's rule for it: every DAQmx
+task is cleared on every path, since a task left uncleared keeps its device
+failing until the driver is reset.
 
-### Where tasks are made, and what fails
+Decided (Ian): "I approve a plus B as proposed", in Fable's attribute form for
+B. D, a release before BLACS terminates a worker, is deferred: "I have not seen
+closing / restarting a tab causing an issue. It is comes from aborted / failed
+runs." So A and B cover aborted and failed runs.
 
-| Site | Lifetime | Cleared by, today | What still leaks |
+### Where tasks were made, and what leaked
+
+| Site | Lifetime | Cleared by, today | What leaked |
 | --- | --- | --- | --- |
 | Output `start_manual_mode_tasks`, `blacs_workers.py:78, 83` | AO, DO: from init, and after each shot, to the next shot | `stop_tasks`, `_return_to_manual` | a failure making DO leaves AO on the worker and DO unset, so `shutdown` raises before it clears AO; a failing channel leaves both, cleared only by `shutdown`, which a restart never sends |
 | Output `program_buffered_DO`, `_AO`, `:173, 247` | DO, AO: one shot | `_return_to_manual` | a failure before `DO_all_zero` or `AO_all_zero` is set makes the abort raise AttributeError (`:337`) before its `try` |
@@ -1323,7 +1331,8 @@ Facts any design works within:
   is TerminateProcess, so no code in the worker runs. That rules out both a
   release in the worker and a SIGTERM handler held off by zprocess's
   `KillLock` (`process_tree.py:43, 108-144`), which only POSIX honours. A
-  restart is covered only if BLACS sends a job before it terminates; see D.
+  restart is covered only if BLACS sends a job before it terminates (D,
+  deferred).
   Until then, a restart, with healthy tasks too, relies on the driver
   releasing a terminated process's tasks: a lab check.
 - Nothing in the suite owns a resource per worker (librarian). blacs'
@@ -1331,70 +1340,113 @@ Facts any design works within:
   `shutdown` alone. Serial ports and cameras are released with their process;
   the harm of a held handle is NI's.
 
-### Options
+### Built
 
-- **A. Probes use `with Task() as task:`.** This is PyDAQmx's own; a subclass
-  adds nothing.
-  - Size: the five get_capabilities functions and `incomplete_sample_detection`
-    (`with Task() as out_task, Task() as meas_task:`). About ten changed lines,
-    besides the re-indented bodies.
-  - Special cases: `port_supports_buffered` retries the next terminal inside its
-    `except`, so the first task stays open during the retry, as it does today.
-  - DAQmx calls: unchanged; a probe runs in no shot.
-  - It does not fit the workers, whose tasks outlive the job that makes them.
-- **B. One record per worker.** A mixin in `blacs_workers.py`, for the three
-  NI workers:
-  - `new_task()` makes a task and records it, and is the only maker.
-  - `making_tasks()` is a context manager around each block that makes tasks,
-    and releases everything recorded if the block raises.
-  - `release_tasks()` clears every recorded task and sets the worker's task
-    attributes, named on the class, to None. It is the only `ClearTask` in the
-    workers, called in a `finally` by every teardown, abort and `shutdown`,
-    whatever state the worker is in. It takes over `clear_tasks`, which goes:
-    one name and one implementation (librarian), since the probes use `with`.
+- A (`8748822`): get_capabilities' five probes and `incomplete_sample_detection`
+  own their tasks with PyDAQmx's `with Task() as task:`; the latter nests two,
+  so their calls keep their order. `clear_tasks` goes.
+- B (`e12def7`): the class `DAQmxTaskOwner` in `blacs_workers.py`.
+  - Each NI worker names its task attributes: AO_task and DO_task; task;
+    CI_task and DO_task. Each defaults to None on the class, and every `Task()`
+    is assigned to its attribute on the line that makes it.
+  - `release_tasks()` clears every named attribute's task whatever the others
+    raise, sets each to None, then raises the first error. It is the only
+    `ClearTask` in the workers, called in a `finally` by every teardown, abort
+    and `shutdown`. `StopTask` and `WaitUntilTaskDone` stay where they were.
+  - The manual set-ups, `start_manual_mode_tasks` and `start_task`, release
+    and re-raise when they fail, since BLACS sends no abort after init or a
+    transition to manual. The acquisition worker releases under `tasklock`;
+    the wait monitor still stops its thread first.
+  - The output worker's abort reads neither all-zero flag, so a failed first
+    set-up no longer raises before the release.
+  - The acquisition worker's abort outside a shot starts manual acquisition
+    when no task is left, after a set-up or stop that failed before buffered
+    mode; with manual acquisition running, it does nothing, as before.
+- Probed with a fake PyDAQmx, against `3df25b0`: each of Codex's three cases
+  and the restart of manual acquisition fails there and passes here, and so do
+  failures in four of get_capabilities' probes. A working shot's teardowns,
+  set-ups and aborts make the same 72 DAQmx calls, in the same order.
 
-  `StopTask` stays where it is, since it is how a shot's completion is checked.
-  - Size: the mixin, about 20 lines. Seven `Task()` calls become
-    `self.new_task()`. The four blocks that make tasks gain a `with`. The
-    teardowns lose their attribute handling and their `clear_tasks` calls, and
-    the acquisition worker's abort releases outside buffered mode too.
-    About +15 lines net.
-  - Special cases:
-    - the wait monitor's thread reads CI, so it stops before the release, as
-      now;
-    - the acquisition worker releases under `tasklock`, which its callbacks
-      take;
-    - a release clears in the attributes' order, so the order is today's: AO
-      before DO, and CI before DO.
-  - DAQmx calls: unchanged in a working shot, the same tasks stopped and
-    cleared in the same order. Only failure paths gain the `ClearTask`s that
-    are missing today.
-  - It covers each of Codex's three cases, and any new site, as long as it uses
-    `new_task()`.
-- **C. Keep today's pattern and fix the three sites.**
-  - The abort reads the all-zero flags before its `try`: set them when each
-    task is made, 2 lines.
-  - `start_manual_mode_tasks` and `start_task` clear on failure, about 4 lines
-    each.
-  - get_capabilities as in A.
-  - About 15 lines. DAQmx calls: unchanged in a working shot.
-  - Special cases: every `Task()` keeps its own guard, and each new site must
-    repeat it. That is the pattern three rounds have each found missing
-    somewhere.
-- **D, deferred, for blacs' owner: release on any exit, suite-wide.** A hook
-  on blacs' `Worker`, run by `shutdown` and by a job BLACS sends before it
-  terminates a worker on a close or restart, with a timeout. It is the only way
-  to cover a restart on Windows, and would serve every device's handles, not
-  only NI's. It is a blacs change; B's `release_tasks` would be NI's use of it.
+## The triage's remaining rows (Ian)
 
-### Recommendation
+Ian's decisions, row numbers from `4938a2a`'s table.
 
-A for the probes and B for the workers. A probe owns its task for one function,
-which `with` expresses exactly. A worker's tasks outlive their job, so they need
-one owner that does not depend on the state a failure leaves. B makes that
-owner the worker, and makes `release_tasks()` the one teardown, so a gap cannot
-come from a forgotten guard. C would close today's three gaps and leave the
-next one to a fourth review. Neither changes a working shot's DAQmx calls.
+| Row | Decision | Commit |
+| --- | --- | --- |
+| 6 | fix: refused; `static_DO=False` without buffered DO too, the same cause | `28e8656` |
+| 8 | fix | `d59b855` |
+| 38 | fix | `6293bb6` |
+| 39 | fix | `3df25b0` |
+| 5 | Ian: "It seems to me that the issue is a class pattern thing. Why does the base class know about dds lines at all? Anyways, devices should of course reject flags they don't have." The base knows only flags; the DDS mixin adds 'dds 0' and 'dds 1' for DDSs; a no-DDS board's direct outputs take DigitalOuts only. About 60 lines each way, net 0 | `dd8a327` |
+| 15, 24 | fix, after the Andor study below | `4c591a3` |
+| 33 | the float32 gains, a correction to `50bc1d8` | `4c591a3` |
+| 21 | Ian: "I don't agree with this solution. Leave on list for discussion." | none |
+| 28 | Ian: "I am not sure this is a bug." Not changed; PySpin's answer below | none |
+| 35 | verify-first: the study confirms it, for Ian | none |
 
-A restart is not covered by A, B or C. D covers it, but it is blacs'
-change, and Ian's call; until then it is a lab check.
+- 5: left in the base, for Ian: the parser's `num_dds` loop and its 'dds'
+  prefix test (`runviewer_parsers.py:142`), and the tab's empty "DDS Outputs"
+  palette (`blacs_tabs.py:41-49`). A DDS refused on a no-DDS board is named by
+  the shared class's description, "PB-DDSII-300 Direct Outputs".
+- 15: the refusal of an EM gain without cooling was upstream's, with nothing
+  behind it in Andor's pages or micro-manager, so it goes; an EM gain without
+  `cooldown` is now set, as micro-manager sets it.
+- 28, PySpin: `GetData()` returns the raw buffer, so a packed format such as
+  Mono12Packed comes back packed, 1.5 bytes a pixel. Spinnaker unpacks only
+  through `ImageProcessor.Convert` to Mono16, `GetNDArray` does not unpack, and
+  no FLIR camera's nodes name a separate transfer format. FLIR's Python guide
+  and `ImageProcessor` reference
+  (softwareservices.flir.com/Spinnaker/4.4/getting-started/python.html,
+  softwareservices.flir.com/Spinnaker/4.4/api/pyspin_ref/classes/PySpin.ImageProcessor.html),
+  pylablib's Blackfly S reading of Mono12Packed as 1.5 bytes a pixel
+  (pylablib.readthedocs.io/en/stable/devices/Teledyne.html). So the row stands,
+  but the worker does not misread such a frame: its reshape raises a bare
+  ValueError. Its `KNOWN_ISSUES.md` line now says so. One frame on a camera
+  would settle it.
+
+### The Andor study
+
+micro-manager's SDK2 Andor adapter, `https://github.com/micro-manager/mmCoreAndDevices/blob/8057fbfccac49894d81e0b48d2bd4a09d2186344/DeviceAdapters/Andor/Andor.cpp`, read on GitHub, not run:
+- EM gain: `GetEMGainRange` after the gain mode is set, a requested gain
+  clamped to low..high, and 0 passed as "EM off" (`#L5390-L5429`,
+  `#L2439-L2443`). Ours refuses outside the range read once at start.
+- Cooling and gain: the cooler on, then the gain, with no wait and no check
+  (`#L1677`, `#L1682-L1696`, `#L2415-L2470`).
+- Preamp gains: listed by index and set by index (`#L4619-L4707`,
+  `#L2587-L2631`); compared as text, where float32 values fail an exact test.
+- Abort: `AbortAcquisition`, then `GetStatus` polled until not acquiring, and
+  the acquisition thread polls a stop flag per image (`#L4792-L4870`,
+  `#L5082-L5148`).
+- `AndorCapabilities.ulSize`: `sizeof(AndorCapabilities)` at all four
+  `GetCapabilities` calls (`#L659`, `#L1737`, `#L5319`, `#L5774`). Ours uses
+  `sys.getsizeof`, 120, where `ctypes.sizeof` gives 48: row 35.
+
+Candidates for Ian, not rows and not fixed:
+- `shutdown` closes no shutter and calls no `CoolerOFF` before `ShutDown`
+  (`#L355-L368`, `#L1764-L1771`).
+- The shutter: micro-manager checks the capability and uses `SetShutterEx`;
+  ours always calls `SetShutter` and adds the exposure to the closing time.
+- Speeds: micro-manager takes AD channel 0 and HS index 0, and the last VS
+  index; ours takes the fastest HS over the channels and VS index 1.
+- `check_status` raises on `DRV_TEMP_OFF`, `DRV_ACQUIRING` and
+  `DRV_NOT_INITIALIZED`, which micro-manager accepts from temperature reads
+  (`#L2818-L2822`, `#L5753`).
+- `enable_cooldown` waits for a stable temperature with no upper bound.
+
+### Checks
+
+At `4c591a3`, against `4938a2a`, every valid test shot is identical. The
+shots that change are refused on purpose:
+- row 31's three RFBlaster shots;
+- row 5's four shots that put a DDS on a board without one, refused now when
+  the DDS is added, with labscript's message.
+
+Traces are identical, the docs build adds no warning, and the suite passes.
+Every `Parameters` block names its signature's arguments. Each fix was probed
+against the code before it, with fakes for the hardware.
+
+Lab checks, on Development:
+- row 39: a Spinnaker camera that fails to open leaves PySpin usable for the
+  next try;
+- rows 15, 24 and 33: an Andor shot with EMCCD gain and cooldown, an abort
+  during a series, and a preamp gain such as 2.4.
