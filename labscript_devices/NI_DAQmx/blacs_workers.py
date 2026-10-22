@@ -494,14 +494,15 @@ class NI_DAQmxAcquisitionWorker(Worker):
         with self.tasklock:
             if self.task is None:
                 raise RuntimeError('Task not running')
-            # Read the samples left, at most a read_array at a time, as a late callback
-            # can leave more than that. An untriggered task has none, so no data.
+            # Read the samples pending now, at most a read_array at a time, as a late
+            # callback can leave more than that. An untriggered task has none.
             pending = uInt32()
             self.task.GetReadAvailSampPerChan(pending)
-            while pending.value:
-                num_samples = min(pending.value, len(self.read_array))
+            remaining = pending.value
+            while remaining:
+                num_samples = min(remaining, len(self.read_array))
                 self.read(self.task.taskHandle.value, None, num_samples)
-                self.task.GetReadAvailSampPerChan(pending)
+                remaining -= num_samples
             self.task.StopTask()
             self.task.ClearTask()
             self.task = None
