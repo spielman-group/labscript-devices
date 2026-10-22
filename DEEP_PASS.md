@@ -1365,9 +1365,11 @@ Facts any design works within:
     mode; with manual acquisition running, it does nothing, as before. A shot
     stops the manual task only if there is one (`ac7613b`, Fable).
   - The wait monitor starts its thread only once `start_tasks` has succeeded,
-    so a failed set-up and its abort leave nothing for the next shot. A
-    thread that does not stop within `stop_tasks`'s deadline does, which is a
-    `KNOWN_ISSUES.md` line.
+    so a failed set-up and its abort leave nothing for the next shot. A thread
+    that did not stop within `stop_tasks`'s deadline, from step 2.3's deadline,
+    is left set: the next shot with waits refuses to start a second reader while
+    it lives, and once it is gone clears its stop flag and saved error, so the
+    shot starts clean (Fable).
 - Probed with a fake PyDAQmx, against `3df25b0`: each of Codex's three cases
   and the restart of manual acquisition fails there and passes here, and so do
   failures in four of get_capabilities' probes. A working shot's teardowns,
@@ -1395,8 +1397,11 @@ Ian's decisions, row numbers from `4938a2a`'s table.
   palette (`blacs_tabs.py:41-49`). A DDS refused on a no-DDS board is named by
   the shared class's description, "PB-DDSII-300 Direct Outputs".
 - 15: the refusal of an EM gain without cooling was upstream's, with nothing
-  behind it in Andor's pages or micro-manager, so it goes; an EM gain without
-  `cooldown` is now set, as micro-manager sets it.
+  behind it in Andor's pages or micro-manager, so it goes. Ian: "make it a
+  warning, not an error": an EM gain without `cooldown` is set, with a warning
+  at set-up saying that EM gain ages the register faster on a warm sensor,
+  and to set `cooldown` True or `emccd` False. Both settings are known only in
+  the worker, from AndorCam's defaults.
 - 28, PySpin: `GetData()` returns the raw buffer, so a packed format such as
   Mono12Packed comes back packed, 1.5 bytes a pixel. Spinnaker unpacks only
   through `ImageProcessor.Convert` to Mono16, `GetNDArray` does not unpack, and
