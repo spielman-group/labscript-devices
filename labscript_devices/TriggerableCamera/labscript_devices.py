@@ -11,8 +11,9 @@
 #                                                                   #
 #####################################################################
 import sys
+import warnings
 from labscript_utils import dedent
-from labscript import TriggerableDevice, set_passed_properties
+from labscript import LabscriptError, TriggerableDevice, set_passed_properties
 import numpy as np
 import labscript_utils.h5_lock
 import h5py
@@ -22,6 +23,9 @@ class TriggerableCamera(TriggerableDevice):
     """A camera exposed by a digital trigger pulse, independent of any camera API."""
 
     description = 'Triggerable Camera'
+    # Whether this class's serial numbers were hex by convention, so an unprefixed
+    # string, now read as decimal, may once have been meant as hex.
+    hex_serial_numbers = False
 
     @set_passed_properties(
         property_names={
@@ -71,9 +75,8 @@ class TriggerableCamera(TriggerableDevice):
             parent is a `Trigger`.
         serial_number : str or int
             The camera's serial number, which identifies it: an int, which may be a
-            hex literal such as ``0x1F``, or a string, which is read as hexadecimal.
-            Give a camera whose serial is decimal, such as a FLIR or Basler one, an
-            int.
+            hex literal such as ``0x1F``, or a string, read as hexadecimal if it
+            starts with ``'0x'`` and as decimal otherwise.
         orientation : str, optional
             The camera's location or orientation. The images are saved under
             ``images/<orientation>`` in the shot file, or under ``images/<name>`` if
@@ -134,8 +137,24 @@ class TriggerableCamera(TriggerableDevice):
         self.orientation = orientation
         self.pixel_size = pixel_size
         self.magnification = magnification
-        if isinstance(serial_number, (str, bytes)):
-            serial_number = int(serial_number, 16)
+        if isinstance(serial_number, bytes):
+            serial_number = serial_number.decode()
+        if isinstance(serial_number, str):
+            if serial_number.lower().startswith('0x'):
+                serial_number = int(serial_number, 16)
+            else:
+                if not serial_number.isdigit():
+                    raise LabscriptError(
+                        f"{name}'s serial_number {serial_number!r} is not a decimal "
+                        f"number. If it is hex, write '0x{serial_number}'."
+                    )
+                if self.hex_serial_numbers:
+                    warnings.warn(
+                        f"{name}'s serial_number {serial_number!r} is now read as "
+                        f"decimal. If it is hex, write '0x{serial_number}'.",
+                        stacklevel=3,
+                    )
+                serial_number = int(serial_number)
         self.serial_number = serial_number
         self.BLACS_connection = hex(self.serial_number)[2:].upper()
         if camera_attributes is None:

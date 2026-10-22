@@ -18,3 +18,4 @@ class IMAQdxCamera(TriggerableCamera):
     """A camera driven through National Instruments IMAQdx."""
 
     description = 'IMAQdx Camera'
+    hex_serial_numbers = True
