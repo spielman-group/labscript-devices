@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import warnings
 
 from .andor_solis import *
 from .andor_capabilities import *
@@ -285,6 +286,12 @@ class AndorCam:
                 )
 
         if self.acquisition_attributes['emccd']:
+            if not self.acquisition_attributes['cooldown']:
+                warnings.warn(
+                    "EM gain is set with the cooler off: EM gain ages the gain register "
+                    "faster on a warm sensor. Set the 'cooldown' attribute to True, or "
+                    "'emccd' to False."
+                )
             self.enable_emccd(self.acquisition_attributes['emccd_gain'])
 
         modes = {
