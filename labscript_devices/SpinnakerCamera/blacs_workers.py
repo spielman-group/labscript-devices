@@ -37,28 +37,37 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
 
         self.system = PySpin.System.GetInstance()
 
-        ver = self.system.GetLibraryVersion()
-        min_ver = (1, 23, 0, 27)  # first release with python 3.6 support
-        if (ver.major, ver.minor, ver.type, ver.build) < min_ver:
-            raise RuntimeError(
-                f"PySpin version {ver.major}.{ver.minor}.{ver.type}.{ver.build} is "
-                f"older than the required {'.'.join(map(str, min_ver))}. "
-                "Install a newer PySpin."
-            )
+        camList = None
+        try:
+            ver = self.system.GetLibraryVersion()
+            min_ver = (1, 23, 0, 27)  # first release with python 3.6 support
+            if (ver.major, ver.minor, ver.type, ver.build) < min_ver:
+                raise RuntimeError(
+                    f"PySpin version {ver.major}.{ver.minor}.{ver.type}.{ver.build} is "
+                    f"older than the required {'.'.join(map(str, min_ver))}. "
+                    "Install a newer PySpin."
+                )
 
-        camList = self.system.GetCameras()
-        numCams = camList.GetSize()
+            camList = self.system.GetCameras()
+            numCams = camList.GetSize()
 
-        if numCams == 0:
-            raise ValueError(
-                'No cameras found. Check that the camera is connected and powered on.'
-            )
+            if numCams == 0:
+                raise ValueError(
+                    'No cameras found. Check that the camera is connected and powered on.'
+                )
 
-        if isinstance(serial_number, int):
-            self.camera = camList.GetBySerial(f"{serial_number:d}")
-        else:
-            self.camera = camList.GetBySerial(serial_number)
-        self.camera.Init()
+            if isinstance(serial_number, int):
+                self.camera = camList.GetBySerial(f"{serial_number:d}")
+            else:
+                self.camera = camList.GetBySerial(serial_number)
+            self.camera.Init()
+        except Exception:
+            # The system is released only once no camera is held.
+            self.camera = None
+            if camList is not None:
+                camList.Clear()
+            self.system.ReleaseInstance()
+            raise
         camList.Clear()
 
         # The timeout grab passes to GetNextImage, in ms.
@@ -155,9 +164,10 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
 
     def grab(self):
         image_result = self.camera.GetNextImage(self.timeout)
-        img = self._decode_image_data(image_result.GetData())
-        image_result.Release()
-        return img
+        try:
+            return self._decode_image_data(image_result.GetData())
+        finally:
+            image_result.Release()
 
     def trigger(self):
         """Execute a software trigger."""

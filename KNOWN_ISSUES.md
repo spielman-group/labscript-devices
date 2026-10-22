@@ -14,7 +14,6 @@
 - `SpinnakerCamera/blacs_workers.py`, `FlyCapture2Camera/blacs_workers.py`, `PylonCamera/blacs_workers.py`: TriggerableCamera reads a string `serial_number` as hexadecimal, but these cameras look the int up as a decimal serial, so a serial given as a string finds the wrong camera or none.
 - `SpinnakerCamera/blacs_workers.py`: `_decode_image_data` reads every Mono format not ending in 8 as uint16, so a packed format such as Mono12Packed is misread.
 - `SpinnakerCamera/blacs_workers.py`, `FlyCapture2Camera/blacs_workers.py`: Spinnaker's `get_attribute_names` and FlyCapture2's `get_attributes_as_dict` ignore the visibility level, so `saved_attribute_visibility_level` saves every readable attribute.
-- `SpinnakerCamera/blacs_workers.py`: `grab` does not release the image if decoding it raises, and `__init__` does not release the camera list and system when it raises.
 - `AndorSolis/andor_sdk/andor_utils.py`: `setup_acquisition` calls `enable_emccd`, which needs `self.cooling`, before `enable_cooldown` sets it, so the first setup with both `emccd` and `cooldown` True raises.
 - `AndorSolis/blacs_workers.py`: `grab_multiple` never polls the abort flag, so after an abort ends one acquisition the loop starts the next and waits for its timeout, and the worker's `abort()` joins it without one.
 - `AndorSolis/andor_sdk/andor_structures.py`: `AndorCapabilities` sets `ulSize` to `sys.getsizeof`, the Python object's size, not `ctypes.sizeof`, the structure's.
