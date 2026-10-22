@@ -36,6 +36,23 @@ from .utils import split_conn_port, split_conn_DO, split_conn_AI
 from .daqmx_utils import incomplete_sample_detection
 
 
+def clear_tasks(*tasks):
+    """Clear each task that is not None, then raise the first error any raised.
+
+    Every one is cleared whatever the others do: a task left uncleared stays held by
+    the driver, and its device fails until the driver is reset.
+    """
+    error = None
+    for task in tasks:
+        if task is not None:
+            try:
+                task.ClearTask()
+            except Exception as e:
+                error = error or e
+    if error is not None:
+        raise error
+
+
 class NI_DAQmxWorker(Worker):
     def init(self):
         self.check_version()
@@ -45,14 +62,14 @@ class NI_DAQmxWorker(Worker):
         self.start_manual_mode_tasks()
 
     def stop_tasks(self):
-        if self.AO_task is not None:
-            self.AO_task.StopTask()
-            self.AO_task.ClearTask()
-            self.AO_task = None
-        if self.DO_task is not None:
-            self.DO_task.StopTask()
-            self.DO_task.ClearTask()
-            self.DO_task = None
+        tasks = self.AO_task, self.DO_task
+        self.AO_task = self.DO_task = None
+        try:
+            for task in tasks:
+                if task is not None:
+                    task.StopTask()
+        finally:
+            clear_tasks(*tasks)
 
     def shutdown(self):
         self.stop_tasks()
@@ -342,25 +359,27 @@ class NI_DAQmxWorker(Worker):
 
         # Only call StopTask if not aborting, as it results in an error if output was
         # incomplete. ClearTask is always called.
-        for task, static, name in tasks:
-            if not abort:
-                if not static:
-                    try:
-                        # Wait for task completion with a 1 second timeout:
-                        task.WaitUntilTaskDone(1)
-                    finally:
-                        # Log where we were up to in sample generation, regardless of
-                        # whether the above succeeded:
-                        task.GetWriteCurrWritePos(npts)
-                        task.GetWriteTotalSampPerChanGenerated(samples)
-                        # Detect -1 even though they're supposed to be unsigned ints, -1
-                        # seems to indicate the task was not started:
-                        current = samples.value if samples.value != 2 ** 64 - 1 else -1
-                        total = npts.value if npts.value != 2 ** 64 - 1 else -1
-                        msg = 'Stopping %s at sample %d of %d'
-                        self.logger.info(msg, name, current, total)
-                task.StopTask()
-            task.ClearTask()
+        try:
+            for task, static, name in tasks:
+                if not abort:
+                    if not static:
+                        try:
+                            # Wait for task completion with a 1 second timeout:
+                            task.WaitUntilTaskDone(1)
+                        finally:
+                            # Log where we were up to in sample generation, regardless
+                            # of whether the above succeeded:
+                            task.GetWriteCurrWritePos(npts)
+                            task.GetWriteTotalSampPerChanGenerated(samples)
+                            # Detect -1 even though they're supposed to be unsigned
+                            # ints, -1 seems to indicate the task was not started:
+                            current = samples.value if samples.value != 2 ** 64 - 1 else -1
+                            total = npts.value if npts.value != 2 ** 64 - 1 else -1
+                            msg = 'Stopping %s at sample %d of %d'
+                            self.logger.info(msg, name, current, total)
+                    task.StopTask()
+        finally:
+            clear_tasks(*(task for task, static, name in tasks))
 
         self.set_mirror_clock_terminal_connected(False)
         self.set_connected_terminals_connected(False)
@@ -506,10 +525,12 @@ class NI_DAQmxAcquisitionWorker(Worker):
                         self.read(self.task.taskHandle.value, None, num_samples)
                         remaining -= num_samples
             finally:
-                self.task.StopTask()
-                self.task.ClearTask()
-                self.task = None
+                task, self.task = self.task, None
                 self.read_array = None
+                try:
+                    task.StopTask()
+                finally:
+                    task.ClearTask()
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         self.logger.debug('transition_to_buffered')
@@ -811,36 +832,37 @@ class NI_DAQmxWaitMonitorWorker(Worker):
 
     def stop_tasks(self, abort):
         self.logger.debug('stop_tasks')
-        if self.wait_monitor_thread is not None:
-            if abort:
-                # This will cause the wait_monitor thread to raise an exception within a
-                # short time, allowing us to join it before it would otherwise be done.
+        try:
+            if self.wait_monitor_thread is not None:
+                if abort:
+                    # This will cause the wait_monitor thread to raise an exception
+                    # within a short time, allowing us to join it before it would
+                    # otherwise be done.
+                    self.shutting_down = True
+                # The tasks stop after the shot, so an edge not seen by now will not
+                # come: give the thread a second for the last ones, then stop it.
+                self.wait_monitor_thread.join(1)
                 self.shutting_down = True
-            # The tasks stop after the shot, so an edge not seen by now will not
-            # come: give the thread a second for the last ones, then stop it.
-            self.wait_monitor_thread.join(1)
-            self.shutting_down = True
-            # It reads in chunks of 0.2 s, so sees shutting_down within one chunk
-            Deadline(self.device_name, 'stop its wait monitor thread', 2).wait(
-                lambda: not self.wait_monitor_thread.is_alive()
-            )
-            self.wait_monitor_thread = None
-            self.shutting_down = False
-            if not abort and self.wait_monitor_thread_exception is not None:
-                # Raise any unexpected errors from the wait monitor thread:
-                _reraise(self.wait_monitor_thread_exception)
-            self.wait_monitor_thread_exception = None
-            if not abort:
-                # Don't want errors about incomplete task to be raised if we are aborting:
-                self.CI_task.StopTask()
-            if self.DO_task is not None:
-                self.DO_task.StopTask()
-        if self.CI_task is not None:
-            self.CI_task.ClearTask()
-            self.CI_task = None
-        if self.DO_task is not None:
-            self.DO_task.ClearTask()
-            self.DO_task = None
+                # It reads in chunks of 0.2 s, so sees shutting_down within one chunk
+                Deadline(self.device_name, 'stop its wait monitor thread', 2).wait(
+                    lambda: not self.wait_monitor_thread.is_alive()
+                )
+                self.wait_monitor_thread = None
+                self.shutting_down = False
+                if not abort and self.wait_monitor_thread_exception is not None:
+                    # Raise any unexpected errors from the wait monitor thread:
+                    _reraise(self.wait_monitor_thread_exception)
+                self.wait_monitor_thread_exception = None
+                if not abort:
+                    # Don't want errors about incomplete task to be raised if we are
+                    # aborting:
+                    self.CI_task.StopTask()
+                if self.DO_task is not None:
+                    self.DO_task.StopTask()
+        finally:
+            tasks = self.CI_task, self.DO_task
+            self.CI_task = self.DO_task = None
+            clear_tasks(*tasks)
         self.logger.debug('finished stop_tasks')
 
     def start_tasks(self):
