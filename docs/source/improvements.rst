@@ -11,5 +11,4 @@ Improvements judged worth making, but larger than a small change.
 * **Waits close together.** A pseudoclock's BLACS tab polls the board's status every 100 ms, and the CiceroOpalKellyXEM3001 finds its waits from the sample count it reads at each poll, so a shot fails, saying a wait came too soon after another, when two of its waits both pass between one poll and the next.
 * **Reporting a worker's failure.** A pseudoclock's BLACS tab tells BLACS that a shot failed by faking a restart of the device. A BLACS call for it would be plainer.
 * **Front-panel bit packing.** NI_DAQmx's worker packs a port's line values into an integer and unpacks them, its runviewer parser unpacks them, and the PrawnDO's worker does both. One helper beside labscript's ``bitfield`` could serve all three.
-* **TekScope's module name.** The driver module ``TekScope/TekScope.py`` has the class's name, so once a worker imports it, ``labscript_devices.TekScope.TekScope`` is the module, not the class. Renaming the module would end that.
 * **test_device's keyword.** ``DoSomething`` would be ``do_something``, with the old name kept as a legacy keyword.

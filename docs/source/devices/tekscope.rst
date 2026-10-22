@@ -7,7 +7,7 @@ A device for controlling Tektronix oscilloscopes using the standard VISA interfa
    labscript_devices.TekScope.labscript_devices
    labscript_devices.TekScope.blacs_tabs
    labscript_devices.TekScope.blacs_workers
-   labscript_devices.TekScope.TekScope
+   labscript_devices.TekScope.driver
 
 Installation
 ~~~~~~~~~~~~
@@ -42,7 +42,7 @@ Detailed Documentation
    :show-inheritance:
    :private-members:
 
-.. automodule:: labscript_devices.TekScope.TekScope
+.. automodule:: labscript_devices.TekScope.driver
    :members:
    :undoc-members:
    :show-inheritance:
