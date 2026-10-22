@@ -568,8 +568,10 @@ class NI_DAQmxAcquisitionWorker(DAQmxTaskOwner, Worker):
             # delay is defined in sample clock ticks, calculate in sec and save for later
             self.AI_start_delay = self.AI_start_delay_ticks/self.buffered_rate
         self.acquired_data = []
-        # Stop the manual mode task and start the buffered mode task:
-        self.stop_task()
+        # Stop the manual mode task, if a failed set-up left one, and start the
+        # buffered mode task:
+        if self.task is not None:
+            self.stop_task()
         self.buffered_mode = True
         self.start_task(self.buffered_chans, self.buffered_rate)
         return {}
