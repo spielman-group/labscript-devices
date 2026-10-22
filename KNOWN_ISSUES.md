@@ -9,7 +9,6 @@
 - `PineBlaster/blacs_tabs.py`: `get_child_from_connection_table` returns `'-'` for a port it does not find, and BLACS then raises AttributeError reading its `.name`; no port but 'internal' is asked for now.
 - `CiceroOpalKellyXEM3001/blacs_tabs.py`: `get_child_from_connection_table` searches the board's first child, which by name order is the wait monitor's pseudoclock, so it never finds 'Clock Out'; harmless while the tab creates no outputs.
 - `CiceroOpalKellyXEM3001/labscript_devices.py`: `generate_code` merges instructions of equal periods with no cap, and the worker packs reps into 4 bytes, so 2**32 or more ticks at one period are silently cut short; it also merges a clock instruction into a wait whose timeout makes the same periods (3 or 4 ticks).
-- `LightCrafterDMD/blacs_workers.py`: `_receive` reads the header and the body with one `recv` each, so a reply split across TCP segments is misread.
 - `FlyCapture2Camera/blacs_workers.py`: `set_image_mode` rounds the width and height to the offset step sizes, not the image step sizes PyCapture2 also reports; unchecked against a camera.
 - `FlyCapture2Camera/blacs_workers.py`: `is_transient_grab_error` retries every Fc2error, so a fault that raises at once has `grab_multiple` retry it without pause until the shot ends.
 - `SpinnakerCamera/blacs_workers.py`, `FlyCapture2Camera/blacs_workers.py`, `PylonCamera/blacs_workers.py`: TriggerableCamera reads a string `serial_number` as hexadecimal, but these cameras look the int up as a decimal serial, so a serial given as a string finds the wrong camera or none.

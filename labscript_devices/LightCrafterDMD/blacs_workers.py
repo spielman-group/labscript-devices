@@ -106,15 +106,23 @@ class LightCrafterDMDWorker(Worker):
     def _receive(self, deadline):
         # Assumes a fresh packet: nothing is waiting in the buffer. The 6-byte header
         # gives the payload length. Each read takes the time left, so the deadline bounds
-        # the whole packet.
-        self.sock.settimeout(deadline.remaining())
-        header = self.sock.recv(6)
+        # the whole packet, and TCP may split it, so each part is read until it is in.
+        def read(n):
+            data = b''
+            while len(data) < n:
+                self.sock.settimeout(deadline.remaining())
+                part = self.sock.recv(n - len(data))
+                if not part:
+                    raise ConnectionError('The LightCrafter closed the connection.')
+                data += part
+            return data
+
+        header = read(6)
         pkt_type = self.receive_packet_type[header[0:1]]
         command = header[1:3]
         flag = header[3:4]
         length = struct.unpack('<H', header[4:6])[0]
-        self.sock.settimeout(deadline.remaining())
-        body = self.sock.recv(length + 1)
+        body = read(length + 1)
         checksum = body[-1:]
         body = body[:-1]
         return {
