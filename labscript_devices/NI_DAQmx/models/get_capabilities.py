@@ -132,90 +132,86 @@ def port_supports_buffered(device_name, port, clock_terminal=None):
     if clock_terminal is None:
         clock_terminal = all_terminals[0]
     npts = 16
-    task = Task()
-    clock_terminal_full = '/' + device_name + '/' + clock_terminal
-    data = np.zeros(npts, dtype=np.uint32)
-    task.CreateDOChan(device_name + "/" + port, "", c.DAQmx_Val_ChanForAllLines)
-    task.CfgSampClkTiming(
-        clock_terminal_full, 100, c.DAQmx_Val_Rising, c.DAQmx_Val_FiniteSamps, npts
-    )
-    written = int32()
-    try:
-        task.WriteDigitalU32(
-            npts, False, 10.0, c.DAQmx_Val_GroupByScanNumber, data, byref(written), None
+    with Task() as task:
+        clock_terminal_full = '/' + device_name + '/' + clock_terminal
+        data = np.zeros(npts, dtype=np.uint32)
+        task.CreateDOChan(device_name + "/" + port, "", c.DAQmx_Val_ChanForAllLines)
+        task.CfgSampClkTiming(
+            clock_terminal_full, 100, c.DAQmx_Val_Rising, c.DAQmx_Val_FiniteSamps, npts
         )
-    except (
-        PyDAQmx.DAQmxFunctions.BufferedOperationsNotSupportedOnSelectedLinesError,
-        PyDAQmx.DAQmxFunctions.PhysicalChanNotSupportedGivenSampTimingType653xError,
-    ):
-        return False
-    except (
-        PyDAQmx.DAQmxFunctions.CantUsePort3AloneGivenSampTimingTypeOn653xError,
-        PyDAQmx.DAQmxFunctions.CantUsePort1AloneGivenSampTimingTypeOn653xError,
-    ):
-        # Ports that throw this error on 653x devices do support buffered output, though
-        # there are requirements that multiple ports be used together.
-        return True
-    except PyDAQmx.DAQmxFunctions.RouteNotSupportedByHW_RoutingError:
-        # Try again with a different terminal
-        current_terminal_index = all_terminals.index(clock_terminal)
-        if current_terminal_index == len(all_terminals) - 1:
-            # There are no more terminals. No terminals can be used as clocks,
-            # therefore we cannot do externally clocked buffered output.
+        written = int32()
+        try:
+            task.WriteDigitalU32(
+                npts, False, 10.0, c.DAQmx_Val_GroupByScanNumber, data, byref(written), None
+            )
+        except (
+            PyDAQmx.DAQmxFunctions.BufferedOperationsNotSupportedOnSelectedLinesError,
+            PyDAQmx.DAQmxFunctions.PhysicalChanNotSupportedGivenSampTimingType653xError,
+        ):
             return False
-        next_terminal_to_try = all_terminals[current_terminal_index + 1]
-        return port_supports_buffered(device_name, port, next_terminal_to_try)
-    else:
-        return True
-    finally:
-        task.ClearTask()
+        except (
+            PyDAQmx.DAQmxFunctions.CantUsePort3AloneGivenSampTimingTypeOn653xError,
+            PyDAQmx.DAQmxFunctions.CantUsePort1AloneGivenSampTimingTypeOn653xError,
+        ):
+            # Ports that throw this error on 653x devices do support buffered output, though
+            # there are requirements that multiple ports be used together.
+            return True
+        except PyDAQmx.DAQmxFunctions.RouteNotSupportedByHW_RoutingError:
+            # Try again with a different terminal
+            current_terminal_index = all_terminals.index(clock_terminal)
+            if current_terminal_index == len(all_terminals) - 1:
+                # There are no more terminals. No terminals can be used as clocks,
+                # therefore we cannot do externally clocked buffered output.
+                return False
+            next_terminal_to_try = all_terminals[current_terminal_index + 1]
+            return port_supports_buffered(device_name, port, next_terminal_to_try)
+        else:
+            return True
 
 
 def AI_start_delay(device_name):
     """Empirically determine the analog inputs' start delay in seconds (None without PFI0)."""
     if 'PFI0' not in DAQmxGetDevTerminals(device_name):
         return None
-    task = Task()
-    clock_terminal = '/' + device_name + '/PFI0'
-    rate = DAQmxGetDevAIMaxSingleChanRate(device_name)
-    Vmin, Vmax = DAQmxGetDevAIVoltageRngs(device_name)[0:2]
-    num_samples = 1000
-    chan = device_name + '/ai0'
-    supp_types = DAQmxGetPhysicalChanAITermCfgs(chan)
-    if supp_types & c.DAQmx_Val_Bit_TermCfg_RSE:
-        input_type = c.DAQmx_Val_RSE
-    elif supp_types & c.DAQmx_Val_Bit_TermCfg_Diff:
-        input_type = c.DAQmx_Val_Diff
-    elif supp_types & c.DAQmx_Val_Bit_TermCfg_PseudoDIFF:
-        input_type = c.DAQmx_Val_PseudoDiff
-    task.CreateAIVoltageChan(
-        chan, "", input_type, Vmin, Vmax, c.DAQmx_Val_Volts, None
-    )
-    task.CfgSampClkTiming(
-        "", rate, c.DAQmx_Val_Rising, c.DAQmx_Val_ContSamps, num_samples
-    )
-    task.CfgDigEdgeStartTrig(clock_terminal, c.DAQmx_Val_Rising)
+    with Task() as task:
+        clock_terminal = '/' + device_name + '/PFI0'
+        rate = DAQmxGetDevAIMaxSingleChanRate(device_name)
+        Vmin, Vmax = DAQmxGetDevAIVoltageRngs(device_name)[0:2]
+        num_samples = 1000
+        chan = device_name + '/ai0'
+        supp_types = DAQmxGetPhysicalChanAITermCfgs(chan)
+        if supp_types & c.DAQmx_Val_Bit_TermCfg_RSE:
+            input_type = c.DAQmx_Val_RSE
+        elif supp_types & c.DAQmx_Val_Bit_TermCfg_Diff:
+            input_type = c.DAQmx_Val_Diff
+        elif supp_types & c.DAQmx_Val_Bit_TermCfg_PseudoDIFF:
+            input_type = c.DAQmx_Val_PseudoDiff
+        task.CreateAIVoltageChan(
+            chan, "", input_type, Vmin, Vmax, c.DAQmx_Val_Volts, None
+        )
+        task.CfgSampClkTiming(
+            "", rate, c.DAQmx_Val_Rising, c.DAQmx_Val_ContSamps, num_samples
+        )
+        task.CfgDigEdgeStartTrig(clock_terminal, c.DAQmx_Val_Rising)
 
-    start_trig_delay = float64()
-    delay_from_sample_clock = float64()
-    sample_timebase_rate = float64()
+        start_trig_delay = float64()
+        delay_from_sample_clock = float64()
+        sample_timebase_rate = float64()
 
-    try:
-        task.GetStartTrigDelay(start_trig_delay)
-    except PyDAQmx.DAQmxFunctions.AttributeNotSupportedInTaskContextError:
-        # device does not have a Start Trigger Delay property
-        # is likely a dynamic signal acquisition device with filter
-        # delays instead.
-        start_trig_delay.value = 0
-    try:
-        task.GetDelayFromSampClkDelay(delay_from_sample_clock)
-    except PyDAQmx.DAQmxFunctions.AttributeNotSupportedInTaskContextError:
-        # seems simultaneous sampling devices do not have this property,
-        # so assume it is zero
-        delay_from_sample_clock.value = 0
-    task.GetSampClkTimebaseRate(sample_timebase_rate)
-
-    task.ClearTask()
+        try:
+            task.GetStartTrigDelay(start_trig_delay)
+        except PyDAQmx.DAQmxFunctions.AttributeNotSupportedInTaskContextError:
+            # device does not have a Start Trigger Delay property
+            # is likely a dynamic signal acquisition device with filter
+            # delays instead.
+            start_trig_delay.value = 0
+        try:
+            task.GetDelayFromSampClkDelay(delay_from_sample_clock)
+        except PyDAQmx.DAQmxFunctions.AttributeNotSupportedInTaskContextError:
+            # seems simultaneous sampling devices do not have this property,
+            # so assume it is zero
+            delay_from_sample_clock.value = 0
+        task.GetSampClkTimebaseRate(sample_timebase_rate)
 
     total_delay_in_ticks = start_trig_delay.value + delay_from_sample_clock.value
     total_delay_in_seconds = total_delay_in_ticks / sample_timebase_rate.value
@@ -226,29 +222,27 @@ def AI_filter_delay(device_name):
     """Return a dynamic signal acquisition device's filter delay in sample clock periods."""
     if 'PFI0' not in DAQmxGetDevTerminals(device_name):
         return None
-    task = Task()
-    clock_terminal = '/' + device_name + '/PFI0'
-    rate = DAQmxGetDevAIMaxSingleChanRate(device_name)
-    Vmin, Vmax = DAQmxGetDevAIVoltageRngs(device_name)[0:2]
-    num_samples = 1000
-    chan = device_name + '/ai0'
-    task.CreateAIVoltageChan(
-        chan, "", c.DAQmx_Val_PseudoDiff, Vmin, Vmax, c.DAQmx_Val_Volts, None
-    )
-    task.CfgSampClkTiming(
-        "", rate, c.DAQmx_Val_Rising, c.DAQmx_Val_ContSamps, num_samples
-    )
-    task.CfgDigEdgeStartTrig(clock_terminal, c.DAQmx_Val_Rising)
+    with Task() as task:
+        clock_terminal = '/' + device_name + '/PFI0'
+        rate = DAQmxGetDevAIMaxSingleChanRate(device_name)
+        Vmin, Vmax = DAQmxGetDevAIVoltageRngs(device_name)[0:2]
+        num_samples = 1000
+        chan = device_name + '/ai0'
+        task.CreateAIVoltageChan(
+            chan, "", c.DAQmx_Val_PseudoDiff, Vmin, Vmax, c.DAQmx_Val_Volts, None
+        )
+        task.CfgSampClkTiming(
+            "", rate, c.DAQmx_Val_Rising, c.DAQmx_Val_ContSamps, num_samples
+        )
+        task.CfgDigEdgeStartTrig(clock_terminal, c.DAQmx_Val_Rising)
 
-    start_filter_delay = float64()
-    sample_timebase_rate = float64()
+        start_filter_delay = float64()
+        sample_timebase_rate = float64()
 
-    task.SetAIFilterDelayUnits("", c.DAQmx_Val_SampleClkPeriods)
+        task.SetAIFilterDelayUnits("", c.DAQmx_Val_SampleClkPeriods)
 
-    task.GetAIFilterDelay("", start_filter_delay)
-    task.GetSampClkTimebaseRate(sample_timebase_rate)
-
-    task.ClearTask()
+        task.GetAIFilterDelay("", start_filter_delay)
+        task.GetSampClkTimebaseRate(sample_timebase_rate)
 
     return int(start_filter_delay.value)
 
@@ -276,18 +270,16 @@ def supported_AI_ranges_for_non_differential_input(device_name, AI_ranges):
     # The largest range may only be available for differential input, so try each:
     for Vmin, Vmax in AI_ranges:
         try:
-            task = Task()
-            task.CreateAIVoltageChan(
-                chan, "", c.DAQmx_Val_RSE, Vmin, Vmax, c.DAQmx_Val_Volts, None
-            )
-            task.StartTask()
+            with Task() as task:
+                task.CreateAIVoltageChan(
+                    chan, "", c.DAQmx_Val_RSE, Vmin, Vmax, c.DAQmx_Val_Volts, None
+                )
+                task.StartTask()
         except PyDAQmx.DAQmxFunctions.InvalidAttributeValueError as e:
             if 'DAQmx_AI_Min' in e.message or 'DAQmx_AI_Max' in e.message:
                 # Not supported for non-differential input:
                 continue
             raise
-        finally:
-            task.ClearTask()
         supported_ranges.append([Vmin, Vmax])
 
     return supported_ranges
@@ -313,26 +305,24 @@ def get_min_semiperiod_measurement(device_name):
     CI_chans = DAQmxGetDevCIPhysicalChans(device_name)
     CI_chan = device_name + '/' + CI_chans[0]
     # Make a task with a semiperiod measurement
-    task = Task()
-    task.CreateCISemiPeriodChan(CI_chan, '', 1e-100, 1e100, c.DAQmx_Val_Seconds, "")
-    try:
-        task.StartTask()
-    except PyDAQmx.DAQmxFunctions.CtrMinMaxError as e:
-        # Parse the error to extract the allowed values:
-        CI_ranges = []
-        DT_MIN_PREFIX = "Value Must Be Greater Than:"
-        DT_MAX_PREFIX = "Value Must Be Less Than:"
-        error_lines = e.message.splitlines()
-        for line in error_lines:
-            if DT_MIN_PREFIX in line:
-                dt_min = float(line.replace(DT_MIN_PREFIX, ''))
-            if DT_MAX_PREFIX in line:
-                dt_max = float(line.replace(DT_MAX_PREFIX, ''))
-                CI_ranges.append([dt_min, dt_max])
-    else:
-        raise AssertionError("Can't figure out counter input ranges")
-    finally:
-        task.ClearTask()
+    with Task() as task:
+        task.CreateCISemiPeriodChan(CI_chan, '', 1e-100, 1e100, c.DAQmx_Val_Seconds, "")
+        try:
+            task.StartTask()
+        except PyDAQmx.DAQmxFunctions.CtrMinMaxError as e:
+            # Parse the error to extract the allowed values:
+            CI_ranges = []
+            DT_MIN_PREFIX = "Value Must Be Greater Than:"
+            DT_MAX_PREFIX = "Value Must Be Less Than:"
+            error_lines = e.message.splitlines()
+            for line in error_lines:
+                if DT_MIN_PREFIX in line:
+                    dt_min = float(line.replace(DT_MIN_PREFIX, ''))
+                if DT_MAX_PREFIX in line:
+                    dt_max = float(line.replace(DT_MAX_PREFIX, ''))
+                    CI_ranges.append([dt_min, dt_max])
+        else:
+            raise AssertionError("Can't figure out counter input ranges")
 
     # Each timebase measures its own range. Use the fastest one that can still measure
     # 100 s, or else the largest dtmin, as the default min_semiperiod_measurement, the

@@ -46,23 +46,6 @@ def supports_period_measurement(device_name):
     return c.DAQmx_Val_Period in [result[i] for i in range(npts)]
 
 
-def clear_tasks(*tasks):
-    """Clear each task that is not None, then raise the first error any raised.
-
-    Every one is cleared whatever the others do: a task left uncleared stays held by
-    the driver, and its device fails until the driver is reset.
-    """
-    error = None
-    for task in tasks:
-        if task is not None:
-            try:
-                task.ClearTask()
-            except Exception as e:
-                error = error or e
-    if error is not None:
-        raise error
-
-
 def incomplete_sample_detection(device_name):
     """Return whether the device discards the first edge of a period measurement."""
     # See www.ni.com/documentation/en/ni-daqmx/latest/devconsid/incompletesampledetection/
@@ -95,9 +78,7 @@ def incomplete_sample_detection(device_name):
     out_chan = CI_chans[0]
     meas_chan = CI_chans[1]
 
-    out_task = daqmx.Task()
-    meas_task = None
-    try:
+    with daqmx.Task() as out_task:
         out_task.CreateCOPulseChanTime(
             out_chan, "", c.DAQmx_Val_Seconds, c.DAQmx_Val_Low, 0, 1e-3, 1e-3
         )
@@ -106,42 +87,40 @@ def incomplete_sample_detection(device_name):
         # Force CO into idle state to prevent spurious edges when the task is started:
         out_task.TaskControl(c.DAQmx_Val_Task_Commit)
 
-        meas_task = daqmx.Task()
-        meas_task.CreateCIPeriodChan(
-            meas_chan,
-            "",
-            1e-3,
-            1.0,
-            c.DAQmx_Val_Seconds,
-            c.DAQmx_Val_Rising,
-            c.DAQmx_Val_LowFreq1Ctr,
-            10.0,
-            0,
-            "",
-        )
-        meas_task.CfgImplicitTiming(c.DAQmx_Val_ContSamps, 1)
-        # Specify that we are measuring the internal output of the other counter:
-        meas_task.SetCIPeriodTerm("", '/' + out_chan + 'InternalOutput')
-
-        meas_task.StartTask()
-        out_task.StartTask()
-        out_task.WaitUntilTaskDone(10.0)
-        samps_avail = types.uInt32()
-        meas_task.GetReadAvailSampPerChan(samps_avail)
-        if samps_avail.value == 0:
-            # The device discarded the first edge
-            return True
-        elif samps_avail.value == 1:
-            # The device did not discard the first edge
-            return False
-        else:
-            msg = (
-                f"Got {samps_avail.value} samples from the test for incomplete sample "
-                f"detection on {device_name}, not 0 or 1."
+        with daqmx.Task() as meas_task:
+            meas_task.CreateCIPeriodChan(
+                meas_chan,
+                "",
+                1e-3,
+                1.0,
+                c.DAQmx_Val_Seconds,
+                c.DAQmx_Val_Rising,
+                c.DAQmx_Val_LowFreq1Ctr,
+                10.0,
+                0,
+                "",
             )
-            raise ValueError(msg)
-    finally:
-        clear_tasks(out_task, meas_task)
+            meas_task.CfgImplicitTiming(c.DAQmx_Val_ContSamps, 1)
+            # Specify that we are measuring the internal output of the other counter:
+            meas_task.SetCIPeriodTerm("", '/' + out_chan + 'InternalOutput')
+
+            meas_task.StartTask()
+            out_task.StartTask()
+            out_task.WaitUntilTaskDone(10.0)
+            samps_avail = types.uInt32()
+            meas_task.GetReadAvailSampPerChan(samps_avail)
+            if samps_avail.value == 0:
+                # The device discarded the first edge
+                return True
+            elif samps_avail.value == 1:
+                # The device did not discard the first edge
+                return False
+            else:
+                msg = (
+                    f"Got {samps_avail.value} samples from the test for incomplete sample "
+                    f"detection on {device_name}, not 0 or 1."
+                )
+                raise ValueError(msg)
 
 
 if __name__ == '__main__':
