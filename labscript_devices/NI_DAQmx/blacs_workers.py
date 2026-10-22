@@ -935,6 +935,17 @@ class NI_DAQmxWaitMonitorWorker(DAQmxTaskOwner, Worker):
                 return {}
             self.wait_table = dataset[:]
 
+        # A thread that did not stop by the end of an earlier shot is left set, so that
+        # no second one reads the counter while it lives.
+        if self.wait_monitor_thread is not None:
+            if self.wait_monitor_thread.is_alive():
+                raise RuntimeError(
+                    f"{self.device_name}'s wait monitor thread from an earlier shot is "
+                    "still running. Restart the device's tab to stop it."
+                )
+            self.wait_monitor_thread = None
+            self.shutting_down = False
+            self.wait_monitor_thread_exception = None
         self.start_tasks()
 
         # semiperiods collects the counter's results. partial_edges holds what a
