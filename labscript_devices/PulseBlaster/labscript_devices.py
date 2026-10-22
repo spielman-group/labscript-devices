@@ -97,6 +97,8 @@ class PulseBlasterBase(PseudoclockDevice):
     wait_delay = 100e-9
     trigger_edge_type = 'falling'
 
+    # The classes its direct outputs accept: flags only, unless a board has DDSs.
+    direct_output_classes = [DigitalOut]
     # Only the board's Pseudoclock can be its child; digital and DDS outputs connect
     # to `direct_outputs`, below it.
     allowed_children = [Pseudoclock]
@@ -247,6 +249,7 @@ class PulseBlasterBase(PseudoclockDevice):
         # The board's direct DigitalOuts and DDSs connect to this device, on an internal
         # clock line.
         self._direct_output_device = PulseBlasterDirectOutputs('%s_direct_output_device'%name, self._direct_output_clock_line)
+        self._direct_output_device.allowed_children = self.direct_output_classes
 
     @property
     def pseudoclock(self):
@@ -277,60 +280,46 @@ class PulseBlasterBase(PseudoclockDevice):
 
     def get_direct_outputs(self):
         """Return the direct digital outputs and DDSs, after checking their connections."""
-        dig_outputs = []
-        dds_outputs = []
-        for output in self.direct_outputs.get_all_outputs():
-            # This also returns a DDS's channels; process each DDS once, in place of
-            # the first of them.
-            if isinstance(output.parent_device, DDS) or isinstance(output.parent_device, PulseBlasterDDS):
-                if output.parent_device not in dds_outputs:
-                    output = output.parent_device
-                else:
-                    continue
-
-            if isinstance(output,DDS) or isinstance(output,PulseBlasterDDS) or isinstance(output, DigitalOut):
-                try:
-                    prefix, connection = output.connection.split()
-                    assert prefix == 'flag' or prefix == 'dds'
-                    connection = int(connection)
-                except:
-                    raise LabscriptError(
-                        f"{output.description} {output.name} has invalid connection string: "
-                        f"{output.connection!r}. Format must be 'flag n' with n an integer "
-                        f"less than {self.n_flags}, or 'dds n' with n less than 2."
-                    )
-                if prefix == 'flag' and not self.flag_valid(connection):
-                    raise LabscriptError(
-                        f"{output.name} is connected to flag {connection} of {self.name}, "
-                        f"which has flags 0 to {self.n_flags-1}. Connect it to a flag "
-                        "in that range."
-                    )
-                if prefix == 'flag' and self.flag_is_clock(connection):
-                    raise LabscriptError(
-                        f"{output.name} is connected to flag {connection} of {self.name}, "
-                        "which a clock line already uses. Connect it to another flag."
-                    )
-                if prefix == 'dds' and not connection < 2:
-                    raise LabscriptError(
-                        f"{output.name} is connected to DDS output {connection} of "
-                        f"{self.name}, which has only 'dds 0' and 'dds 1'. Connect it "
-                        "to one of those."
-                    )
-
-                for other_output in dig_outputs + dds_outputs:
-                    if output.connection == other_output.connection:
-                        raise LabscriptError(
-                            f"{output.name} and {other_output.name} are both connected "
-                            f"to {output.connection} of {self.name}. Connect each "
-                            "output to its own flag or DDS output."
-                        )
-
-                if isinstance(output, DigitalOut):
-                    dig_outputs.append(output)
-                elif isinstance(output, DDS) or isinstance(output, PulseBlasterDDS):
-                    dds_outputs.append(output)
-
+        outputs = {}
+        for output in self.direct_outputs.child_devices:
+            self.direct_output_number(output)
+            if output.connection in outputs:
+                raise LabscriptError(
+                    f"{output.name} and {outputs[output.connection].name} are both "
+                    f"connected to {output.connection} of {self.name}. Give each output "
+                    "its own connection."
+                )
+            outputs[output.connection] = output
+        dig_outputs = [o for o in outputs.values() if isinstance(o, DigitalOut)]
+        dds_outputs = [o for o in outputs.values() if not isinstance(o, DigitalOut)]
         return dig_outputs, dds_outputs
+
+    def direct_output_number(self, output):
+        """Return n from a DigitalOut's connection 'flag n', refusing any other output
+        or connection, a flag the board does not have, and a clock line's flag."""
+        try:
+            prefix, flag = output.connection.split()
+            flag = int(flag)
+        except ValueError:
+            prefix = None
+        if not isinstance(output, DigitalOut) or prefix != 'flag':
+            raise LabscriptError(
+                f"{output.description} {output.name} has invalid connection string: "
+                f"{output.connection!r}. Connect a DigitalOut to 'flag n' with n an "
+                f"integer less than {self.n_flags}."
+            )
+        if not self.flag_valid(flag):
+            raise LabscriptError(
+                f"{output.name} is connected to flag {flag} of {self.name}, "
+                f"which has flags 0 to {self.n_flags-1}. Connect it to a flag "
+                "in that range."
+            )
+        if self.flag_is_clock(flag):
+            raise LabscriptError(
+                f"{output.name} is connected to flag {flag} of {self.name}, "
+                "which a clock line already uses. Connect it to another flag."
+            )
+        return flag
 
     def convert_to_pb_inst(self, dig_outputs):
         pb_inst = []
@@ -521,13 +510,7 @@ class PulseBlasterBase(PseudoclockDevice):
     def generate_code(self, hdf5_file):
         self.init_device_group(hdf5_file)
         PseudoclockDevice.generate_code(self, hdf5_file)
-        dig_outputs, dds_outputs = self.get_direct_outputs()
-        if dds_outputs:
-            names = ', '.join(dds.name for dds in dds_outputs)
-            raise LabscriptError(
-                f"{self.name} ({self.description}) has no DDS outputs, so {names} "
-                "cannot be connected to it."
-            )
+        dig_outputs, _ = self.get_direct_outputs()
         pb_inst = self.convert_to_pb_inst(dig_outputs)
         self._check_wait_monitor_ok()
         self.write_pb_inst_to_h5(pb_inst, hdf5_file)
@@ -536,6 +519,24 @@ class PulseBlasterBase(PseudoclockDevice):
 class DDSPulseBlasterMixin:
     """The two DDS outputs, ``'dds 0'`` and ``'dds 1'``, of a PulseBlaster board
     that has them. It comes before :class:`PulseBlasterBase` in a board's bases."""
+
+    direct_output_classes = [DDS, PulseBlasterDDS, DigitalOut]
+
+    def direct_output_number(self, output):
+        """Return n from a DDS's connection 'dds n', n 0 or 1; other outputs are flags."""
+        if not isinstance(output, (DDS, PulseBlasterDDS)):
+            return super().direct_output_number(output)
+        try:
+            prefix, number = output.connection.split()
+            number = int(number)
+        except ValueError:
+            prefix = None
+        if prefix != 'dds' or not 0 <= number < 2:
+            raise LabscriptError(
+                f"{output.description} {output.name} has invalid connection string: "
+                f"{output.connection!r}. Connect a DDS to 'dds 0' or 'dds 1'."
+            )
+        return number
 
     def generate_registers(self, hdf5_file, dds_outputs):
         ampdicts = {}
@@ -703,7 +704,7 @@ def _takes_first(frame, device):
 class PulseBlasterDirectOutputs(IntermediateDevice):
     """The internal device that a PulseBlaster's digital outputs and DDSs connect to."""
 
-    allowed_children = [DDS, PulseBlasterDDS, DigitalOut]
+    allowed_children = [DigitalOut]
     clock_limit = PulseBlaster.clock_limit
     description = 'PB-DDSII-300 Direct Outputs'
 
