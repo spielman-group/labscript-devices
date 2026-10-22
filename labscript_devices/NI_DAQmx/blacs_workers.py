@@ -33,10 +33,39 @@ from blacs.tab_base_classes import Worker
 
 from ..deadline import Deadline
 from .utils import split_conn_port, split_conn_DO, split_conn_AI
-from .daqmx_utils import incomplete_sample_detection, clear_tasks
+from .daqmx_utils import incomplete_sample_detection
 
 
-class NI_DAQmxWorker(Worker):
+class DAQmxTaskOwner:
+    """A worker that holds its DAQmx tasks in the attributes `task_attributes` names."""
+
+    task_attributes = ()
+
+    def release_tasks(self):
+        """Clear every task the worker holds, setting each attribute to None, then
+        raise the first error any raised.
+
+        Every one is cleared whatever the others do: a task left uncleared stays held by
+        the driver, and its device fails until the driver is reset.
+        """
+        error = None
+        for name in self.task_attributes:
+            task = getattr(self, name)
+            setattr(self, name, None)
+            if task is not None:
+                try:
+                    task.ClearTask()
+                except Exception as e:
+                    error = error or e
+        if error is not None:
+            raise error
+
+
+class NI_DAQmxWorker(DAQmxTaskOwner, Worker):
+    task_attributes = ('AO_task', 'DO_task')
+    AO_task = None
+    DO_task = None
+
     def init(self):
         self.check_version()
         # Reset Device: clears previously added routes etc. Note: is insufficient for
@@ -45,14 +74,12 @@ class NI_DAQmxWorker(Worker):
         self.start_manual_mode_tasks()
 
     def stop_tasks(self):
-        tasks = self.AO_task, self.DO_task
-        self.AO_task = self.DO_task = None
         try:
-            for task in tasks:
+            for task in (self.AO_task, self.DO_task):
                 if task is not None:
                     task.StopTask()
         finally:
-            clear_tasks(*tasks)
+            self.release_tasks()
 
     def shutdown(self):
         self.stop_tasks()
@@ -74,32 +101,37 @@ class NI_DAQmxWorker(Worker):
             raise Exception(dedent(msg))
 
     def start_manual_mode_tasks(self):
-        if self.num_AO > 0:
-            self.AO_task = Task()
-        else:
-            self.AO_task = None
+        # BLACS sends no abort after a failed manual set-up, so it releases its tasks.
+        try:
+            if self.num_AO > 0:
+                self.AO_task = Task()
+            else:
+                self.AO_task = None
 
-        if self.ports:
-            self.DO_task = Task()
-        else:
-            self.DO_task = None
+            if self.ports:
+                self.DO_task = Task()
+            else:
+                self.DO_task = None
 
-        for i in range(self.num_AO):
-            con = f"{self.MAX_name}/ao{i}"
-            self.AO_task.CreateAOVoltageChan(
-                con, "", self.Vmin, self.Vmax, DAQmx_Val_Volts, None
-            )
+            for i in range(self.num_AO):
+                con = f"{self.MAX_name}/ao{i}"
+                self.AO_task.CreateAOVoltageChan(
+                    con, "", self.Vmin, self.Vmax, DAQmx_Val_Volts, None
+                )
 
-        for port_str in sorted(self.ports, key=split_conn_port):
-            if not self.ports[port_str]['num_lines']:
-                continue
-            con = f'{self.MAX_name}/{port_str}'
-            self.DO_task.CreateDOChan(con, "", DAQmx_Val_ChanForAllLines)
+            for port_str in sorted(self.ports, key=split_conn_port):
+                if not self.ports[port_str]['num_lines']:
+                    continue
+                con = f'{self.MAX_name}/{port_str}'
+                self.DO_task.CreateDOChan(con, "", DAQmx_Val_ChanForAllLines)
 
-        if self.AO_task is not None:
-            self.AO_task.StartTask()
-        if self.DO_task is not None:
-            self.DO_task.StartTask()
+            if self.AO_task is not None:
+                self.AO_task.StartTask()
+            if self.DO_task is not None:
+                self.DO_task.StartTask()
+        except Exception:
+            self.release_tasks()
+            raise
 
     def program_manual(self, front_panel_values):
         written = int32()
@@ -332,37 +364,34 @@ class NI_DAQmxWorker(Worker):
     def _return_to_manual(self, abort):
         npts = uInt64()
         samples = uInt64()
-        tasks = []
-        if self.AO_task is not None:
-            tasks.append([self.AO_task, self.static_AO or self.AO_all_zero, 'AO'])
-            self.AO_task = None
-        if self.DO_task is not None:
-            tasks.append([self.DO_task, self.static_DO or self.DO_all_zero, 'DO'])
-            self.DO_task = None
-
         # Only call StopTask if not aborting, as it results in an error if output was
-        # incomplete. ClearTask is always called.
+        # incomplete. An abort may follow a set-up that failed before the all-zero flags
+        # were set, so it reads neither. ClearTask is always called.
         try:
+            tasks = []
+            if not abort and self.AO_task is not None:
+                tasks.append([self.AO_task, self.static_AO or self.AO_all_zero, 'AO'])
+            if not abort and self.DO_task is not None:
+                tasks.append([self.DO_task, self.static_DO or self.DO_all_zero, 'DO'])
             for task, static, name in tasks:
-                if not abort:
-                    if not static:
-                        try:
-                            # Wait for task completion with a 1 second timeout:
-                            task.WaitUntilTaskDone(1)
-                        finally:
-                            # Log where we were up to in sample generation, regardless
-                            # of whether the above succeeded:
-                            task.GetWriteCurrWritePos(npts)
-                            task.GetWriteTotalSampPerChanGenerated(samples)
-                            # Detect -1 even though they're supposed to be unsigned
-                            # ints, -1 seems to indicate the task was not started:
-                            current = samples.value if samples.value != 2 ** 64 - 1 else -1
-                            total = npts.value if npts.value != 2 ** 64 - 1 else -1
-                            msg = 'Stopping %s at sample %d of %d'
-                            self.logger.info(msg, name, current, total)
-                    task.StopTask()
+                if not static:
+                    try:
+                        # Wait for task completion with a 1 second timeout:
+                        task.WaitUntilTaskDone(1)
+                    finally:
+                        # Log where we were up to in sample generation, regardless of
+                        # whether the above succeeded:
+                        task.GetWriteCurrWritePos(npts)
+                        task.GetWriteTotalSampPerChanGenerated(samples)
+                        # Detect -1 even though they're supposed to be unsigned ints, -1
+                        # seems to indicate the task was not started:
+                        current = samples.value if samples.value != 2 ** 64 - 1 else -1
+                        total = npts.value if npts.value != 2 ** 64 - 1 else -1
+                        msg = 'Stopping %s at sample %d of %d'
+                        self.logger.info(msg, name, current, total)
+                task.StopTask()
         finally:
-            clear_tasks(*(task for task, static, name in tasks))
+            self.release_tasks()
 
         self.set_mirror_clock_terminal_connected(False)
         self.set_connected_terminals_connected(False)
@@ -380,9 +409,11 @@ class NI_DAQmxWorker(Worker):
         return self.abort()
 
 
-class NI_DAQmxAcquisitionWorker(Worker):
+class NI_DAQmxAcquisitionWorker(DAQmxTaskOwner, Worker):
     MAX_READ_INTERVAL = 0.2
     MAX_READ_PTS = 10000
+    task_attributes = ('task',)
+    task = None
 
     def init(self):
         # Prevent interference between the read callback and the shutdown code:
@@ -447,50 +478,56 @@ class NI_DAQmxAcquisitionWorker(Worker):
 
         num_samples = min(self.MAX_READ_PTS, int(rate * self.MAX_READ_INTERVAL))
 
-        self.read_array = np.zeros((num_samples, len(chans)), dtype=np.float64)
-        self.task = Task()
+        # The manual set-ups get no abort from BLACS, so a failed one releases its task.
+        try:
+            self.read_array = np.zeros((num_samples, len(chans)), dtype=np.float64)
+            self.task = Task()
 
-        if self.AI_term == 'RSE':
-            term = DAQmx_Val_RSE
-        elif self.AI_term == 'NRSE':
-            term = DAQmx_Val_NRSE
-        elif self.AI_term == 'Diff':
-            term = DAQmx_Val_Diff
-        elif self.AI_term == 'PseudoDiff':
-            term = DAQmx_Val_PseudoDiff
+            if self.AI_term == 'RSE':
+                term = DAQmx_Val_RSE
+            elif self.AI_term == 'NRSE':
+                term = DAQmx_Val_NRSE
+            elif self.AI_term == 'Diff':
+                term = DAQmx_Val_Diff
+            elif self.AI_term == 'PseudoDiff':
+                term = DAQmx_Val_PseudoDiff
 
-        for chan in chans:
-            self.task.CreateAIVoltageChan(
-                self.MAX_name + '/' + chan,
-                "",
-                term,
-                self.AI_range[0],
-                self.AI_range[1],
-                DAQmx_Val_Volts,
-                None,
+            for chan in chans:
+                self.task.CreateAIVoltageChan(
+                    self.MAX_name + '/' + chan,
+                    "",
+                    term,
+                    self.AI_range[0],
+                    self.AI_range[1],
+                    DAQmx_Val_Volts,
+                    None,
+                )
+
+            if self.AI_timebase_terminal is None:
+                # use internal default
+                pass
+            else:
+                self.task.SetSampClkTimebaseSrc(self.AI_timebase_terminal)
+                self.task.SetSampClkTimebaseRate(self.AI_timebase_rate)
+
+            self.task.CfgSampClkTiming(
+                "", rate, DAQmx_Val_Rising, DAQmx_Val_ContSamps, num_samples
+            )
+            if self.buffered_mode:
+                self.task.CfgDigEdgeStartTrig(self.clock_terminal, DAQmx_Val_Rising)
+
+            # This must not be garbage collected until the task is:
+            self.task.callback_ptr = DAQmxEveryNSamplesEventCallbackPtr(self.read)
+
+            self.task.RegisterEveryNSamplesEvent(
+                DAQmx_Val_Acquired_Into_Buffer, num_samples, 0, self.task.callback_ptr, 100
             )
 
-        if self.AI_timebase_terminal is None:
-            # use internal default
-            pass
-        else:
-            self.task.SetSampClkTimebaseSrc(self.AI_timebase_terminal)
-            self.task.SetSampClkTimebaseRate(self.AI_timebase_rate)
-
-        self.task.CfgSampClkTiming(
-            "", rate, DAQmx_Val_Rising, DAQmx_Val_ContSamps, num_samples
-        )
-        if self.buffered_mode:
-            self.task.CfgDigEdgeStartTrig(self.clock_terminal, DAQmx_Val_Rising)
-
-        # This must not be garbage collected until the task is:
-        self.task.callback_ptr = DAQmxEveryNSamplesEventCallbackPtr(self.read)
-
-        self.task.RegisterEveryNSamplesEvent(
-            DAQmx_Val_Acquired_Into_Buffer, num_samples, 0, self.task.callback_ptr, 100
-        )
-
-        self.task.StartTask()
+            self.task.StartTask()
+        except Exception:
+            with self.tasklock:
+                self.release_tasks()
+            raise
 
     def stop_task(self):
         with self.tasklock:
@@ -507,13 +544,10 @@ class NI_DAQmxAcquisitionWorker(Worker):
                         num_samples = min(remaining, len(self.read_array))
                         self.read(self.task.taskHandle.value, None, num_samples)
                         remaining -= num_samples
+                self.task.StopTask()
             finally:
-                task, self.task = self.task, None
+                self.release_tasks()
                 self.read_array = None
-                try:
-                    task.StopTask()
-                finally:
-                    task.ClearTask()
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         self.logger.debug('transition_to_buffered')
@@ -552,8 +586,12 @@ class NI_DAQmxAcquisitionWorker(Worker):
         # buffered mode: abort() can be called when we are not, and a shot with no
         # analog input table never entered it.
         if not self.buffered_mode:
+            # A set-up or stop that failed before buffered mode leaves no task: start
+            # manual acquisition again.
+            if self.task is None:
+                self.start_task(self.manual_mode_chans, self.manual_mode_rate)
             return True
-        if self.buffered_chans is not None:
+        if self.task is not None:
             self.stop_task()
         self.buffered_mode = False
         self.logger.info('transitioning to manual mode, task stopped')
@@ -672,7 +710,11 @@ class NI_DAQmxAcquisitionWorker(Worker):
         return {}
 
 
-class NI_DAQmxWaitMonitorWorker(Worker):
+class NI_DAQmxWaitMonitorWorker(DAQmxTaskOwner, Worker):
+    task_attributes = ('CI_task', 'DO_task')
+    CI_task = None
+    DO_task = None
+
     def init(self):
         self.all_waits_finished = Event('all_waits_finished', type='post')
         self.wait_durations_analysed = Event('wait_durations_analysed', type='post')
@@ -843,9 +885,7 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                 if self.DO_task is not None:
                     self.DO_task.StopTask()
         finally:
-            tasks = self.CI_task, self.DO_task
-            self.CI_task = self.DO_task = None
-            clear_tasks(*tasks)
+            self.release_tasks()
         self.logger.debug('finished stop_tasks')
 
     def start_tasks(self):
