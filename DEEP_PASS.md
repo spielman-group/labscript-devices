@@ -1493,7 +1493,7 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
 | 5, message | a no-DDS board's refusal of a DDS names that board, its direct outputs described by its own name: our regression from `dd8a327` | `a2ac146` |
 | 75 | a bug as well as an improvement: a `KNOWN_ISSUES.md` line, the improvement the fix | `f99357a` |
 | 80 | Codex: a requested channel is switched on (`SELECT:<ch> ON`) before the shot, as a hidden one returns no waveform, and an unknown one is refused then; `channels=None` sends nothing new | `4a4ce68` |
-| 52 | labscript-utils' default parser (`538db4c`) stops the error, but returns no traces, so runviewer still loads nothing below; DummyIntermediateDevice needs a parser that returns its outputs' traces, for Ian | `b298ce1` |
+| 52 | resolved in runviewer `edcc0a7`'s single walk, with labscript-utils `538db4c`, `83d578e`, `5d13d77` and `84dde2b`: every device is drawn, each parser runs once. Two limits remain, each a `KNOWN_ISSUES.md` line: when no ancestor's parser supplies a trigger's trace, a device below it is drawn as if triggered at 0, and an NI_DAQmx card under such a clock line fails to load | `b298ce1`, `bdf83b8` |
 
 - 85: Ian's statement held only while `cooldown` was on, with `chatty`, so on
   his word ("yes have temp printed every shot not matter what") every shot now
