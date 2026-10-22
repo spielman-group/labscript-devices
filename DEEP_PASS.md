@@ -1205,7 +1205,7 @@ remain.
 
 | Rows | Commit |
 | --- | --- |
-| 1, 9, 68 | `0e17cfe`, and for 1 `75df455`, `d46f7b6`, `e9392fd`, `8879e24`, NI_DAQmx |
+| 1, 9, 68 | `0e17cfe`, and for 1 `75df455`, `d46f7b6`, `e9392fd`, `8879e24`, `74834ab`, NI_DAQmx |
 | 4 | `462bc30` NovaTechDDS9M |
 | 13, 25, 32, 60, 66 | `2279ec9` AlazarTechBoard |
 | 14, 33, 37 | `50bc1d8` AndorSolis |
@@ -1279,8 +1279,12 @@ remain.
   - the wait monitor's `stop_tasks`, when its thread failed or would not stop,
     or its `StopTask` raised, kept both.
 
-  `clear_tasks` clears them in the three teardowns of two tasks.
-  - Checked at `8879e24` as above, with the same three RFBlaster shots alone
+  - `incomplete_sample_detection`, run at each worker's start, made and set up
+    its two tasks before its `try`, and cleared them one after the other.
+
+  `clear_tasks`, in `daqmx_utils.py`, clears them in the four teardowns of
+  two tasks.
+  - Checked at `74834ab` as above, with the same three RFBlaster shots alone
     differing.
 - Lab checks, on Development:
   - row 1: an NI shot's analog input keeps the samples after its last full
