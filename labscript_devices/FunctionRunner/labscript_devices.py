@@ -83,15 +83,6 @@ class FunctionRunner(Device):
                 data_group = f['data'].create_group(shot_context.device_name)
                 # Save datasets and attributes within this group.
 
-        To save results that lyse analysis routines read in the usual way, make a
-        `lyse.Run`. It names its results group after the main script of the running
-        process, not after this device, so set the group::
-
-            import lyse
-            run = lyse.Run(shot_context.h5_file)
-            run.set_group(shot_context.device_name)
-            run.save_result('x', 7)
-
         This device was made to update runmanager's globals right after a shot, from
         measurement data, so that the shots compiled after it use the new values. A
         ``'stop'`` function calls the runmanager remote API::
