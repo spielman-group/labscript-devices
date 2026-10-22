@@ -44,7 +44,7 @@ class PulseBlasterDDS(DDSQuantity):
 
     description = 'PulseBlasterDDS'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name, *args, digital_gate=None, **kwargs):
         """Takes the arguments of :class:`~labscript.DDSQuantity`, with a `connection`
         of ``'dds 0'`` or ``'dds 1'``, but no `digital_gate`: the gate is always the
         PulseBlaster's own."""
@@ -53,15 +53,15 @@ class PulseBlasterDDS(DDSQuantity):
         else:
             call_parents_add_device = True
 
-        kwargs['call_parents_add_device'] = False
-        DDSQuantity.__init__(self, *args, **kwargs)
-
-        if self.gate is not None:
+        # Refused before DDSQuantity makes the gate's DigitalOut on another device.
+        if digital_gate or len(args) > 2 and args[2]:
             raise LabscriptError(
-                f"{self.name} was given a digital_gate, but the gate of a "
-                "PulseBlasterDDS is always internal to the PulseBlaster. Remove the "
-                "digital_gate."
+                f"{name} was given a digital_gate, but the gate of a PulseBlasterDDS "
+                "is always internal to the PulseBlaster. Remove the digital_gate."
             )
+        kwargs['call_parents_add_device'] = False
+        DDSQuantity.__init__(self, name, *args, **kwargs)
+
         self.gate = DigitalQuantity(self.name + '_gate', self, 'gate')
         self.phase_reset = DigitalQuantity(self.name + '_phase_reset', self, 'phase_reset')
 
