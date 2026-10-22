@@ -219,21 +219,24 @@ class PrawnDOWorker(PseudoclockWorker):
             if new_inst / n_new > 0.1:
                 fresh = True
 
+        # Forgotten while programming, so that a failure part-way forces a full reload.
+        cached = self.smart_cache['pulse_program']
+        self.smart_cache['pulse_program'] = None
         # if fresh or not smart cache, program full table as a batch
         # this is faster than going line by line
-        if fresh or self.smart_cache['pulse_program'] is None:
+        if fresh or cached is None:
             # clear the old program
             self.intf.send_command_ok('cls')
             self.intf.adm_batch(pulse_program)
         else:
             # only program table lines that have changed
-            n_cache = len(self.smart_cache['pulse_program'])
+            n_cache = len(cached)
             for i, instr in enumerate(pulse_program):
                 if i >= n_cache:
                     print(f'programming step {i}')
                     self.intf.send_command_ok(f'set {i:x} {instr[0]:x} {instr[1]:x}')
 
-                elif (self.smart_cache['pulse_program'][i] != instr):
+                elif (cached[i] != instr):
                     print(f'programming step {i}')
                     self.intf.send_command_ok(f'set {i:x} {instr[0]:x} {instr[1]:x}')
         self.smart_cache['pulse_program'] = pulse_program
