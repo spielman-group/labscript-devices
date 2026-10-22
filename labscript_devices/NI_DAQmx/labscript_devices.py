@@ -248,6 +248,14 @@ class NI_DAQmx(IntermediateDevice):
             static_AO = not supports_buffered_AO
         if static_DO is None:
             static_DO = not supports_buffered_DO
+        if not static_AO and not supports_buffered_AO:
+            msg = f"""{name} does not support buffered analog output. Instantiate it
+                with static_AO=True."""
+            raise LabscriptError(dedent(msg))
+        if not static_DO and not supports_buffered_DO:
+            msg = f"""{name} does not support buffered digital output. Instantiate it
+                with static_DO=True."""
+            raise LabscriptError(dedent(msg))
 
         if parent_device is None and not (static_DO and static_AO):
             msg = f"""{name} needs a parent clockline unless static_AO and static_DO are
@@ -339,10 +347,6 @@ class NI_DAQmx(IntermediateDevice):
             self.clock_limit = self.max_AO_sample_rate
         else:
             self.clock_limit = None
-            if not (static_AO and static_DO):
-                msg = f"""{name} does not support buffered output. Instantiate it with
-                    static_AO=True and static_DO=True."""
-                raise LabscriptError(dedent(msg))
 
         self.wait_monitor_minimum_pulse_width = self.min_semiperiod_measurement
 
