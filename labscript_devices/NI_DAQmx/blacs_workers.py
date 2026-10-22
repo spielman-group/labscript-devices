@@ -926,17 +926,8 @@ class NI_DAQmxWaitMonitorWorker(DAQmxTaskOwner, Worker):
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
         self.logger.debug('transition_to_buffered')
-        self.h5_file = h5_file
-        with h5py.File(h5_file, 'r') as hdf5_file:
-            dataset = hdf5_file['waits']
-            if len(dataset) == 0:
-                self.logger.debug('There are no waits, not transitioning to buffered')
-                self.wait_table = None
-                return {}
-            self.wait_table = dataset[:]
-
-        # A thread that did not stop by the end of an earlier shot is left set, so that
-        # no second one reads the counter while it lives.
+        # A thread that did not stop by the end of an earlier shot is left set, and
+        # still reads that shot's state, so no shot replaces it while the thread lives.
         if self.wait_monitor_thread is not None:
             if self.wait_monitor_thread.is_alive():
                 raise RuntimeError(
@@ -946,6 +937,15 @@ class NI_DAQmxWaitMonitorWorker(DAQmxTaskOwner, Worker):
             self.wait_monitor_thread = None
             self.shutting_down = False
             self.wait_monitor_thread_exception = None
+        self.h5_file = h5_file
+        with h5py.File(h5_file, 'r') as hdf5_file:
+            dataset = hdf5_file['waits']
+            if len(dataset) == 0:
+                self.logger.debug('There are no waits, not transitioning to buffered')
+                self.wait_table = None
+                return {}
+            self.wait_table = dataset[:]
+
         self.start_tasks()
 
         # semiperiods collects the counter's results. partial_edges holds what a
