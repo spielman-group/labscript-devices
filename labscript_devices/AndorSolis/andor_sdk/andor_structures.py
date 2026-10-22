@@ -1,6 +1,5 @@
 # Wrapped structures found in the header file and the SDK docs.
 
-import sys
 import ctypes
 
 
@@ -41,4 +40,4 @@ class AndorCapabilities(ctypes.Structure):
     ]
 
     def __init__(self):
-        self.ulSize = sys.getsizeof(self)
+        self.ulSize = ctypes.sizeof(self)

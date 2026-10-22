@@ -1454,7 +1454,9 @@ def GetTemperature():
     andor_solis.GetTemperature.restype = ctypes.c_uint
     temperature = ctypes.c_int()
     result = andor_solis.GetTemperature(ctypes.byref(temperature))
-    check_status(result)
+    # As in micro-manager's adapter, these are a temperature read's states, not errors.
+    if _SC.get(result) not in ('DRV_TEMP_OFF', 'DRV_ACQUIRING', 'DRV_NOT_INITIALIZED'):
+        check_status(result)
     status = _SC[result]
     return int(temperature.value), str(status)
 
@@ -1465,7 +1467,9 @@ def GetTemperatureF():
     andor_solis.GetTemperatureF.restype = ctypes.c_uint
     temperature = ctypes.c_float()
     result = andor_solis.GetTemperatureF(ctypes.byref(temperature))
-    check_status(result)
+    # As in micro-manager's adapter, these are a temperature read's states, not errors.
+    if _SC.get(result) not in ('DRV_TEMP_OFF', 'DRV_ACQUIRING', 'DRV_NOT_INITIALIZED'):
+        check_status(result)
     status = _SC[result]
     return float(temperature.value), str(status)
 

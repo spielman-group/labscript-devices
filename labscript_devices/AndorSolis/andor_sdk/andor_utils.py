@@ -271,10 +271,10 @@ class AndorCam:
 
         # The cooler starts before the EM gain is set, as in micro-manager's adapter.
         if self.acquisition_attributes['cooldown']:
+            # It does not wait for the temperature, which is printed below each shot.
             self.enable_cooldown(
                 self.acquisition_attributes['temperature'],
                 self.acquisition_attributes['water_cooling'],
-                wait_until_stable=True,
             )
 
             self.temperature, self.temperature_status = GetTemperatureF()
