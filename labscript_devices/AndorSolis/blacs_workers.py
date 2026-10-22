@@ -58,6 +58,7 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
             print(f"Kinetics number is {self.camera.acquisition_attributes['number_kinetics']}.")
             print(f"Actual kinetics period is {self.camera.kinetics_timing} s.")
         print(f"Actual exposure time is {self.camera.exposure_time} s.")
+        print(f"Temperature is {self.camera.temperature} C ({self.camera.temperature_status}).")
         print(f"Actual digitization speed (HSpeed) is {self.camera.horizontal_shift_speed} MHz.")
         print(f"Actual vertical shift speed is {self.camera.vs_speed} us.")
         rich_print(f" ---> EMCCD Gain value is {self.camera.emccd_gain}.", color='magenta')

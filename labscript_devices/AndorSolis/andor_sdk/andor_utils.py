@@ -290,6 +290,8 @@ class AndorCam:
                     f"with status {self.temperature_status}",
                     color='magenta',
                 )
+        # Read for every set-up, so that each shot prints it, cooling or not.
+        self.temperature, self.temperature_status = GetTemperatureF()
 
         if self.acquisition_attributes['emccd']:
             if not self.acquisition_attributes['cooldown']:

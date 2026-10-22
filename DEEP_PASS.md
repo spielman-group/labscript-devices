@@ -1481,10 +1481,10 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
 | 69 | Ian: "We don't delete we add the depriciation warning." `clock_type` and `generation` warn wherever read, through `labscript_devices.LegacyAttribute` | `7cf6abc` |
 | 21 | Ian: "a string w/o a prefix is read as decimal now and only those cameras that assumed hex throw a warning in this case so the user can adust their connection table." A FutureWarning, to go in a couple of versions | `5231bc8`, `b325b7d` |
 
-- 85: Ian's statement holds while `cooldown` is on. `setup_acquisition`, which runs
-  at every transition to buffered, prints the temperature and its status when
-  `cooldown` is set and `chatty` is True, AndorCam's default. With `cooldown`
-  off, nothing prints it.
+- 85: Ian's statement held only while `cooldown` was on, with `chatty`, so on
+  his word ("yes have temp printed every shot not matter what") every shot now
+  prints the temperature with its status, beside the other settings
+  `grab_multiple` prints; `setup_acquisition` reads it each time (`a0f3f97`).
 - 80: a shot compiled before has none of the three properties, and the worker
   takes the old values then. A TekScope shot compiled before and after sends the
   scope the same commands; only its device properties gain the three. No sweep
@@ -1499,7 +1499,8 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
     with a FutureWarning under a LEGACY marker: Ian means it to go in a couple
     of versions.
   - One with letters, such as `'DEADBEEF'`, now raises a LabscriptError: it
-    cannot be decimal, and the error names the `0x` fix.
+    cannot be decimal, and the error names the `0x` fix. Ian: "do not fix. The
+    compile error is an ideal cue for the user to fix things."
   - A string serial's resolved value and its BLACS connection change; for
     example, IMAQdx or Spinnaker `'1234'` was 0x1234 and is now 1234. No test
     shot, test or docs example gives a string serial.
