@@ -100,7 +100,9 @@ Each stage's commits on `CodeHealth`, for review:
 - The NI task-lifetime design, for Ian: `cf3e48e`, a note only.
 - Ian's decisions on it and on the triage's remaining rows, with the Andor and
   PySpin studies: `28e8656..` `5fa017a`.
-- Fable's review of them: `ac7613b..` the commit that records this line.
+- Fable's review of them: `ac7613b..` `7bc3f19`.
+- Ian's decisions on the Andor study's rows, rows 21, 69, 80 and 81, and Codex's
+  findings on the remaining rows: `154e07d..` the commit that records this line.
 
 ## The test contract
 
@@ -1461,3 +1463,53 @@ Lab checks, on Development:
   next try;
 - rows 15, 24 and 33: an Andor shot with EMCCD gain and cooldown, an abort
   during a series, and a preamp gain such as 2.4.
+
+## The Andor study's rows, and the rest (Ian)
+
+Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
+
+| Row | Decision | Commit |
+| --- | --- | --- |
+| 35 | fix: `ctypes.sizeof`, as micro-manager | `154e07d` |
+| 85 | Ian: "do not wait. I think the camera prints its temperature into the tab's terminal every transition to buffered anyway so the user can see it." The cooler starts and set-up goes on | `154e07d` |
+| 86, 88 | leave as is | none |
+| 87 | temperature reads return DRV_TEMP_OFF, DRV_ACQUIRING and DRV_NOT_INITIALIZED, as micro-manager | `154e07d` |
+| 24 | Codex: the abort's flag first, no acquisition started once an abort has begun, and the camera disarmed when `grab_multiple` stops for one | `e5a0692` |
+| wait monitor | Codex: while an earlier shot's thread lives, every shot, with waits or not, is refused before it replaces the state that thread reads | `9bd8921` |
+| 81 | TekScope's driver module renamed `driver.py`, a rename alone, then its users; the old path gives the driver with a FutureWarning | `30decf5`, `c0cd29d` |
+| 80 | TekScope's `acquire_mode`, `stop_after` and `channels`, keywords whose defaults are the old fixed settings | `1008d04` |
+| 69 | Ian: "We don't delete we add the depriciation warning." `clock_type` and `generation` warn wherever read, through `labscript_devices.LegacyAttribute` | `7cf6abc` |
+| 21 | Ian: "a string w/o a prefix is read as decimal now and only those cameras that assumed hex throw a warning in this case so the user can adust their connection table." A FutureWarning, to go in a couple of versions | `5231bc8`, `b325b7d` |
+
+- 85: Ian's statement holds while `cooldown` is on. `setup_acquisition`, which runs
+  at every transition to buffered, prints the temperature and its status when
+  `cooldown` is set and `chatty` is True, AndorCam's default. With `cooldown`
+  off, nothing prints it.
+- 80: a shot compiled before has none of the three properties, and the worker
+  takes the old values then. A TekScope shot compiled before and after sends the
+  scope the same commands; only its device properties gain the three. No sweep
+  shot has a TekScope.
+- 81: the driver is `labscript_devices.TekScope.driver`. Importing the old
+  `labscript_devices.TekScope.TekScope` path still shadows the package's class,
+  as it always did; the suite no longer imports it.
+- 21: the conversion is the one in `TriggerableCamera.__init__`, at compile.
+  `hex_serial_numbers` is True for IMAQdx alone.
+  - An int is used as given, and `'0x…'` is hex.
+  - Any other string is decimal, and IMAQdx warns on one, at the user's line,
+    with a FutureWarning under a LEGACY marker: Ian means it to go in a couple
+    of versions.
+  - One with letters, such as `'DEADBEEF'`, now raises a LabscriptError: it
+    cannot be decimal, and the error names the `0x` fix.
+  - A string serial's resolved value and its BLACS connection change; for
+    example, IMAQdx or Spinnaker `'1234'` was 0x1234 and is now 1234. No test
+    shot, test or docs example gives a string serial.
+- `KNOWN_ISSUES.md`, from Fable: a stuck wait monitor thread, not a daemon,
+  holds the worker's exit until BLACS's kill deadline; restarting the tab is
+  the remedy.
+- Checks, at `5231bc8` against `4938a2a`: as at `4c591a3`, every valid test shot
+  identical and the same intended refusals; traces identical; the docs build
+  adds no warning; the suite passes; every `Parameters` block names its
+  signature's arguments. `b325b7d` changes only a warning's category.
+- Lab checks, on Development: an Andor shot with cooldown, its temperature
+  printed at set-up; a TekScope shot with `channels`; an IMAQdx camera given an
+  unprefixed serial.
