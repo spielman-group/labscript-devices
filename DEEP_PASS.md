@@ -1293,3 +1293,108 @@ remain.
     and after a failed stop every task is released, so the next shot runs
     without a driver reset;
   - row 20: a TekScope shot with `int16`, its points and time axis.
+
+## NI_DAQmx task lifetime: design (for Ian)
+
+Codex found three more leaks after two rounds of fixes, at sites neither
+reached. By Ian's rule, a design comes before a third patch. Ian's rule for it:
+every DAQmx task is cleared on every path, since a task left uncleared keeps
+its device failing until the driver is reset.
+
+### Where tasks are made, and what fails
+
+| Site | Lifetime | Cleared by, today | What still leaks |
+| --- | --- | --- | --- |
+| Output `start_manual_mode_tasks`, `blacs_workers.py:78, 83` | AO, DO: from init, and after each shot, to the next shot | `stop_tasks`, `_return_to_manual` | a failure making DO leaves AO on the worker and DO unset, so `shutdown` raises before it clears AO; a failing channel leaves both, cleared only by `shutdown`, which a restart never sends |
+| Output `program_buffered_DO`, `_AO`, `:173, 247` | DO, AO: one shot | `_return_to_manual` | a failure before `DO_all_zero` or `AO_all_zero` is set makes the abort raise AttributeError (`:337`) before its `try` |
+| Acquisition `start_task`, `:451` | one AI task: manual, or one shot | `stop_task` | a failing manual set-up keeps the task, and `abort`, not in buffered mode, returns without clearing it |
+| Wait monitor `start_tasks`, `:852, 875` | CI, DO: one shot | `stop_tasks` | nothing found: a failed transition is aborted, and `stop_tasks` clears both |
+| `daqmx_utils.incomplete_sample_detection`, `:98, 109` | two tasks, inside the function | its `finally`, `clear_tasks` | nothing, since `74834ab` |
+| `models/get_capabilities.py`: `port_supports_buffered` `:135`, `AI_start_delay` `:178`, `AI_filter_delay` `:229`, `supported_AI_ranges_for_non_differential_input` `:279`, `get_min_semiperiod_measurement` `:316` | one task, inside the function | a `finally` in three; none in the two delays | set-up runs before the `try` (`:138-141`, `:317`), or there is no `try`; the task is left to PyDAQmx's `__del__`, which a kept traceback delays. A failing first `Task()` at `:279` leaves `task` unbound in the `finally`, which hides the error. This is a tool run by hand to regenerate `capabilities.json`, not by BLACS. |
+
+Facts any design works within:
+- PyDAQmx 1.4.7's `Task` is a context manager whose `__exit__` clears it. Its
+  `ClearTask` zeroes the handle even when DAQmx raises, so a second call does
+  nothing, and `__del__` clears a task that is collected.
+- BLACS's restart, and a tab's close, terminate a worker's process without a
+  shutdown job (`blacs/tab_base_classes.py`: `restart` `:622`,
+  `finalise_close_tab` `:584-609`). Only quitting BLACS sends `shutdown`
+  (`__main__.py:425`). On Windows, where the labs' NI cards run, terminating
+  is TerminateProcess, so no code in the worker runs. That rules out both a
+  release in the worker and a SIGTERM handler held off by zprocess's
+  `KillLock` (`process_tree.py:43, 108-144`), which only POSIX honours. A
+  restart is covered only if BLACS sends a job before it terminates; see D.
+  Until then, a restart, with healthy tasks too, relies on the driver
+  releasing a terminated process's tasks: a lab check.
+- Nothing in the suite owns a resource per worker (librarian). blacs'
+  `Worker` has no teardown hook, and every device closes its handles in
+  `shutdown` alone. Serial ports and cameras are released with their process;
+  the harm of a held handle is NI's.
+
+### Options
+
+- **A. Probes use `with Task() as task:`.** This is PyDAQmx's own; a subclass
+  adds nothing.
+  - Size: the five get_capabilities functions and `incomplete_sample_detection`
+    (`with Task() as out_task, Task() as meas_task:`). About ten changed lines,
+    besides the re-indented bodies.
+  - Special cases: `port_supports_buffered` retries the next terminal inside its
+    `except`, so the first task stays open during the retry, as it does today.
+  - DAQmx calls: unchanged; a probe runs in no shot.
+  - It does not fit the workers, whose tasks outlive the job that makes them.
+- **B. One record per worker.** A mixin in `blacs_workers.py`, for the three
+  NI workers:
+  - `new_task()` makes a task and records it, and is the only maker.
+  - `making_tasks()` is a context manager around each block that makes tasks,
+    and releases everything recorded if the block raises.
+  - `release_tasks()` clears every recorded task and sets the worker's task
+    attributes, named on the class, to None. It is the only `ClearTask` in the
+    workers, called in a `finally` by every teardown, abort and `shutdown`,
+    whatever state the worker is in. It takes over `clear_tasks`, which goes:
+    one name and one implementation (librarian), since the probes use `with`.
+
+  `StopTask` stays where it is, since it is how a shot's completion is checked.
+  - Size: the mixin, about 20 lines. Seven `Task()` calls become
+    `self.new_task()`. The four blocks that make tasks gain a `with`. The
+    teardowns lose their attribute handling and their `clear_tasks` calls, and
+    the acquisition worker's abort releases outside buffered mode too.
+    About +15 lines net.
+  - Special cases:
+    - the wait monitor's thread reads CI, so it stops before the release, as
+      now;
+    - the acquisition worker releases under `tasklock`, which its callbacks
+      take;
+    - a release clears in the attributes' order, so the order is today's: AO
+      before DO, and CI before DO.
+  - DAQmx calls: unchanged in a working shot, the same tasks stopped and
+    cleared in the same order. Only failure paths gain the `ClearTask`s that
+    are missing today.
+  - It covers each of Codex's three cases, and any new site, as long as it uses
+    `new_task()`.
+- **C. Keep today's pattern and fix the three sites.**
+  - The abort reads the all-zero flags before its `try`: set them when each
+    task is made, 2 lines.
+  - `start_manual_mode_tasks` and `start_task` clear on failure, about 4 lines
+    each.
+  - get_capabilities as in A.
+  - About 15 lines. DAQmx calls: unchanged in a working shot.
+  - Special cases: every `Task()` keeps its own guard, and each new site must
+    repeat it. That is the pattern three rounds have each found missing
+    somewhere.
+- **D, deferred, for blacs' owner: release on any exit, suite-wide.** A hook
+  on blacs' `Worker`, run by `shutdown` and by a job BLACS sends before it
+  terminates a worker on a close or restart, with a timeout. It is the only way
+  to cover a restart on Windows, and would serve every device's handles, not
+  only NI's. It is a blacs change; B's `release_tasks` would be NI's use of it.
+
+### Recommendation
+
+A for the probes and B for the workers. A probe owns its task for one function,
+which `with` expresses exactly. A worker's tasks outlive their job, so they need
+one owner that does not depend on the state a failure leaves. B makes that
+owner the worker, and makes `release_tasks()` the one teardown, so a gap cannot
+come from a forgotten guard. C would close today's three gaps and leave the
+next one to a fourth review. Neither changes a working shot's DAQmx calls.
+
+A restart is not covered by A, B or C. D covers it, but it is blacs'
+change, and Ian's call; until then it is a lab check.
