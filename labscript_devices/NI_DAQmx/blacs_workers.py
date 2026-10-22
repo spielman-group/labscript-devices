@@ -33,24 +33,7 @@ from blacs.tab_base_classes import Worker
 
 from ..deadline import Deadline
 from .utils import split_conn_port, split_conn_DO, split_conn_AI
-from .daqmx_utils import incomplete_sample_detection
-
-
-def clear_tasks(*tasks):
-    """Clear each task that is not None, then raise the first error any raised.
-
-    Every one is cleared whatever the others do: a task left uncleared stays held by
-    the driver, and its device fails until the driver is reset.
-    """
-    error = None
-    for task in tasks:
-        if task is not None:
-            try:
-                task.ClearTask()
-            except Exception as e:
-                error = error or e
-    if error is not None:
-        raise error
+from .daqmx_utils import incomplete_sample_detection, clear_tasks
 
 
 class NI_DAQmxWorker(Worker):
