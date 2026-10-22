@@ -23,6 +23,8 @@ from labscript import (
 
 import numpy as np
 
+from labscript_devices import LegacyAttribute
+
 
 class PineBlaster(PseudoclockDevice):
     """A PineBlaster pseudoclock on a serial port, with one clock line, `clockline`."""
@@ -30,7 +32,10 @@ class PineBlaster(PseudoclockDevice):
     description = 'PineBlaster'
     clock_limit = 10e6
     clock_resolution = 25e-9
-    clock_type = 'fast clock'
+    # LEGACY CLOCK_TYPE ATTRIBUTE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+    clock_type = LegacyAttribute(
+        'fast clock', "PineBlaster.clock_type is unused and will be removed."
+    )
     # Measured by Phil Starkey on 2015/9/24
     trigger_delay = 350e-9
     wait_delay = 2.5e-6

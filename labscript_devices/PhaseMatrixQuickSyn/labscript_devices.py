@@ -24,12 +24,15 @@ from labscript import (
 )
 import labscript_utils.properties
 
+from labscript_devices import LegacyAttribute
+
 
 class QuickSynDDS(StaticDDS):
     """The QuickSyn's output: a static frequency and gate, with no amplitude or phase."""
     description = 'PhaseMatrix QuickSyn DDS'
     allowed_children = [StaticAnalogQuantity, StaticDigitalOut]
-    generation = 2
+    # LEGACY GENERATION ATTRIBUTE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+    generation = LegacyAttribute(2, "QuickSynDDS.generation is unused and will be removed.")
 
     @set_passed_properties()
     def __init__(self, name, parent_device, connection, freq_limits=None, freq_conv_class=None, freq_conv_params={}, **kwargs):
@@ -89,7 +92,10 @@ class PhaseMatrixQuickSyn(Device):
     """A PhaseMatrix QuickSyn frequency synthesiser, which has no parent device and one :class:`QuickSynDDS`."""
     description = 'QuickSyn Frequency Synthesiser'
     allowed_children = [QuickSynDDS]
-    generation = 0
+    # LEGACY GENERATION ATTRIBUTE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+    generation = LegacyAttribute(
+        0, "PhaseMatrixQuickSyn.generation is unused and will be removed."
+    )
 
     @set_passed_properties()
     def __init__(self, name, com_port, **kwargs):
