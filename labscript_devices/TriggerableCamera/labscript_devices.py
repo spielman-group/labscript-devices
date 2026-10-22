@@ -128,6 +128,8 @@ class TriggerableCamera(TriggerableDevice):
             The detail level of the camera attributes saved, at the end of each shot,
             as attributes of ``images/<orientation>``: ``'simple'``,
             ``'intermediate'`` (the default) or ``'advanced'``. `None` saves none.
+            FlyCapture2 has no such levels, so a FlyCapture2Camera saves every
+            attribute at any of them.
         **kwargs
             Passed to :class:`~labscript.TriggerableDevice`.
         """
