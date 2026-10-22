@@ -1,4 +1,5 @@
 import numpy as np
+import threading
 import time
 import warnings
 
@@ -63,6 +64,10 @@ class AndorCam:
         self.emccd = False
         self.emccd_gain = None
         self.armed = False
+        # Held while an acquisition starts or is aborted, so none starts once an
+        # abort has begun; setup_acquisition clears `aborted` for the next.
+        self._abort_lock = threading.Lock()
+        self.aborted = False
         self.initialize_camera()
 
     def initialize_camera(self):
@@ -261,6 +266,7 @@ class AndorCam:
         if added_attributes is None:
             added_attributes = {}
 
+        self.aborted = False
         self.acquisition_attributes = self.default_acquisition_attrs.copy()
         self.acquisition_attributes.update(added_attributes)
 
@@ -539,7 +545,11 @@ class AndorCam:
         else:
             self.acquisition_status = GetStatus()
             if 'DRV_IDLE' in self.acquisition_status:
-                StartAcquisition()
+                with self._abort_lock:
+                    if self.aborted:
+                        self.armed = False
+                        return
+                    StartAcquisition()
                 if self.chatty:
                     rich_print(
                         f"Waiting for {acquisition_timeout} ms for timeout ...",
@@ -600,7 +610,9 @@ class AndorCam:
         """Abort the acquisition in progress, and wait for the camera to stop."""
         if self.chatty:
             rich_print("Debug: Abort Called", color='yellow')
-        AbortAcquisition()
+        with self._abort_lock:
+            self.aborted = True
+            AbortAcquisition()
         Deadline('The Andor camera', 'stop acquiring', 5).wait(
             lambda: GetStatus() != 'DRV_ACQUIRING'
         )
