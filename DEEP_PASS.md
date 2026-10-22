@@ -95,8 +95,8 @@ Each stage's commits on `CodeHealth`, for review:
   of step 2.6's triage: the commit that records this line, a table only.
 - Its 35 simple rows (Ian: "have all of the simple no-brainers fixed and
   checked off"): `0e17cfe..` `a3ee208`.
-- Codex's findings on them, and its re-check's: `75df455..` the commit that
-  records this line.
+- Codex's findings on them, its re-check's, and Fable's review: `75df455..`
+  the commit that records this line.
 
 ## The test contract
 
@@ -1200,11 +1200,12 @@ The 35 simple rows (Ian: "have all of the simple no-brainers fixed and checked
 off. I will consider the remaining issues with actual repercussions later this
 evening"): 1, 4, 9, 13, 14, 16 to 18, 20, 22, 23, 25, 27, 30 to 34, 37, 43 to 48
 and 59 to 68. One commit a device, naming its rows; each fixed row's
-`KNOWN_ISSUES.md` line goes, 28 of them, and 24 remain.
+`KNOWN_ISSUES.md` line goes, 28 of them. With the one Fable's review added, 25
+remain.
 
 | Rows | Commit |
 | --- | --- |
-| 1, 9, 68 | `0e17cfe`, and for 1 `75df455`, `d46f7b6`, NI_DAQmx |
+| 1, 9, 68 | `0e17cfe`, and for 1 `75df455`, `d46f7b6`, `e9392fd`, NI_DAQmx |
 | 4 | `462bc30` NovaTechDDS9M |
 | 13, 25, 32, 60, 66 | `2279ec9` AlazarTechBoard |
 | 14, 33, 37 | `50bc1d8` AndorSolis |
@@ -1249,10 +1250,27 @@ and 59 to 68. One commit a device, naming its rows; each fixed row's
     samples pending when it is called, a finite count, at most a `read_array`
     at a time; DAQmx may refuse a read larger than its array. Counting again
     each pass never ended while manual mode's clock ran.
-  - Checked at `f1b6a4d` as above, with the same three RFBlaster shots alone
+- Fable's review of the re-check's fixes, before Codex:
+  - 1: a DAQmx error in that read, such as a buffer overflow, left the task
+    set, so manual mode never restarted; the task is now stopped and cleared
+    whatever the read does. The tail is read only for a shot, since manual
+    mode's is discarded.
+  - 1: whether DAQmx waits for a running callback, which waits on `tasklock`,
+    before `StopTask` or `ClearTask` returns is not in NI's documentation; a
+    `KNOWN_ISSUES.md` line, as upstream has the same structure.
+  - 16: the firmware keeps the program through an abort, so the cache stays
+    valid. In `prawn_do.c` (upstream `ec7d967`), `abt` only requests the abort
+    (`:332-336`), and its handling (`:234-237`) stops the DMA and the state
+    machine (`stop_sm`, `:128-132`); only `cls`, `set`, `add` and `adm` change
+    the program.
+  - 16: a shorter program leaves the old rows past its end, which never run:
+    `prawn_do.pio` ends at the first two rows of reps 0 (`wait_end`), and
+    `set` of such a row cuts the program there (`prawn_do.c:416-418`).
+  - Checked at `e9392fd` as above, with the same three RFBlaster shots alone
     differing.
 - Lab checks, on Development:
   - row 1: an NI shot's analog input keeps the samples after its last full
     chunk, all of them when a callback is late, and those reads raise no buffer
-    error;
+    error; and stopping a shot's acquisition while a callback runs does not
+    hang;
   - row 20: a TekScope shot with `int16`, its points and time axis.
