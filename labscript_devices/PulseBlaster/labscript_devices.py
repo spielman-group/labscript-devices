@@ -250,6 +250,8 @@ class PulseBlasterBase(PseudoclockDevice):
         # clock line.
         self._direct_output_device = PulseBlasterDirectOutputs('%s_direct_output_device'%name, self._direct_output_clock_line)
         self._direct_output_device.allowed_children = self.direct_output_classes
+        # Named for this board, which a refusal of an output it does not take gives.
+        self._direct_output_device.description = f'{self.description} Direct Outputs'
 
     @property
     def pseudoclock(self):
