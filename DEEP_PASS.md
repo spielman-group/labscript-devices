@@ -102,7 +102,9 @@ Each stage's commits on `CodeHealth`, for review:
   PySpin studies: `28e8656..` `5fa017a`.
 - Fable's review of them: `ac7613b..` `7bc3f19`.
 - Ian's decisions on the Andor study's rows, rows 21, 69, 80 and 81, and Codex's
-  findings on the remaining rows: `154e07d..` the commit that records this line.
+  findings on the remaining rows: `154e07d..` `3fe50b2`.
+- Rows 29, 41, 56, 57, 58 and 75, row 85's print, and Codex's TekScope finding:
+  `103be82..` the commit that records this line.
 
 ## The test contract
 
@@ -1480,6 +1482,15 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
 | 80 | TekScope's `acquire_mode`, `stop_after` and `channels`, keywords whose defaults are the old fixed settings | `1008d04` |
 | 69 | Ian: "We don't delete we add the depriciation warning." `clock_type` and `generation` warn wherever read, through `labscript_devices.LegacyAttribute` | `7cf6abc` |
 | 21 | Ian: "a string w/o a prefix is read as decimal now and only those cameras that assumed hex throw a warning in this case so the user can adust their connection table." A FutureWarning, to go in a couple of versions | `5231bc8`, `b325b7d` |
+| 85, print | Ian: "yes have temp printed every shot not matter what" | `103be82` |
+| 56 | Cicero: a run of 2**32 or more ticks is split, and no clock merges into a wait | `5fa3ecc` |
+| 57 | Cicero's tab looks under the board's own pseudoclock | `fb8685f` |
+| 58 | PineBlaster's tab gives None for a port it lacks | `3536d89` |
+| 29 | Ian: "Users should not be using lyse tooling inside of these scripts! If they do the deserve what they get." Not a bug: the docs' lyse advice and the known issue go; the functions' namespace stays | `302793a` |
+| 41 | FlyCapture2's part: the docs say it has no levels. Spinnaker's part waits for Ian: FLIR's pages give `GetVisibility()`'s type, `EVisibility`, but not its members | `7233722` |
+| 75 | a bug as well as an improvement: a `KNOWN_ISSUES.md` line, the improvement the fix | `f99357a` |
+| 80 | Codex: a requested channel is switched on (`SELECT:<ch> ON`) before the shot, as a hidden one returns no waveform, and an unknown one is refused then; `channels=None` sends nothing new | `4a4ce68` |
+| 52 | labscript-utils' default parser (`538db4c`) stops the error, but returns no traces, so runviewer still loads nothing below; DummyIntermediateDevice needs a parser that returns its outputs' traces, for Ian | `b298ce1` |
 
 - 85: Ian's statement held only while `cooldown` was on, with `chatty`, so on
   his word ("yes have temp printed every shot not matter what") every shot now
@@ -1504,6 +1515,17 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
   - A string serial's resolved value and its BLACS connection change; for
     example, IMAQdx or Spinnaker `'1234'` was 0x1234 and is now 1234. No test
     shot, test or docs example gives a string serial.
+- 56: probed on a fabricated clock: a 2**32 + 5 tick run, which `7bc3f19` kept as
+  one instruction the worker cuts to 4 bytes, is two, and a 4-tick wait whose
+  following clock has its periods, which `7bc3f19` merged away, is kept.
+- Checks at `f99357a`: shots and docs as before. The traces gain lines because
+  labscript-utils' `538db4c` gives every parser-less device a parser that draws
+  nothing; against `4938a2a` traced with the same labscript-utils, they are
+  identical. `4a4ce68` and `b298ce1` change no shot.
+- Every open bug from the triage that is not being fixed has its
+  `KNOWN_ISSUES.md` line, the in-place run file in labscript's. One more found:
+  row 5's refusal of a DDS on a board without one names the DDS board's
+  description; a line.
 - `KNOWN_ISSUES.md`, from Fable: a stuck wait monitor thread, not a daemon,
   holds the worker's exit until BLACS's kill deadline; restarting the tab is
   the remedy.
@@ -1512,5 +1534,5 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
   adds no warning; the suite passes; every `Parameters` block names its
   signature's arguments. `b325b7d` changes only a warning's category.
 - Lab checks, on Development: an Andor shot with cooldown, its temperature
-  printed at set-up; a TekScope shot with `channels`; an IMAQdx camera given an
-  unprefixed serial.
+  printed at set-up; a TekScope shot with `channels`, a hidden channel asked
+  for returning data; an IMAQdx camera given an unprefixed serial.
