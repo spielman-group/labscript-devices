@@ -69,6 +69,10 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
         # download, for the next acquire(), and disarm it after the last.
         if 'single' in self.camera.acquisition_mode:
             for image_number in range(n_images):
+                if self._abort_acquisition:
+                    print("Abort during acquisition.")
+                    self._abort_acquisition = False
+                    return
                 self.camera.acquire()
                 print(f"    {image_number}: Acquire complete")
                 downloaded = self.camera.download_acquisition()
@@ -80,6 +84,10 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
         elif 'fast_kinetics' in self.camera.acquisition_mode:
             nacquisitions = n_images // self.camera.number_fast_kinetics
             for image_number in range(nacquisitions):
+                if self._abort_acquisition:
+                    print("Abort during acquisition.")
+                    self._abort_acquisition = False
+                    return
                 self.camera.acquire()
                 print(f"    {image_number}: Acquire complete")
                 downloaded = self.camera.download_acquisition()
@@ -102,8 +110,8 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
         pass
 
     def abort_acquisition(self):
-        # The SDK call ends an acquisition in progress. The base class's flag is set
-        # too, but grab_multiple here never polls it.
+        # The SDK call ends an acquisition in progress, and the base class's flag
+        # stops grab_multiple before the next.
         self.camera.abort_acquisition()
         TriggerableCameraInterface.abort_acquisition(self)
 

@@ -6,6 +6,8 @@ from .andor_capabilities import *
 
 from zprocess import rich_print
 
+from labscript_devices.deadline import Deadline
+
 s, ms, us, ns = 1.0, 1e-3, 1e-6, 1e-9
 
 
@@ -168,29 +170,24 @@ class AndorCam:
         preamp_options = list(
             [GetPreAmpGain(index) for index in range(self.number_of_preamp_gains)]
         )
-        if not preamp_gain in preamp_options:
+        # The camera reports its gains as float32, so 2.4 is 2.4000000953674316.
+        matches = np.flatnonzero(np.isclose(preamp_options, preamp_gain))
+        if not len(matches):
             raise ValueError(
                 f"Invalid preamp gain {preamp_gain}. Choose one of the camera's "
                 f"gains, {preamp_options}."
             )
-        SetPreAmpGain(preamp_options.index(preamp_gain))
+        SetPreAmpGain(int(matches[0]))
         self.preamp_gain = preamp_gain
         self.preamp = True
 
     def enable_emccd(self, emccd_gain):
-        """Set the EMCCD gain; the camera must be cooling."""
+        """Set the EMCCD gain."""
         low, high = self.emccd_gain_range
         if not low <= emccd_gain <= high:
             raise ValueError(
                 f"Invalid emccd gain {emccd_gain}. Set the 'emccd_gain' attribute "
                 f"to a gain from {low} to {high}."
-            )
-
-        if not self.cooling:
-            raise ValueError(
-                "Enable the temperature control by setting the acquisition attribute "
-                "'cooldown' to True before enabling the EMCCD gain, as this will "
-                "prolong the lifetime of the sensor."
             )
 
         # The default EM gain mode is 0, where the gain is controlled by internal DAC
@@ -271,9 +268,7 @@ class AndorCam:
         if self.acquisition_attributes['preamp']:
             self.enable_preamp(self.acquisition_attributes['preamp_gain'])
 
-        if self.acquisition_attributes['emccd']:
-            self.enable_emccd(self.acquisition_attributes['emccd_gain'])
-
+        # The cooler starts before the EM gain is set, as in micro-manager's adapter.
         if self.acquisition_attributes['cooldown']:
             self.enable_cooldown(
                 self.acquisition_attributes['temperature'],
@@ -288,6 +283,9 @@ class AndorCam:
                     f"with status {self.temperature_status}",
                     color='magenta',
                 )
+
+        if self.acquisition_attributes['emccd']:
+            self.enable_emccd(self.acquisition_attributes['emccd_gain'])
 
         modes = {
             'single': 1,
@@ -592,10 +590,13 @@ class AndorCam:
         return data
 
     def abort_acquisition(self):
-        """Abort the acquisition in progress."""
+        """Abort the acquisition in progress, and wait for the camera to stop."""
         if self.chatty:
             rich_print("Debug: Abort Called", color='yellow')
         AbortAcquisition()
+        Deadline('The Andor camera', 'stop acquiring', 5).wait(
+            lambda: GetStatus() != 'DRV_ACQUIRING'
+        )
 
     def shutdown(self):
         """Shut the camera down; it must not be armed."""
