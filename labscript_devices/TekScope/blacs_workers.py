@@ -35,6 +35,18 @@ class TekScopeWorker(Worker):
         self.scope.dev.timeout = 1000 * self.device_properties.get('timeout', 5)
 
         self.scope.unlock()
+        # A channel asked for is switched on, as a hidden one returns no waveform.
+        wanted = self.device_properties.get('channels')
+        if wanted is not None:
+            channels = self.scope.channels()
+            unknown = set(wanted) - set(channels)
+            if unknown:
+                raise LabscriptError(
+                    f"{self.device_name} has no channel {', '.join(sorted(unknown))}. "
+                    f"Choose from {', '.join(channels)}."
+                )
+            for ch in wanted:
+                self.scope.write(f'SELECT:{ch} ON')
         self.scope.set_acquire_state(True)
         # Shot files compiled before these were properties take the values then fixed.
         self.scope.write(
@@ -49,13 +61,6 @@ class TekScopeWorker(Worker):
     def transition_to_manual(self):
         channels = self.scope.channels()
         wanted = self.device_properties.get('channels')
-        if wanted is not None:
-            unknown = set(wanted) - set(channels)
-            if unknown:
-                raise LabscriptError(
-                    f"{self.device_name} has no channel {', '.join(sorted(unknown))}. "
-                    f"Choose from {', '.join(channels)}."
-                )
         wfmp = {}
         vals = {}
         wtype = [('t', 'float')]
