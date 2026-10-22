@@ -239,13 +239,13 @@ class PrawnDOWorker(PseudoclockWorker):
                 elif (cached[i] != instr):
                     print(f'programming step {i}')
                     self.intf.send_command_ok(f'set {i:x} {instr[0]:x} {instr[1]:x}')
-        self.smart_cache['pulse_program'] = pulse_program
 
         # The last row's bit set is ignored; the row before it holds the final output.
         final_values = self._int_to_dict(pulse_program[-2][0])
 
         # start program, waiting for beginning trigger from parent
         self.intf.send_command_ok('run')
+        self.smart_cache['pulse_program'] = pulse_program
 
         return final_values
 
