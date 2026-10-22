@@ -56,6 +56,12 @@ class PulseBlasterDDS(DDSQuantity):
         kwargs['call_parents_add_device'] = False
         DDSQuantity.__init__(self, *args, **kwargs)
 
+        if self.gate is not None:
+            raise LabscriptError(
+                f"{self.name} was given a digital_gate, but the gate of a "
+                "PulseBlasterDDS is always internal to the PulseBlaster. Remove the "
+                "digital_gate."
+            )
         self.gate = DigitalQuantity(self.name + '_gate', self, 'gate')
         self.phase_reset = DigitalQuantity(self.name + '_phase_reset', self, 'phase_reset')
 
