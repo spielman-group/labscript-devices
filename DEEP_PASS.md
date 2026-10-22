@@ -99,7 +99,8 @@ Each stage's commits on `CodeHealth`, for review:
   released (Ian): `75df455..` `9b7a50e`.
 - The NI task-lifetime design, for Ian: `cf3e48e`, a note only.
 - Ian's decisions on it and on the triage's remaining rows, with the Andor and
-  PySpin studies: `28e8656..` the commit that records this line.
+  PySpin studies: `28e8656..` `5fa017a`.
+- Fable's review of them: `ac7613b..` the commit that records this line.
 
 ## The test contract
 
@@ -1361,7 +1362,12 @@ Facts any design works within:
     set-up no longer raises before the release.
   - The acquisition worker's abort outside a shot starts manual acquisition
     when no task is left, after a set-up or stop that failed before buffered
-    mode; with manual acquisition running, it does nothing, as before.
+    mode; with manual acquisition running, it does nothing, as before. A shot
+    stops the manual task only if there is one (`ac7613b`, Fable).
+  - The wait monitor starts its thread only once `start_tasks` has succeeded,
+    so a failed set-up and its abort leave nothing for the next shot. A
+    thread that does not stop within `stop_tasks`'s deadline does, which is a
+    `KNOWN_ISSUES.md` line.
 - Probed with a fake PyDAQmx, against `3df25b0`: each of Codex's three cases
   and the restart of manual acquisition fails there and passes here, and so do
   failures in four of get_capabilities' probes. A working shot's teardowns,
@@ -1374,7 +1380,7 @@ Ian's decisions, row numbers from `4938a2a`'s table.
 | Row | Decision | Commit |
 | --- | --- | --- |
 | 6 | fix: refused; `static_DO=False` without buffered DO too, the same cause | `28e8656` |
-| 8 | fix | `d59b855` |
+| 8 | fix, refused before the gate is made (Fable) | `d59b855`, `b4ff696` |
 | 38 | fix | `6293bb6` |
 | 39 | fix | `3df25b0` |
 | 5 | Ian: "It seems to me that the issue is a class pattern thing. Why does the base class know about dds lines at all? Anyways, devices should of course reject flags they don't have." The base knows only flags; the DDS mixin adds 'dds 0' and 'dds 1' for DDSs; a no-DDS board's direct outputs take DigitalOuts only. About 60 lines each way, net 0 | `dd8a327` |
