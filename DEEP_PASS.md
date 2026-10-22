@@ -104,7 +104,9 @@ Each stage's commits on `CodeHealth`, for review:
 - Ian's decisions on the Andor study's rows, rows 21, 69, 80 and 81, and Codex's
   findings on the remaining rows: `154e07d..` `3fe50b2`.
 - Rows 29, 41, 56, 57, 58 and 75, row 85's print, and Codex's TekScope finding:
-  `103be82..` the commit that records this line.
+  `103be82..` `9ac7fba`.
+- Row 41's Spinnaker part and row 5's refusal message: `9bb7226..` the commit
+  that records this line.
 
 ## The test contract
 
@@ -1487,7 +1489,8 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
 | 57 | Cicero's tab looks under the board's own pseudoclock | `fb8685f` |
 | 58 | PineBlaster's tab gives None for a port it lacks | `3536d89` |
 | 29 | Ian: "Users should not be using lyse tooling inside of these scripts! If they do the deserve what they get." Not a bug: the docs' lyse advice and the known issue go; the functions' namespace stays | `302793a` |
-| 41 | FlyCapture2's part: the docs say it has no levels. Spinnaker's part waits for Ian: FLIR's pages give `GetVisibility()`'s type, `EVisibility`, but not its members | `7233722` |
+| 41 | FlyCapture2's part: the docs say it has no levels. Spinnaker's: the levels map to GenICam's visibility (SFNC), simple to Beginner, intermediate to Expert and below, advanced to Guru and below, an Invisible feature never saved; FLIR's pages give `GetVisibility()`'s type but not its members | `7233722`, `9bb7226` |
+| 5, message | a no-DDS board's refusal of a DDS names that board, its direct outputs described by its own name: our regression from `dd8a327` | `a2ac146` |
 | 75 | a bug as well as an improvement: a `KNOWN_ISSUES.md` line, the improvement the fix | `f99357a` |
 | 80 | Codex: a requested channel is switched on (`SELECT:<ch> ON`) before the shot, as a hidden one returns no waveform, and an unknown one is refused then; `channels=None` sends nothing new | `4a4ce68` |
 | 52 | labscript-utils' default parser (`538db4c`) stops the error, but returns no traces, so runviewer still loads nothing below; DummyIntermediateDevice needs a parser that returns its outputs' traces, for Ian | `b298ce1` |
@@ -1524,8 +1527,8 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
   identical. `4a4ce68` and `b298ce1` change no shot.
 - Every open bug from the triage that is not being fixed has its
   `KNOWN_ISSUES.md` line, the in-place run file in labscript's. One more found:
-  row 5's refusal of a DDS on a board without one names the DDS board's
-  description; a line.
+  row 5's refusal of a DDS on a board without one named the DDS board, fixed
+  in `a2ac146`.
 - `KNOWN_ISSUES.md`, from Fable: a stuck wait monitor thread, not a daemon,
   holds the worker's exit until BLACS's kill deadline; restarting the tab is
   the remedy.
@@ -1535,4 +1538,5 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
   signature's arguments. `b325b7d` changes only a warning's category.
 - Lab checks, on Development: an Andor shot with cooldown, its temperature
   printed at set-up; a TekScope shot with `channels`, a hidden channel asked
-  for returning data; an IMAQdx camera given an unprefixed serial.
+  for returning data; an IMAQdx camera given an unprefixed serial; a
+  Spinnaker camera's saved attributes at each visibility level.
