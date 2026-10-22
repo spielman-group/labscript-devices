@@ -74,7 +74,14 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
         self.timeout = 5000
 
     def get_attribute_names(self, visibility):
-        """Return readable feature names as Category::Name; `visibility` is unused."""
+        """Return readable feature names as Category::Name, at `visibility` or below."""
+        # GenICam's visibility levels, which Spinnaker implements; an Invisible
+        # feature is never saved.
+        max_visibility = {
+            'simple': PySpin.Beginner,
+            'intermediate': PySpin.Expert,
+            'advanced': PySpin.Guru,
+        }[visibility.lower()]
         names = []
 
         def get_node_names_in_category(node_category, prefix=''):
@@ -93,7 +100,7 @@ class SpinnakerCameraInterface(TriggerableCameraInterface):
                     get_node_names_in_category(
                         PySpin.CCategoryPtr(node_feature), prefix=feature_name + '::'
                     )
-                else:
+                elif node_feature.GetVisibility() <= max_visibility:
                     names.append(prefix + feature_name)
 
         node = self.camera.GetNodeMap()

@@ -10,7 +10,6 @@
 - `FlyCapture2Camera/blacs_workers.py`: `set_image_mode` rounds the width and height to the offset step sizes, not the image step sizes PyCapture2 also reports; unchecked against a camera.
 - `FlyCapture2Camera/blacs_workers.py`: `is_transient_grab_error` retries every Fc2error, so a fault that raises at once has `grab_multiple` retry it without pause until the shot ends.
 - `SpinnakerCamera/blacs_workers.py`: `_decode_image_data` reads every Mono format not ending in 8 as uint16, but `GetData` returns a packed format such as Mono12Packed packed, 1.5 bytes a pixel, so the reshape raises a bare ValueError; Spinnaker unpacks only through `ImageProcessor.Convert`.
-- `SpinnakerCamera/blacs_workers.py`: `get_attribute_names` ignores the visibility level, so `saved_attribute_visibility_level` saves every readable attribute.
 - `AlazarTechBoard/blacs_workers.py`: the DMA buffers are freed only by a successful `transition_to_manual`; after an abort, a trigger timeout or a failure the next shot overwrites `self.buffers` and the memory leaks.
 - `NI_DAQmx/blacs_workers.py`: `stop_task` stops and clears the acquisition task holding `tasklock`, which a late every-N-samples callback waits on; if DAQmx waits for that callback to return before `StopTask` or `ClearTask` returns, the two deadlock. NI's documentation does not say whether it does; upstream has the same structure.
 - `NI_DAQmx/blacs_workers.py`: a wait monitor thread that will not stop is not a daemon, so at shutdown it holds the worker's exit until BLACS's kill deadline; restarting the tab is the remedy.
