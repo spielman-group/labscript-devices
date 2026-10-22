@@ -59,12 +59,11 @@ class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
             self.flash_fpga()
 
     def get_child_from_connection_table(self, parent_device_name, port):
-        # An output of the board is a clock line, which hangs from a pseudoclock, so search
-        # the clock lines of the board's first child.
+        # An output of the board is a clock line, which hangs from its pseudoclock, the
+        # child on 'clock'; a wait monitor's dummy pseudoclock is another child.
         if parent_device_name == self.device_name:
             device = self.connection_table.find_by_name(self.device_name)
-            pseudoclock = device.child_list[list(device.child_list.keys())[0]]
-            clockline = None
+            (pseudoclock,) = [c for c in device.child_list.values() if c.parent_port == 'clock']
             for child_name, child in pseudoclock.child_list.items():
                 if child.parent_port == port:
                     return DeviceTab.get_child_from_connection_table(self, pseudoclock.name, port)
