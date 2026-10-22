@@ -36,19 +36,32 @@ class TekScopeWorker(Worker):
 
         self.scope.unlock()
         self.scope.set_acquire_state(True)
-        self.scope.write('ACQUIRE:MODE SAMPLE')
-        self.scope.write('ACQUIRE:STOPAFTER SEQUENCE')
+        # Shot files compiled before these were properties take the values then fixed.
+        self.scope.write(
+            f"ACQUIRE:MODE {self.device_properties.get('acquire_mode', 'SAMPLE')}"
+        )
+        self.scope.write(
+            f"ACQUIRE:STOPAFTER {self.device_properties.get('stop_after', 'SEQUENCE')}"
+        )
         self.scope.write('ACQUIRE:STATE RUN')
         return {}
 
     def transition_to_manual(self):
         channels = self.scope.channels()
+        wanted = self.device_properties.get('channels')
+        if wanted is not None:
+            unknown = set(wanted) - set(channels)
+            if unknown:
+                raise LabscriptError(
+                    f"{self.device_name} has no channel {', '.join(sorted(unknown))}. "
+                    f"Choose from {', '.join(channels)}."
+                )
         wfmp = {}
         vals = {}
         wtype = [('t', 'float')]
         print('Downloading...')
         for ch, enabled in channels.items():
-            if enabled:
+            if enabled if wanted is None else ch in wanted:
                 wfmp[ch], t, vals[ch] = self.scope.waveform(
                     ch,
                     int16=self.device_properties.get('int16', False),

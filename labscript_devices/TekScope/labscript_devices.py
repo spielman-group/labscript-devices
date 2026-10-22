@@ -2,7 +2,7 @@ from labscript import Device, LabscriptError, set_passed_properties
 
 
 class TekScope(Device):
-    """A Tektronix oscilloscope on VISA, whose displayed channels each shot saves.
+    """A Tektronix oscilloscope on VISA, whose channels each shot saves.
 
     They are saved to ``/data/traces/<name>`` in the shot file.
     """
@@ -11,12 +11,15 @@ class TekScope(Device):
     @set_passed_properties(
         property_names={
             'connection_table_properties': ['termination', 'preamble_string'],
-            'device_properties': ['timeout', 'int16'],
+            'device_properties': [
+                'timeout', 'int16', 'acquire_mode', 'stop_after', 'channels'
+            ],
         }
     )
     def __init__(self, name, addr,
                  termination='\n', preamble_string='WFMP',
                  timeout=5, int16=False,
+                 acquire_mode='SAMPLE', stop_after='SEQUENCE', channels=None,
                  **kwargs):
         """
         Parameters
@@ -38,6 +41,15 @@ class TekScope(Device):
         int16 : bool, optional
             Download waveform points as 16-bit integers; ``False`` by default, which
             downloads 8-bit integers. Set per shot.
+        acquire_mode : str, optional
+            The scope's acquisition mode, sent as ``ACQUIRE:MODE``; ``'SAMPLE'`` by
+            default. Set per shot.
+        stop_after : str, optional
+            When the scope stops acquiring, sent as ``ACQUIRE:STOPAFTER``;
+            ``'SEQUENCE'``, after one acquisition, by default. Set per shot.
+        channels : list of str, optional
+            The channels to save, such as ``['CH1', 'CH2']``; by default, those the
+            scope displays. Set per shot.
         **kwargs
             Passed to :class:`~labscript.Device`.
         """
