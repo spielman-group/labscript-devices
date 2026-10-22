@@ -28,6 +28,9 @@ from labscript import (
 import numpy as np
 
 
+# The most reps one instruction holds: the worker packs them into 4 bytes.
+MAX_REPS = 2**32 - 1
+
 class CiceroOpalKellyXEM3001(PseudoclockDevice):
     """A pseudoclock on an Opal Kelly XEM3001 FPGA board, with one clock line, `clockline`."""
 
@@ -211,16 +214,23 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
             # signals, to minimise timing errors.
             off_period = periods-on_period
 
-            # Merge consecutive instructions of the same periods, to save room in the
-            # instruction table.
-            if (
-                reduced_instructions
-                and reduced_instructions[-1]['on'] == on_period
-                and reduced_instructions[-1]['off'] == off_period
-            ):
-                reduced_instructions[-1]['reps'] += reps
-            else:
-                reduced_instructions.append({'on': on_period, 'off': off_period, 'reps': reps})
+            # Merge consecutive clock instructions of the same periods, to save room in
+            # the instruction table, but never into a wait (0 reps), and to no more reps
+            # than the worker's 4 bytes hold, splitting a longer run.
+            while reps:
+                last = reduced_instructions[-1] if reduced_instructions else None
+                if (
+                    last
+                    and 0 < last['reps'] < MAX_REPS
+                    and last['on'] == on_period
+                    and last['off'] == off_period
+                ):
+                    added = min(reps, MAX_REPS - last['reps'])
+                    last['reps'] += added
+                else:
+                    added = min(reps, MAX_REPS)
+                    reduced_instructions.append({'on': on_period, 'off': off_period, 'reps': added})
+                reps -= added
 
         if len(reduced_instructions) > self.max_instructions:
             raise LabscriptError(
