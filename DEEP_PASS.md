@@ -95,8 +95,8 @@ Each stage's commits on `CodeHealth`, for review:
   of step 2.6's triage: the commit that records this line, a table only.
 - Its 35 simple rows (Ian: "have all of the simple no-brainers fixed and
   checked off"): `0e17cfe..` `a3ee208`.
-- Codex's findings on them, its re-check's, and Fable's review: `75df455..`
-  the commit that records this line.
+- Codex's findings on them, its re-check's, Fable's review, and every NI task
+  released (Ian): `75df455..` the commit that records this line.
 
 ## The test contract
 
@@ -1205,7 +1205,7 @@ remain.
 
 | Rows | Commit |
 | --- | --- |
-| 1, 9, 68 | `0e17cfe`, and for 1 `75df455`, `d46f7b6`, `e9392fd`, NI_DAQmx |
+| 1, 9, 68 | `0e17cfe`, and for 1 `75df455`, `d46f7b6`, `e9392fd`, `8879e24`, NI_DAQmx |
 | 4 | `462bc30` NovaTechDDS9M |
 | 13, 25, 32, 60, 66 | `2279ec9` AlazarTechBoard |
 | 14, 33, 37 | `50bc1d8` AndorSolis |
@@ -1266,11 +1266,26 @@ remain.
   - 16: a shorter program leaves the old rows past its end, which never run:
     `prawn_do.pio` ends at the first two rows of reps 0 (`wait_end`), and
     `set` of such a row cuts the program there (`prawn_do.c:416-418`).
-  - Checked at `e9392fd` as above, with the same three RFBlaster shots alone
+- Ian, on a task left by a failed stop: "This is a major issue that acutally
+  requires us to restart USB based hardware and reboot the computer with PCI
+  hardware ... This must be fixed." Every NI_DAQmx teardown now clears every
+  task whatever raises first, takes each off the worker before, and still
+  raises the error. Each leaked a task before:
+  - the output worker's `stop_tasks`, when AO's `StopTask` raised, kept both
+    tasks and never stopped DO;
+  - its `transition_to_manual` and abort, when an output had not finished,
+    dropped both tasks uncleared;
+  - the acquisition worker's `stop_task`, when `StopTask` raised, kept its task;
+  - the wait monitor's `stop_tasks`, when its thread failed or would not stop,
+    or its `StopTask` raised, kept both.
+
+  `clear_tasks` clears them in the three teardowns of two tasks.
+  - Checked at `8879e24` as above, with the same three RFBlaster shots alone
     differing.
 - Lab checks, on Development:
   - row 1: an NI shot's analog input keeps the samples after its last full
     chunk, all of them when a callback is late, and those reads raise no buffer
-    error; and stopping a shot's acquisition while a callback runs does not
-    hang;
+    error; stopping a shot's acquisition while a callback runs does not hang;
+    and after a failed stop every task is released, so the next shot runs
+    without a driver reset;
   - row 20: a TekScope shot with `int16`, its points and time axis.
