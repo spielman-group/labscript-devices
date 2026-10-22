@@ -94,7 +94,8 @@ Each stage's commits on `CodeHealth`, for review:
 - The whole pass's open findings, steps 1 to 2.6, triaged for Ian, in place
   of step 2.6's triage: the commit that records this line, a table only.
 - Its 35 simple rows (Ian: "have all of the simple no-brainers fixed and
-  checked off"): `0e17cfe..` the commit that records this line.
+  checked off"): `0e17cfe..` `a3ee208`.
+- Codex's findings on them: `75df455..` the commit that records this line.
 
 ## The test contract
 
@@ -1202,11 +1203,11 @@ and 59 to 68. One commit a device, naming its rows; each fixed row's
 
 | Rows | Commit |
 | --- | --- |
-| 1, 9, 68 | `0e17cfe` NI_DAQmx |
+| 1, 9, 68 | `0e17cfe`, and for 1 `75df455`, NI_DAQmx |
 | 4 | `462bc30` NovaTechDDS9M |
 | 13, 25, 32, 60, 66 | `2279ec9` AlazarTechBoard |
 | 14, 33, 37 | `50bc1d8` AndorSolis |
-| 16, 17, 18 | `7ab4679` PrawnDO |
+| 16, 17, 18 | `7ab4679`, and for 16 `db069af`, PrawnDO |
 | 20, 44 | `66645fa` TekScope |
 | 22, 23, 30, 43 | `9eaf4f6` TriggerableCamera |
 | 27, 65 | `5ed79fa` LightCrafterDMD |
@@ -1237,7 +1238,18 @@ and 59 to 68. One commit a device, naming its rows; each fixed row's
   `RFBlaster_err1` has no trigger device either, so it now stops at that.
   Traces are identical; the docs build adds no warning; the suite passes, and
   every `Parameters` block names its signature's arguments.
+- Codex's three findings, all fixed:
+  - 16: the cache was written only once every row was set, so a failure
+    part-way left it naming rows the board no longer had. It is forgotten while
+    programming, and a failure forces a full reload.
+  - 1: one read could not take all that a late callback left, and an
+    untriggered task's empty read counted as data. `stop_task` now reads every
+    pending sample, at most a `read_array` at a time, and only while some are
+    pending; DAQmx may refuse a read larger than its array.
+  - Checked at `db069af` as above, with the same three RFBlaster shots alone
+    differing.
 - Lab checks, on Development:
   - row 1: an NI shot's analog input keeps the samples after its last full
-    chunk, and that last read raises no buffer error;
+    chunk, all of them when a callback is late, and those reads raise no buffer
+    error;
   - row 20: a TekScope shot with `int16`, its points and time axis.
