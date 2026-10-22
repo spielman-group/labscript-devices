@@ -44,11 +44,10 @@ class PineBlasterTab(PseudoclockTab):
             device = self.connection_table.find_by_name(self.device_name)
             # The board has one child, its Pseudoclock.
             pseudoclock = device.child_list[list(device.child_list.keys())[0]]
-            clockline = None
             for child_name, child in pseudoclock.child_list.items():
                 if child.parent_port == port:
                     return DeviceTab.get_child_from_connection_table(
                         self, pseudoclock.name, port
                     )
 
-        return '-'
+        return DeviceTab.get_child_from_connection_table(self, parent_device_name, port)
