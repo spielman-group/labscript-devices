@@ -20,14 +20,14 @@ from labscript_devices.PrawnBlaster.blacs_workers import PrawnBlasterWorker
 class EndOfShotTests(unittest.TestCase):
     """A secondary pseudoclock still running when the transition to manual begins."""
 
-    def worker(self, run_statuses, **workerargs):
+    def worker(self, run_statuses, worker_class=PrawnBlasterWorker):
         # The board reports these run statuses in turn. BLACS's Worker.run gives
         # the worker its arguments; its once-per-process logging setup and job
         # loop are stood in for, and so is its naming of this process to zlock.
-        worker = PrawnBlasterWorker.__new__(PrawnBlasterWorker)
+        worker = worker_class.__new__(worker_class)
         worker.read_status = lambda: (next(run_statuses), 0)
         worker.mainloop = lambda: None
-        workerargs.update(is_master_pseudoclock=False, wait_table=None, started=True)
+        workerargs = dict(is_master_pseudoclock=False, wait_table=None, started=True)
         with mock.patch('labscript_utils.setup_logging.setup_logging'), \
              mock.patch('labscript_utils.excepthook.set_logger'), \
              mock.patch('labscript_utils.ls_zprocess.ProcessTree'):
@@ -39,10 +39,12 @@ class EndOfShotTests(unittest.TestCase):
         self.assertTrue(self.worker(run_statuses).transition_to_manual())
         self.assertEqual(list(run_statuses), [])
 
-    def test_a_board_that_never_finishes_fails_after_the_timeout_it_is_given(self):
+    def test_a_board_that_never_finishes_fails_after_its_class_timeout(self):
         # 0.2 s of polling every 0.01 s reads fewer than 100 statuses; the 5 s
         # default would run out of them first.
-        worker = self.worker(iter([2] * 100), end_of_shot_timeout=0.2)
+        class QuickBoard(PrawnBlasterWorker):
+            end_of_shot_timeout = 0.2
+        worker = self.worker(iter([2] * 100), QuickBoard)
         with self.assertRaises(TimeoutError):
             worker.transition_to_manual()
 

@@ -1568,9 +1568,9 @@ touches:
 | NI_DAQmx `release_tasks`, `getattr`/`setattr(self, name)` | kept | each worker class declares `task_attributes`, the names one release clears: Ian's approved form |
 | PulseBlaster tab, `getattr(ui, '%s_label' % state)` | kept | the `.ui` file's widgets, by state name |
 | PulseBlaster worker, `hasattr(self, 'core_clock_freq')` | kept | BLACS drops a workerarg the worker already has, so the base can have no default |
-| PulseBlaster DDS worker, `getattr(self, 'num_DO', 12)` | kept | the same: `num_DO` is a workerarg |
-| `pseudoclock.py`, `getattr(self, 'end_of_shot_timeout', 5)` | kept | the same: a workerarg |
-| TriggerableCamera worker, `getattr(self, 'is_remote', False)` | kept | the same: BLACS sets `is_remote` as a workerarg |
+| PulseBlaster DDS worker, `getattr(self, 'num_DO', 12)` | replaced | read directly: every PulseBlaster tab passes `num_DO` (`5a947bf`) |
+| `pseudoclock.py`, `getattr(self, 'end_of_shot_timeout', 5)` | replaced | a class attribute, 5 s, which a board's class may override; no tab passes it (Ian) |
+| TriggerableCamera worker, `getattr(self, 'is_remote', False)` | replaced | read directly: BLACS's `create_worker` always sets it (`5a947bf`) |
 | `__init__.py` `lazy_attributes`, `getattr(module, name)` | kept | a lazy import by name |
 | tests: `test_camera_interface`, `test_dummy_camera` | kept | which members a camera overrides; a proxy's `__getattr__` |
 | PulseBlaster device, `hasattr(self, 'core_clock_freq')` | kept | the documented subclass use; a class default would make every board look as if it set it |

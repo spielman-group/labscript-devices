@@ -26,9 +26,11 @@ class PseudoclockWorker(Worker):
     whose tab has already seen it finish may skip it.
 
     ``end_of_shot_timeout`` is how many seconds a board may run on once BLACS
-    begins to stop it, by the transition or by an abort. A worker argument sets
-    it, and it is 5 s otherwise.
+    begins to stop it, by the transition or by an abort. A board's class may
+    override it.
     """
+
+    end_of_shot_timeout = 5
 
     def shot_finished(self):
         """Return whether the board has finished the shot, as `PseudoclockTab` polls.
@@ -48,10 +50,7 @@ class PseudoclockWorker(Worker):
             Returns True once the board has stopped; :meth:`shot_finished` by
             default. An abort passes its own test.
         """
-        # BLACS does not set a worker argument that the worker already has, so
-        # this cannot be a class attribute.
-        timeout = getattr(self, 'end_of_shot_timeout', 5)
-        Deadline(self.device_name, 'end the shot', timeout).wait(
+        Deadline(self.device_name, 'end the shot', self.end_of_shot_timeout).wait(
             ended or self.shot_finished
         )
 
