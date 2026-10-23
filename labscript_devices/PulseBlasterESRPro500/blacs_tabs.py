@@ -15,5 +15,4 @@ from labscript_devices.PulseBlaster_No_DDS.blacs_tabs import PulseBlaster_No_DDS
 
 
 class PulseBlasterESRPro500Tab(PulseBlaster_No_DDSTab):
-    num_DO = 21
     worker_class = 'labscript_devices.PulseBlasterESRPro500.blacs_workers.PulseBlasterESRPro500Worker'

@@ -184,6 +184,8 @@ class PulseBlasterBase(PseudoclockDevice):
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.BLACS_connection = board_number
         self.firmware_version = firmware
+        # The board's BLACS tab and worker read its flag count from the connection table.
+        self.set_property('n_flags', self.n_flags, 'connection_table_properties')
 
         possible_programming_schemes = ['pb_start/BRANCH', 'pb_stop_programming/STOP']
         if programming_scheme not in possible_programming_schemes:

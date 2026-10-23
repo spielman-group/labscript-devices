@@ -61,7 +61,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
         # an integer with flag 0 the lowest bit, so the same flags are 0b111110001101:
         # the two read in opposite directions.
         flags = ''
-        for i in range(self.num_DO):
+        for i in range(self.n_flags):
             if front_panel_values['flag %d'%i]:
                 flags += '1'
             else:
@@ -135,7 +135,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
 
                 # Flags as a string, flag 0 first, as in program_manual.
                 initial_flags = ''
-                for i in range(self.num_DO):
+                for i in range(self.n_flags):
                     if front_panel_values['flag %d'%i]:
                         initial_flags += '1'
                     else:
@@ -188,8 +188,8 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
 
             return_values = {}
             # The integer's lowest bit is flag 0, so its binary string is reversed:
-            return_flags = str(bin(flags)[2:]).rjust(self.num_DO,'0')[::-1]
-            for i in range(self.num_DO):
+            return_flags = str(bin(flags)[2:]).rjust(self.n_flags,'0')[::-1]
+            for i in range(self.n_flags):
                 return_values['flag %d'%i] = return_flags[i]
 
             return return_values
@@ -274,7 +274,7 @@ class DDSPulseBlasterWorkerMixin:
 
         # Flags as a string, flag 0 first, as in PulseBlasterBaseWorker.program_manual.
         flags = ''
-        for i in range(self.num_DO):
+        for i in range(self.n_flags):
             if front_panel_values['flag %d'%i]:
                 flags += '1'
             else:
@@ -371,7 +371,7 @@ class DDSPulseBlasterWorkerMixin:
 
                 # Flags as a string, flag 0 first, as in PulseBlasterBaseWorker.program_manual.
                 initial_flags = ''
-                for i in range(self.num_DO):
+                for i in range(self.n_flags):
                     if front_panel_values['flag %d'%i]:
                         initial_flags += '1'
                     else:
@@ -421,8 +421,8 @@ class DDSPulseBlasterWorkerMixin:
                              'dds 1':{'freq':finalfreq1, 'amp':finalamp1, 'phase':finalphase1, 'gate':en1},
                             }
             # The integer's lowest bit is flag 0, so its binary string is reversed:
-            return_flags = str(bin(flags)[2:]).rjust(self.num_DO,'0')[::-1]
-            for i in range(self.num_DO):
+            return_flags = str(bin(flags)[2:]).rjust(self.n_flags,'0')[::-1]
+            for i in range(self.n_flags):
                 return_values['flag %d'%i] = return_flags[i]
 
             return return_values

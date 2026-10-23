@@ -15,6 +15,7 @@ from blacs.tab_base_classes import define_state
 from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MODE_TRANSITION_TO_MANUAL, MODE_BUFFERED
 
 from blacs.device_base_class import DeviceTab
+from labscript_devices import import_class_by_fullname
 from labscript_devices.pseudoclock import PseudoclockTab
 
 from qtutils import UiLoader
@@ -29,15 +30,31 @@ from qtutils.qt import QtGui
 
 
 class PulseBlasterBaseTab(PseudoclockTab):
-    """The tab of a PulseBlaster board's flags. A board's class sets ``num_DO``,
-    and ``worker_class``, the full import path of its worker."""
+    """The tab of a PulseBlaster board's flags, as many as the connection table's
+    ``n_flags``. A board's class sets ``worker_class``, the full import path of its
+    worker."""
 
     # A lab's own tab may name its worker class here instead, by upstream's name.
     device_worker_class = None
 
     def initialise_GUI(self):
+        connection_object = self.settings['connection_table'].find_by_name(self.device_name)
+        # LEGACY CONNECTION TABLE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        # A table from before n_flags was saved gets the count from the board's
+        # labscript class, in this tab's package.
+        if 'n_flags' not in connection_object.properties:
+            warn_legacy_file(
+                self.settings['connection_table'].filepath,
+                "lacks the PulseBlaster's n_flags, which a recompile writes",
+            )
+            package = type(self).__module__.rsplit('.', 1)[0]
+            board = import_class_by_fullname(f'{package}.{connection_object.device_class}')
+            self.n_flags = board.n_flags
+        else:
+            self.n_flags = connection_object.properties['n_flags']
+
         do_prop = {}
-        for i in range(self.num_DO):
+        for i in range(self.n_flags):
             do_prop['flag %d'%i] = {}
 
         self.create_digital_outputs(do_prop)
@@ -51,7 +68,6 @@ class PulseBlasterBaseTab(PseudoclockTab):
         # The DDS widgets, if a subclass made DDS outputs, come before the flags.
         self.auto_place_widgets(("DDS Outputs",dds_widgets),("Flags",do_widgets,sort))
 
-        connection_object = self.settings['connection_table'].find_by_name(self.device_name)
         self.board_number = int(connection_object.BLACS_connection)
 
         # How buffered output is programmed and triggered; a connection table from before
@@ -90,9 +106,10 @@ class PulseBlasterBaseTab(PseudoclockTab):
 
     def initialise_workers(self):
         worker_class = self.device_worker_class or self.worker_class
+        # BLACS passes the connection table's n_flags too; given here for a table without it.
         self.create_worker("main_worker",worker_class,
                            {'board_number':self.board_number,
-                            'num_DO': self.num_DO,
+                            'n_flags': self.n_flags,
                             'programming_scheme': self.programming_scheme})
         self.primary_worker = "main_worker"
 
@@ -205,5 +222,4 @@ class DDSPulseBlasterTabMixin:
 
 
 class PulseBlasterTab(DDSPulseBlasterTabMixin, PulseBlasterBaseTab):
-    num_DO = 12
     worker_class = 'labscript_devices.PulseBlaster.blacs_workers.PulseBlasterWorker'
