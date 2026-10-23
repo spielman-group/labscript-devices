@@ -41,6 +41,8 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
         pb_select_board(self.board_number)
         pb_init()
         # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+        # A board's subclass may set core_clock_freq, in MHz, as upstream documents;
+        # a workerarg of it works too, since the worker base has no such attribute.
         if hasattr(self, 'core_clock_freq'):
             warnings.warn(
                 f"{type(self).__name__}.core_clock_freq, in MHz, will be removed; "

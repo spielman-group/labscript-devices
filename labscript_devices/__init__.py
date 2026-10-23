@@ -53,19 +53,15 @@ def lazy_attributes(package, names_by_submodule, legacy=False):
 
 
 class LegacyAttribute:
-    """A class attribute that warns, wherever it is read, that it will be removed.
-
-    A callable `value` is called with the class read from, and ``{owner}`` in
-    `message` names that class.
-    """
+    """A class attribute that warns, wherever it is read, that it will be removed."""
 
     def __init__(self, value, message):
         self.value = value
         self.message = message
 
     def __get__(self, instance, owner):
-        warnings.warn(self.message.format(owner=owner.__name__), FutureWarning, stacklevel=2)
-        return self.value(owner) if callable(self.value) else self.value
+        warnings.warn(self.message, FutureWarning, stacklevel=2)
+        return self.value
 
 
 if __name__ == '__main__':

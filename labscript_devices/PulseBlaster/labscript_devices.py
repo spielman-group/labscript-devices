@@ -37,7 +37,6 @@ import numpy as np
 
 import labscript
 import labscript_devices
-from labscript_devices import LegacyAttribute
 
 
 class PulseBlasterDDS(DDSQuantity):
@@ -82,12 +81,6 @@ class PulseBlasterBase(PseudoclockDevice):
     """The pseudoclock and flags of a SpinCore PulseBlaster board. A board's class
     sets its ``description``, ``clock_limit``, ``clock_resolution``, ``n_flags``
     and ``clock_frequency``, in Hz."""
-
-    # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-    core_clock_freq = LegacyAttribute(
-        lambda owner: owner.clock_frequency / 1e6,
-        "{owner}.core_clock_freq, in MHz, will be removed; read clock_frequency, in Hz.",
-    )
 
     pb_instructions = {'CONTINUE':   0,
                        'STOP':       1,
@@ -211,8 +204,8 @@ class PulseBlasterBase(PseudoclockDevice):
         self.min_delay = 0.5 / self.clock_limit
 
         # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        # A subclass that sets core_clock_freq replaces the warning attribute above.
-        if not isinstance(inspect.getattr_static(self, 'core_clock_freq'), LegacyAttribute):
+        # A board's subclass may set core_clock_freq, in MHz, as upstream documents.
+        if hasattr(self, 'core_clock_freq'):
             warnings.warn(
                 f"{type(self).__name__}.core_clock_freq, in MHz, will be removed; "
                 "set clock_frequency, in Hz.", FutureWarning, stacklevel=3
