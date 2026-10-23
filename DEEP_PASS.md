@@ -105,8 +105,9 @@ Each stage's commits on `CodeHealth`, for review:
   findings on the remaining rows: `154e07d..` `3fe50b2`.
 - Rows 29, 41, 56, 57, 58 and 75, row 85's print, and Codex's TekScope finding:
   `103be82..` `9ac7fba`.
-- Row 41's Spinnaker part and row 5's refusal message: `9bb7226..` the commit
-  that records this line.
+- Row 41's Spinnaker part and row 5's refusal message: `9bb7226..` `319a3ac`.
+- Codex's validation, `core_clock_freq` and the probed-attribute audit (Ian):
+  `bdf83b8..` the commit that records this line.
 
 ## The test contract
 
@@ -1540,3 +1541,49 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
   printed at set-up; a TekScope shot with `channels`, a hidden channel asked
   for returning data; an IMAQdx camera given an unprefixed serial; a
   Spinnaker camera's saved attributes at each visibility level.
+
+## Attributes probed by name (Ian; labscript-style rule 16)
+
+Ian: "please simplify." `core_clock_freq` supports only its documented use
+(upstream's `pulseblaster.rst`): a board's subclass sets it, and the device's
+`__init__` and the worker's `init` convert it with a FutureWarning. A
+workerarg of it works, since the worker base has no such attribute. Reading
+`PulseBlaster.core_clock_freq` raises AttributeError, which Ian accepts. The
+read alias, `LegacyAttribute`'s computed values and the `getattr_static`
+test go (`fceaac8`).
+
+Every `getattr`, `hasattr`, `setattr` and `getattr_static` that
+`Development..CodeHealth` adds to labscript-devices, and those in the files it
+touches:
+
+| Where | Kept or replaced | Why |
+| --- | --- | --- |
+| CiceroOpalKellyXEM3001 worker, `hasattr(ok, 'okCFrontPanel')` | kept | the vendor's module: FrontPanel 4 and 5 differ |
+| DummyCamera, `getattr(function, '__name__', function)` | kept | a lab's callable, which may have no name |
+| DummyCamera `testing/test.py`, `getattr(builtins, …)` ×2 | kept | runmanager's globals, absent outside it |
+| FlyCapture2Camera worker, 9 | kept | PyCapture2's objects, by the names in the camera's settings |
+| AndorSolis `andor_solis.py`, `atsapi.py` | kept | the vendor SDK wrappers, left as they are |
+| IMAQdxCamera worker, `getattr(obj, '_contents' / 'value', None)` | kept | NI's ctypes objects |
+| IMAQdxCamera worker, `hasattr(self.camera, 'get_attributes_as_dict')` | kept | the old-style camera upstream supports, which lacks it |
+| NI_DAQmx `release_tasks`, `getattr`/`setattr(self, name)` | kept | each worker class declares `task_attributes`, the names one release clears: Ian's approved form |
+| PulseBlaster tab, `getattr(ui, '%s_label' % state)` | kept | the `.ui` file's widgets, by state name |
+| PulseBlaster worker, `hasattr(self, 'core_clock_freq')` | kept | BLACS drops a workerarg the worker already has, so the base can have no default |
+| PulseBlaster DDS worker, `getattr(self, 'num_DO', 12)` | kept | the same: `num_DO` is a workerarg |
+| `pseudoclock.py`, `getattr(self, 'end_of_shot_timeout', 5)` | kept | the same: a workerarg |
+| TriggerableCamera worker, `getattr(self, 'is_remote', False)` | kept | the same: BLACS sets `is_remote` as a workerarg |
+| `__init__.py` `lazy_attributes`, `getattr(module, name)` | kept | a lazy import by name |
+| tests: `test_camera_interface`, `test_dummy_camera` | kept | which members a camera overrides; a proxy's `__getattr__` |
+| PulseBlaster device, `hasattr(self, 'core_clock_freq')` | kept | the documented subclass use; a class default would make every board look as if it set it |
+| PulseBlaster device, `getattr_static(…)` | replaced | by the `hasattr` above (`fceaac8`) |
+| PulseBlaster tab, `getattr(self, 'device_worker_class', …)` | replaced | a class default `None`, upstream's name for a lab's tab (`182859e`) |
+| PulseBlaster direct outputs, Vpp check, `getattr` ×3 | replaced | `isinstance(device, DDSQuantity)`, then its `amplitude.unit_conversion_class` and `base_unit`, which labscript and its conversions declare (`182859e`) |
+| TriggerableCamera tab, `hasattr(size_policy, 'setRetainSizeWhenHidden')` | replaced | the suite's PyQt6 always has it (`182859e`) |
+| DummyPseudoclock worker, `getattr(self, 'start_time', None)` | replaced | a class default `None`; not a workerarg (`182859e`) |
+| NovaTechDDS9M ×3, PhaseMatrixQuickSyn, RFBlaster ×3, `quantise_channel('frequency', …)` | replaced | labscript `b273fbf` takes the output itself, `device.frequency`, for its `getattr(self, channel)`; the seven calls pass it (`ec58fde`) |
+
+Probed against `efc1eb7`, the Vpp warning fires for a DDS with a Vpp
+conversion and not for a DDS without one or a DigitalOut, and
+DummyPseudoclock's first `shot_finished` starts its clock, as before. With
+labscript `b273fbf`, every valid NovaTechDDS9M, PhaseMatrixQuickSyn and
+RFBlaster shot compiles byte-identical to `182859e` with labscript `7d0ddad`;
+three refusals now give labscript's own range message.
