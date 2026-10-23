@@ -4,7 +4,7 @@ Possible improvements
 Improvements judged worth making, but larger than a small change.
 
 * **The values a manual program took.** NI_DAQmx's and the PulseBlasters' ``program_manual`` return nothing, so BLACS shows the values asked for, not the ones the hardware took after quantising.
-* **Connections checked when they are made.** A PulseBlaster checks its outputs' connections, and that a board without DDS has no DDS on it, only when the shot compiles; an AlazarTechBoard does not check its inputs' connections at all. Checking in ``add_device`` would put the error at the line that connects.
+* **Connections checked when they are made.** A PulseBlaster checks its outputs' connections only when the shot compiles; an AlazarTechBoard does not check its inputs' connections at all. Checking in ``add_device`` would put the error at the line that connects.
 * **Measured delays.** The PineBlaster's ``wait_delay``, the RFBlaster's ``trigger_delay`` and ``wait_delay``, and the CiceroOpalKellyXEM3001's ``trigger_delay`` and ``wait_delay`` are estimates. Measuring each on a board would make the timing exact.
 * **Andor acquisitions.** The AndorSolis worker waits for the camera to go idle; if the camera is still busy when that wait times out, it aborts the acquisition and raises. It could instead end the wait once the expected frames have arrived, and on a timeout keep waiting unless the shot is aborted.
 * **Waits close together.** A pseudoclock's BLACS tab polls the board's status every 100 ms, and the CiceroOpalKellyXEM3001 finds its waits from the sample count it reads at each poll, so a shot fails, saying a wait came too soon after another, when two of its waits both pass between one poll and the next.
