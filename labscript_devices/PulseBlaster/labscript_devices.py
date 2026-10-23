@@ -714,8 +714,10 @@ class PulseBlasterDirectOutputs(IntermediateDevice):
     def add_device(self, device):
         IntermediateDevice.add_device(self, device)
         # LEGACY VPP AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        conversion = getattr(getattr(device, 'amplitude', None), 'unit_conversion_class', None)
-        if getattr(conversion, 'base_unit', None) == 'Vpp':
+        conversion = None
+        if isinstance(device, DDSQuantity):
+            conversion = device.amplitude.unit_conversion_class
+        if conversion is not None and conversion.base_unit == 'Vpp':
             # Warn at the line that made or added the DDS: past the suite's code, the
             # DDS's own __init__s and the wrappers that called them, which take the DDS
             # first. A function that only adds it is the line. Never raise.

@@ -32,6 +32,9 @@ class PulseBlasterBaseTab(PseudoclockTab):
     """The tab of a PulseBlaster board's flags. A board's class sets ``num_DO``,
     and ``worker_class``, the full import path of its worker."""
 
+    # A lab's own tab may name its worker class here instead, by upstream's name.
+    device_worker_class = None
+
     def initialise_GUI(self):
         do_prop = {}
         for i in range(self.num_DO):
@@ -86,8 +89,7 @@ class PulseBlasterBaseTab(PseudoclockTab):
         self.statemachine_timeout_add(2000, self.update_status)
 
     def initialise_workers(self):
-        # A lab's own tab may name its worker class in device_worker_class instead.
-        worker_class = getattr(self, 'device_worker_class', self.worker_class)
+        worker_class = self.device_worker_class or self.worker_class
         self.create_worker("main_worker",worker_class,
                            {'board_number':self.board_number,
                             'num_DO': self.num_DO,

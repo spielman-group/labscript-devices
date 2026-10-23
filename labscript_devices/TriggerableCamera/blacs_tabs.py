@@ -144,10 +144,8 @@ class TriggerableCameraTab(DeviceTab):
             self.ui.toolButton_nomax,
         ]:
             size_policy = widget.sizePolicy()
-            # setRetainSizeWhenHidden was added in Qt 5.2.
-            if hasattr(size_policy, 'setRetainSizeWhenHidden'):
-                size_policy.setRetainSizeWhenHidden(True)
-                widget.setSizePolicy(size_policy)
+            size_policy.setRetainSizeWhenHidden(True)
+            widget.setSizePolicy(size_policy)
 
         self.image_receiver = ImageReceiver(self.image, self.ui.label_fps)
         self.acquiring = False

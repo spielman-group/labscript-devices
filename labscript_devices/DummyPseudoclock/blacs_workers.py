@@ -18,6 +18,9 @@ import labscript_utils.properties as properties
 
 
 class DummyPseudoclockWorker(PseudoclockWorker):
+    # When the shot started, set by its first shot_finished.
+    start_time = None
+
     def program_manual(self, front_panel_values):
         return {}
 
@@ -32,7 +35,7 @@ class DummyPseudoclockWorker(PseudoclockWorker):
         # The shot is timed from the first call, which the tab makes as the run starts.
         # Wait up to 1 s for stop_time seconds to pass since then, returning True if
         # they have and False if not.
-        if getattr(self, 'start_time', None) is None:
+        if self.start_time is None:
             self.start_time = time.time()
         timeout = min(self.start_time + self.stop_time - time.time(), 1)
         if timeout < 0:
