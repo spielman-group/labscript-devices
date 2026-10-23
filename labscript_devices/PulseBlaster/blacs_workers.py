@@ -11,14 +11,22 @@
 #                                                                   #
 #####################################################################
 
+import inspect
 import warnings
 
+from labscript_devices import LegacyAttribute
 from labscript_devices.pseudoclock import PseudoclockWorker
 
 
 class PulseBlasterBaseWorker(PseudoclockWorker):
     """The worker of a PulseBlaster board's pseudoclock and flags. A board's class
     sets ``clock_frequency``, in Hz."""
+
+    # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+    core_clock_freq = LegacyAttribute(
+        lambda owner: owner.clock_frequency / 1e6,
+        "{owner}.core_clock_freq, in MHz, will be removed; read clock_frequency, in Hz.",
+    )
 
     def init(self):
         exec('from spinapi import *', globals())
@@ -41,7 +49,8 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
         pb_select_board(self.board_number)
         pb_init()
         # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        if hasattr(self, 'core_clock_freq'):
+        # A subclass that sets core_clock_freq replaces the warning attribute above.
+        if not isinstance(inspect.getattr_static(self, 'core_clock_freq'), LegacyAttribute):
             warnings.warn(
                 f"{type(self).__name__}.core_clock_freq, in MHz, will be removed; "
                 "set clock_frequency, in Hz.", FutureWarning
