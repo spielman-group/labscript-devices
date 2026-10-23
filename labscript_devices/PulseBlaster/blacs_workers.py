@@ -254,8 +254,6 @@ class DDSPulseBlasterWorkerMixin:
     them. It comes before :class:`PulseBlasterBaseWorker` in a board's bases."""
 
     def init(self):
-        # The DDS board has 12 flags, for a tab that doesn't say how many.
-        self.num_DO = getattr(self, 'num_DO', 12)
         super().init()
         self.smart_cache.update({'amps0':None,'freqs0':None,'phases0':None,
                                  'amps1':None,'freqs1':None,'phases1':None})
