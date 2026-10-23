@@ -114,7 +114,7 @@ class PhaseMatrixQuickSyn(Device):
 
     def quantise_freq(self, data, device):
         """Return `data`, a DDS's frequencies in Hz, in mHz as uint64, with the scale 1000."""
-        return device.quantise_channel('frequency', 1000, values=data, limits=(0.5e9, 10e9), dtype=np.uint64)
+        return device.quantise_channel(device.frequency, 1000, values=data, limits=(0.5e9, 10e9), dtype=np.uint64)
 
     def generate_code(self, hdf5_file):
         """Write the frequency, in mHz, and the gate to the shot file's STATIC_DATA."""
