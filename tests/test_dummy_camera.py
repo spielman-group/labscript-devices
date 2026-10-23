@@ -212,7 +212,6 @@ class DummyCameraTestCase(CompileTestCase):
         worker = self.worker_class.__new__(self.worker_class)
         # What BLACS passes a camera worker when it starts it:
         worker.device_name = 'camera'
-        worker.is_remote = False
         worker.serial_number = 0x0
         worker.orientation = None
         worker.camera_attributes = {'Width': 64, 'Height': 48}

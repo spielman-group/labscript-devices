@@ -24,7 +24,6 @@ import labscript_utils.properties
 import zmq
 
 from labscript_utils.ls_zprocess import Context
-from labscript_utils.shared_drive import path_to_local
 
 
 def _unwritten(camera, method):
@@ -308,8 +307,6 @@ class TriggerableCameraWorker(Worker):
             self.continuous_dt = None
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
-        if self.is_remote:
-            h5_file = path_to_local(h5_file)
         if self.continuous_thread is not None:
             self.stop_continuous(pause=True)
         with h5py.File(h5_file, 'r') as f:
