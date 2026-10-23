@@ -20,6 +20,11 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
     """The worker of a PulseBlaster board's pseudoclock and flags. A board's class
     sets ``clock_frequency``, in Hz."""
 
+    # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+    # A board's subclass may set core_clock_freq, in MHz, as upstream documents, and
+    # a workerarg overrides it.
+    core_clock_freq = None
+
     def init(self):
         exec('from spinapi import *', globals())
         global h5py; import labscript_utils.h5_lock, h5py
@@ -41,9 +46,7 @@ class PulseBlasterBaseWorker(PseudoclockWorker):
         pb_select_board(self.board_number)
         pb_init()
         # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        # A board's subclass may set core_clock_freq, in MHz, as upstream documents;
-        # a workerarg of it works too, since the worker base has no such attribute.
-        if hasattr(self, 'core_clock_freq'):
+        if self.core_clock_freq is not None:
             warnings.warn(
                 f"{type(self).__name__}.core_clock_freq, in MHz, will be removed; "
                 "set clock_frequency, in Hz.", FutureWarning

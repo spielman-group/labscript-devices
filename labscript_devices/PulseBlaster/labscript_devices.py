@@ -104,6 +104,10 @@ class PulseBlasterBase(PseudoclockDevice):
     allowed_children = [Pseudoclock]
     max_pseudoclocks = 1
 
+    # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+    # A board's subclass may set core_clock_freq, in MHz, as upstream documents.
+    core_clock_freq = None
+
     @set_passed_properties(
         property_names={
             "connection_table_properties": ["firmware", "programming_scheme"],
@@ -206,8 +210,7 @@ class PulseBlasterBase(PseudoclockDevice):
         self.min_delay = 0.5 / self.clock_limit
 
         # LEGACY CORE_CLOCK_FREQ COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        # A board's subclass may set core_clock_freq, in MHz, as upstream documents.
-        if hasattr(self, 'core_clock_freq'):
+        if self.core_clock_freq is not None:
             warnings.warn(
                 f"{type(self).__name__}.core_clock_freq, in MHz, will be removed; "
                 "set clock_frequency, in Hz.", FutureWarning, stacklevel=3

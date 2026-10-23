@@ -1545,12 +1545,13 @@ Rows 84 to 88 are the Andor study's candidates, in the triage's numbering.
 ## Attributes probed by name (Ian; labscript-style rule 16)
 
 Ian: "please simplify." `core_clock_freq` supports only its documented use
-(upstream's `pulseblaster.rst`): a board's subclass sets it, and the device's
-`__init__` and the worker's `init` convert it with a FutureWarning. A
-workerarg of it works, since the worker base has no such attribute. Reading
-`PulseBlaster.core_clock_freq` raises AttributeError, which Ian accepts. The
-read alias, `LegacyAttribute`'s computed values and the `getattr_static`
-test go (`fceaac8`).
+(upstream's `pulseblaster.rst`): a board's subclass sets it, in MHz. The device
+base and the worker base declare it `None`, and the device's `__init__` and the
+worker's `init` convert any other value with a FutureWarning. A workerarg sets
+it too, as blacs `6a2c5a2` lets a workerarg override a worker's class
+attribute; an older blacs drops that workerarg. The read alias,
+`LegacyAttribute`'s computed values and the `getattr_static` test went in
+`fceaac8`, and the `hasattr` checks with blacs `6a2c5a2`.
 
 Every `getattr`, `hasattr`, `setattr` and `getattr_static` that
 `Development..CodeHealth` adds to labscript-devices, and those in the files it
@@ -1567,13 +1568,13 @@ touches:
 | IMAQdxCamera worker, `hasattr(self.camera, 'get_attributes_as_dict')` | kept | the old-style camera upstream supports, which lacks it |
 | NI_DAQmx `release_tasks`, `getattr`/`setattr(self, name)` | kept | each worker class declares `task_attributes`, the names one release clears: Ian's approved form |
 | PulseBlaster tab, `getattr(ui, '%s_label' % state)` | kept | the `.ui` file's widgets, by state name |
-| PulseBlaster worker, `hasattr(self, 'core_clock_freq')` | kept | BLACS drops a workerarg the worker already has, so the base can have no default |
+| PulseBlaster worker, `hasattr(self, 'core_clock_freq')` | replaced | `core_clock_freq = None` on the worker base, which a workerarg overrides since blacs `6a2c5a2` |
 | PulseBlaster DDS worker, `getattr(self, 'num_DO', 12)` | replaced | `n_flags`, saved by the labscript class in the connection table, as NI's channel counts are, and read from there by the tab and the worker; each tab's `num_DO` goes (Ian) |
-| `pseudoclock.py`, `getattr(self, 'end_of_shot_timeout', 5)` | replaced | a class attribute, 5 s, which a board's class may override; no tab passes it (Ian) |
+| `pseudoclock.py`, `getattr(self, 'end_of_shot_timeout', 5)` | replaced | a class attribute, 5 s, which a board's class or, since blacs `6a2c5a2`, a workerarg overrides; no tab passes it (Ian) |
 | TriggerableCamera worker, `getattr(self, 'is_remote', False)` | replaced | gone, with its second `path_to_local`: blacs' `Worker._transition_to_buffered` converts the path for every worker (`9e91228`) |
 | `__init__.py` `lazy_attributes`, `getattr(module, name)` | kept | a lazy import by name |
 | tests: `test_camera_interface`, `test_dummy_camera` | kept | which members a camera overrides; a proxy's `__getattr__` |
-| PulseBlaster device, `hasattr(self, 'core_clock_freq')` | kept | the documented subclass use; a class default would make every board look as if it set it |
+| PulseBlaster device, `hasattr(self, 'core_clock_freq')` | replaced | `core_clock_freq = None` on the device base, tested for `None` |
 | PulseBlaster device, `getattr_static(…)` | replaced | by the `hasattr` above (`fceaac8`) |
 | PulseBlaster tab, `getattr(self, 'device_worker_class', …)` | replaced | a class default `None`, upstream's name for a lab's tab (`182859e`) |
 | PulseBlaster direct outputs, Vpp check, `getattr` ×3 | replaced | `isinstance(device, DDSQuantity)`, then its `amplitude.unit_conversion_class` and `base_unit`, which labscript and its conversions declare (`182859e`) |

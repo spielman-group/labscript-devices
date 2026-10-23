@@ -26,8 +26,8 @@ class PseudoclockWorker(Worker):
     whose tab has already seen it finish may skip it.
 
     ``end_of_shot_timeout`` is how many seconds a board may run on once BLACS
-    begins to stop it, by the transition or by an abort. A board's class may
-    override it.
+    begins to stop it, by the transition or by an abort. A board's class or a
+    worker argument may override it.
     """
 
     end_of_shot_timeout = 5
