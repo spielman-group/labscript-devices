@@ -83,6 +83,10 @@ class PrawnDO(PseudoclockDevice):
 
     max_frequency_map = {'pico1' : 133e6, 'pico2' : 150e6}
 
+    max_reps = 2**32 - 1
+    """Largest number of clock cycles for which one instruction holds its output.
+    The firmware stores reps as a 32-bit unsigned integer."""
+
     @set_passed_properties(
         property_names={
             'connection_table_properties': [
@@ -255,7 +259,17 @@ class PrawnDO(PseudoclockDevice):
         bit_sets = np.array(bitfield(bits, dtype=np.uint16))
 
         # reps is the time between changes, in clock cycles.
-        reps = self.quantise_to_pseudoclock(np.diff(times), ticks=True).astype(np.uint32)
+        reps = self.quantise_to_pseudoclock(np.diff(times), ticks=True)
+        if reps.size and reps.max() > self.max_reps:
+            i = int(np.argmax(reps))
+            max_interval = self.max_reps * self.clock_resolution
+            raise LabscriptError(
+                f"{self.description} {self.name} has no output changes between "
+                f"t={times[i]} s and t={times[i + 1]} s. This interval of "
+                f"{times[i + 1] - times[i]} s is longer than the maximum of "
+                f"{max_interval:.1f} s between instructions."
+            )
+        reps = reps.astype(np.uint32)
 
         # The final output is already in bit_sets. A reps of 0 holds it, and a second
         # row of reps 0, whose bit set is ignored, makes the pair a stop.
