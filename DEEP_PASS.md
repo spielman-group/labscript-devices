@@ -10,7 +10,8 @@ leaves open. It is deleted in the last commit before `CodeHealth` merges into
 `CodeHealth` needs the other repos' `CodeHealth` at or after labscript
 `b273fbf`, labscript-utils `84dde2b`, blacs `6a2c5a2` and runviewer `edcc0a7`.
 
-It needs Python 3.13 and qtutils 4.4.1, and no longer PyNIVision.
+It needs Python 3.13, qtutils 4.4.1 and filelock 3.12, and no longer
+PyNIVision.
 
 Every lab recompiles its connection table once after the merge.
 
@@ -35,6 +36,7 @@ through labscript-utils' `warn_legacy_file`.
   `NI_USB_6343`, which give the NI_DAQmx class.
 - `labscript_devices.TekScope.TekScope`, the driver module, which is
   `labscript_devices.TekScope.driver`.
+- `labscript_devices.atsapi`, which is `labscript_devices.AlazarTechBoard.atsapi`.
 - A camera serial number given as an unprefixed string, which is decimal; IMAQdx,
   which read it as hex, warns.
 - Old files: PrawnDO's `pulse_program` dataset, now `PULSE_PROGRAM`; a
@@ -46,6 +48,9 @@ through labscript-utils' `warn_legacy_file`.
 
 ### Changes with no old form
 
+- **New devices,** from upstream: NarwhalPulseGenerator, AD9959DDSSweeper,
+  Windfreak's SynthHD and SynthHD Pro, ThorlabsTSICamera and GenICamCamera,
+  with `labscript_devices.common.usbserial` for FTDI serial adaptors.
 - **Connection tables:** the internal pseudoclock, clockline and wait-monitor
   devices of Cicero, PineBlaster, RFBlaster, DummyPseudoclock, PrawnBlaster and
   PrawnDO have new classes; the classes they replaced cannot be imported.
@@ -54,7 +59,9 @@ through labscript-utils' `warn_legacy_file`.
   imports an old name, or names one in a worker-class string, fails.
 - **PulseBlaster:** PulseBlaster_No_DDS and its models, and their parsers, no
   longer subclass PulseBlaster's; `convert_to_pb_inst` takes only the digital
-  outputs; each board's flag count is the connection table's `n_flags`.
+  outputs; each board's flag count is the connection table's `n_flags`. The
+  base parser and tab know only flags, and `DDSPulseBlasterParserMixin` draws
+  the DDS outputs.
 - **Cameras:** `set_attributes(attributes)`, so a call by `attr_dict=` or
   `attributes_dict=` fails; `configure_acquisition(continuous=True,
   buffer_count=None)`; the interface classes are `<Device>Interface`;
@@ -78,8 +85,9 @@ through labscript-utils' `warn_legacy_file`.
   does not retry.
 - **Aborts:** every worker aborts through `abort()`. A FunctionRunner whose own
   start function raised runs its stop functions.
-- **NI_DAQmx:** every task is cleared on every path, and analog input keeps the
-  samples after its last full chunk.
+- **NI_DAQmx:** every task is cleared on every path. Analog input keeps the
+  samples after its last full chunk, raises a buffer overflow at the end of a
+  shot rather than losing the shot's end, and discards an aborted shot's.
 - **AndorSolis:** an EM gain without `cooldown` warns, not refused; cooling
   starts without waiting; the temperature is printed every shot. The
   `em_gain_mode` attribute, 0 by default, is set before the gain range is read.
@@ -121,7 +129,8 @@ through labscript-utils' `warn_legacy_file`.
   which make up `__all__`, and gives the BLACS- and runviewer-side names
   lazily, so a compile never imports BLACS (`tests/test_device_packages.py`).
 - blacs keeps only the generic `Worker` and `DeviceTab`. `PseudoclockWorker`,
-  `PseudoclockTab`, `GuilessTab` and `GuilessWorker` live here.
+  `PseudoclockTab`, `GuilessTab` and `GuilessWorker` live here, in
+  `labscript_devices.common`, with the other code shared by devices.
 - What a tab and worker need to know of a device is a connection-table
   property, which BLACS passes to the worker, as NI_DAQmx's channel counts are.
   A worker's default is a class attribute, which a workerarg overrides.
@@ -135,6 +144,9 @@ through labscript-utils' `warn_legacy_file`.
 - lyse tooling inside FunctionRunner's functions is not supported.
 - An upstream fix is ported by hand onto `CodeHealth`, crediting its upstream
   commit. `master` is never merged in, and `DummyCamera` never merged inward.
+- Where upstream's form differs and fits, the fork takes upstream's. An owner
+  rules a change only "not possible", for code that has drifted too far or an
+  earlier decision of Ian's; any other choice is Ian's.
 
 ## Open
 
@@ -143,7 +155,20 @@ For Ian:
 - AndorSolis's `shutdown` closes no shutter and calls no `CoolerOFF` before
   `ShutDown`, as micro-manager's Andor adapter does.
 - NI_DAQmx releases no task before BLACS terminates a worker, on a restart or
-  a tab's close; Ian deferred it, as only failed and aborted runs leaked.
+  a tab's close; deferred until blacs's quit-message design.
+- Upstream's `common.deprecation.deprecated_names` (#179) for the old import
+  paths, in place of `lazy_attributes(..., legacy=True)`, which `IDIOMS.md` §1
+  prescribes. Taking it adds a second lazy-import function beside
+  `lazy_attributes`, which the package `__init__`s below need.
+- Upstream's package `__init__`s (#178, #179) give the old names with a
+  FutureWarning; the fork's give them silently, as the class-structure plan's
+  card 8 set (step 2.2.1). Taking upstream's changes 34 `__init__`s and every
+  doc and example that imports a device from its package.
+- Upstream's camera base is `labscript_devices.common.triggerable_camera`, with
+  `CameraInterface` and a `MockCamera` (#175), and its own DummyCamera on it
+  (#176). The fork's `TriggerableCamera` has drifted too far to take upstream's
+  code; its location and names could follow upstream's, a rename across about
+  35 files.
 
 Lab checks, on `Development`:
 
@@ -170,3 +195,6 @@ Lab checks, on `Development`:
 - AndorSolis: an older camera without a keep-clean cycle or crop mode, and an
   iXon Ultra cropping.
 - PulseBlaster: the status icons on a high-DPI screen.
+- NI_DAQmx: analog input whose read callback falls behind by more than the
+  buffer raises the overflow at the end of the shot, and the next shot runs.
+- The new devices: none has run on hardware here; a lab with one runs a shot.
