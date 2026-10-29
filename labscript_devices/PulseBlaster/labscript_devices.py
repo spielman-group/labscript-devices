@@ -11,9 +11,6 @@
 #                                                                   #
 #####################################################################
 
-import inspect
-import os
-import sys
 import warnings
 
 from labscript_utils import dedent
@@ -34,9 +31,6 @@ from labscript import (
 )
 
 import numpy as np
-
-import labscript
-import labscript_devices
 
 
 class PulseBlasterDDS(DDSQuantity):
@@ -691,24 +685,6 @@ class PulseBlaster(DDSPulseBlasterMixin, PulseBlasterBase):
     clock_frequency = 75e6
 
 
-# LEGACY VPP AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-_SUITE = (
-    os.path.dirname(labscript.__file__) + os.sep,
-    os.path.dirname(labscript_devices.__file__) + os.sep,
-)
-
-
-def _takes_first(frame, device):
-    """Whether `frame`'s function was given `device` as its first argument."""
-    code = frame.f_code
-    if code.co_argcount:
-        return frame.f_locals.get(code.co_varnames[0]) is device
-    if code.co_flags & inspect.CO_VARARGS:
-        args = frame.f_locals.get(code.co_varnames[code.co_kwonlyargcount])
-        return bool(args) and args[0] is device
-    return False
-
-
 class PulseBlasterDirectOutputs(IntermediateDevice):
     """The internal device that a PulseBlaster's digital outputs and DDSs connect to."""
 
@@ -721,33 +697,15 @@ class PulseBlasterDirectOutputs(IntermediateDevice):
         return self.pseudoclock_device.clock_limit
 
     def add_device(self, device):
-        IntermediateDevice.add_device(self, device)
-        # LEGACY VPP AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        conversion = None
         if isinstance(device, DDSQuantity):
             conversion = device.amplitude.unit_conversion_class
-        if conversion is not None and conversion.base_unit == 'Vpp':
-            # Warn at the line that made or added the DDS: past the suite's code, the
-            # DDS's own __init__s and the wrappers that called them, which take the DDS
-            # first. A function that only adds it is the line. Never raise.
-            try:
-                stacklevel, frame, constructing = 2, sys._getframe(1), False
-                while True:
-                    takes_dds = _takes_first(frame, device)
-                    constructor = takes_dds and frame.f_code.co_name == '__init__'
-                    wrapper = takes_dds and constructing
-                    in_suite = frame.f_code.co_filename.startswith(_SUITE)
-                    if not (in_suite or constructor or wrapper):
-                        break
-                    constructing = constructor or wrapper or (in_suite and constructing)
-                    stacklevel, frame = stacklevel + 1, frame.f_back
-            except Exception:
-                stacklevel = 2
-            warnings.warn(
-                f"{conversion.__name__}'s base_unit 'Vpp' will be removed for a "
-                "PulseBlaster DDS amplitude; use 'Arb'.", FutureWarning,
-                stacklevel=stacklevel,
-            )
+            if conversion is not None and conversion.base_unit == 'Vpp':
+                raise LabscriptError(
+                    f"{device.name}'s amplitude calibration {conversion.__name__} has "
+                    "the base unit 'Vpp'. A PulseBlaster DDS amplitude's base unit is "
+                    "'Arb', from 0 to 1: give the calibration base_unit = 'Arb'."
+                )
+        IntermediateDevice.add_device(self, device)
         if isinstance(device, DDS):
             # The gate is always internal to the PulseBlaster, so a DDS given a digital
             # gate of its own is refused; this DigitalQuantity keeps track of the gating.

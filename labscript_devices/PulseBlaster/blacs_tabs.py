@@ -24,7 +24,6 @@ from qtutils.icons import Icon
 import os
 
 from labscript_profile.legacy_files import warn_legacy_file
-from labscript_utils.unitconversions import get_unit_conversion_class
 
 from qtutils.qt import QtGui
 
@@ -192,31 +191,10 @@ class DDSPulseBlasterTabMixin:
                                                  'decimals':self.base_decimals[subchnl]
                                                 }
             dds_prop['dds %d'%i]['gate'] = {}
-            dds_prop['dds %d'%i]['amp']['base_unit'] = self.legacy_amplitude_unit(i)
 
         # Create the output objects, before the base class makes the flags
         self.create_dds_outputs(dds_prop)
         super().initialise_GUI()
-
-    # LEGACY VPP AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-    def legacy_amplitude_unit(self, i):
-        """'Vpp', the amplitude's old name for the same 0 to 1, if DDS `i`'s
-        amplitude calibration is written for it, else 'Arb'."""
-        dds = self.get_child_from_connection_table(self.device_name, 'dds %d' % i)
-        amplitude = dds and self.get_child_from_connection_table(dds.name, 'amp')
-        if amplitude and amplitude.unit_conversion_class:
-            try:
-                cls = get_unit_conversion_class(amplitude.unit_conversion_class)
-            except (ImportError, AttributeError, KeyError):
-                return 'Arb'
-            if cls.base_unit == 'Vpp':
-                warn_legacy_file(
-                    self.settings['connection_table'].filepath,
-                    f"gives a PulseBlaster DDS amplitude {cls.__name__}, a calibration "
-                    "in 'Vpp', not 'Arb'",
-                )
-                return 'Vpp'
-        return 'Arb'
 
 
 class PulseBlasterTab(DDSPulseBlasterTabMixin, PulseBlasterBaseTab):
