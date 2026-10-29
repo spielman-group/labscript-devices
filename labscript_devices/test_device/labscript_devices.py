@@ -1,5 +1,3 @@
-import warnings
-
 from labscript import Device, LabscriptError, set_passed_properties
 
 
@@ -36,12 +34,7 @@ class TestDevice(Device):
         Device.__init__(self, name, None, None, **kwargs)
 
 
-# LEGACY TEST_DEVICE CLASS NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-class test_device(TestDevice):
-    """The old name of :class:`TestDevice`: creating one gives a FutureWarning."""
-
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "test_device will be removed; use TestDevice.", FutureWarning, stacklevel=2
-        )
-        super().__init__(*args, **kwargs)
+def __getattr__(name):
+    if name == 'test_device':
+        raise ImportError("test_device is TestDevice: import and use TestDevice.")
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
