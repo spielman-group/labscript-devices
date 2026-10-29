@@ -17,7 +17,7 @@ import PIL.Image
 from io import BytesIO
 
 from labscript import (
-    Device, IntermediateDevice, LabscriptError, Output, compiler, renamed_keyword,
+    Device, IntermediateDevice, LabscriptError, Output, compiler,
 )
 import numpy as np
 
@@ -163,15 +163,14 @@ class LightCrafterDMD(IntermediateDevice):
             Clock line that clocks the device.
         host : str, optional
             IP address or host name of the LightCrafter, without a colon;
-            ``'192.168.1.100'`` by default. The old keyword `server` still works, with
-            a FutureWarning.
+            ``'192.168.1.100'`` by default.
         port : int, optional
             TCP port of the LightCrafter; 21845 by default.
         **kwargs
             Passed to :class:`~labscript.IntermediateDevice`.
         """
-        # LEGACY SERVER KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        host = renamed_keyword(kwargs, 'server', 'host', host, 'LightCrafterDMD')
+        if 'server' in kwargs:
+            raise LabscriptError(f"LightCrafterDMD {name}: the keyword server is host.")
         IntermediateDevice.__init__(self, name, parent_device, **kwargs)
         self.BLACS_connection = f'{host}:{port:d}'
 

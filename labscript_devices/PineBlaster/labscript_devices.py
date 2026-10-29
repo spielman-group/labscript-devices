@@ -18,7 +18,6 @@ from labscript import (
     compiler,
     LabscriptError,
     set_passed_properties,
-    renamed_keyword,
 )
 
 import numpy as np
@@ -64,14 +63,12 @@ class PineBlaster(PseudoclockDevice):
             required if `trigger_device` is given.
         com_port : str, optional
             Serial port the board is on, such as ``'COM7'``; ``'COM1'`` by default.
-            The old keyword `usbport` still works, with a FutureWarning.
         **kwargs
             Passed to :class:`~labscript.PseudoclockDevice`.
         """
-        # LEGACY USBPORT KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        self.com_port = com_port = renamed_keyword(
-            kwargs, 'usbport', 'com_port', com_port, 'PineBlaster', stacklevel=4
-        )
+        if 'usbport' in kwargs:
+            raise LabscriptError(f"PineBlaster {name}: the keyword usbport is com_port.")
+        self.com_port = com_port
         PseudoclockDevice.__init__(self, name, trigger_device, trigger_connection, **kwargs)
         self.BLACS_connection = com_port
 

@@ -22,7 +22,6 @@ from labscript import (
     WaitMonitor,
     DigitalOut,
     internal_wait_monitor_outputs,
-    renamed_keyword,
 )
 
 import numpy as np
@@ -80,7 +79,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
             required if `trigger_device` is given.
         serial_number : str, optional
             Serial number of the Opal Kelly board, as BLACS opens it; ``''`` by
-            default. The old keyword `serial` still works, with a FutureWarning.
+            default.
         reference_clock : str, optional
             ``'internal'``, the default, or ``'external'``: the reference clock the
             FPGA firmware runs from. BLACS flashes the matching bit file,
@@ -102,10 +101,10 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
         **kwargs
             Passed to :class:`~labscript.PseudoclockDevice`.
         """
-        # LEGACY SERIAL KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        serial_number = renamed_keyword(
-            kwargs, 'serial', 'serial_number', serial_number, 'CiceroOpalKellyXEM3001', stacklevel=4
-        )
+        if 'serial' in kwargs:
+            raise LabscriptError(
+                f"CiceroOpalKellyXEM3001 {name}: the keyword serial is serial_number."
+            )
         self.clock_limit = clock_frequency/2
         self.clock_resolution = 1/clock_frequency
         # Twice the debounce time.

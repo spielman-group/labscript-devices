@@ -13,7 +13,7 @@
 import os
 from labscript import (
     PseudoclockDevice, Pseudoclock, ClockLine, IntermediateDevice, DDS, compiler,
-    startupinfo, LabscriptError, set_passed_properties, renamed_keyword,
+    startupinfo, LabscriptError, set_passed_properties,
 )
 import numpy as np
 
@@ -40,8 +40,7 @@ class RFBlaster(PseudoclockDevice):
         host : str
             IP address of the board's web server, in dotted form such as
             ``'192.168.0.5'``; a host name is not accepted. BLACS contacts it on port
-            8080. Required, though it defaults to ``None``: the deprecated keyword
-            `ip_address` is accepted in its place.
+            8080. Required, though it defaults to ``None``.
         trigger_device : :class:`~labscript.IntermediateDevice`
             Device that sends the hardware start trigger. Required, though it defaults
             to ``None``: an RFBlaster must be a secondary pseudoclock, since its BLACS
@@ -51,8 +50,8 @@ class RFBlaster(PseudoclockDevice):
         **kwargs
             Passed to :class:`~labscript.PseudoclockDevice`.
         """
-        # LEGACY IP_ADDRESS KEYWORD COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-        host = renamed_keyword(kwargs, 'ip_address', 'host', host, 'RFBlaster', stacklevel=4)
+        if 'ip_address' in kwargs:
+            raise LabscriptError(f"RFBlaster {name}: the keyword ip_address is host.")
         if host is None:
             raise LabscriptError(
                 f'RFBlaster {name} needs the host of its board. Pass its IP address as host.'
