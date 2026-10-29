@@ -25,4 +25,3 @@ __getattr__ = deprecated_names(
         ],
     },
 )
-__all__ = ['QuickSynDDS', 'PhaseMatrixQuickSyn']

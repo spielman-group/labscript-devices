@@ -21,4 +21,3 @@ __getattr__ = deprecated_names(
         ],
     },
 )
-__all__ = ['NI_USB_6343']

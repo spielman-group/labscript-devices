@@ -36,7 +36,8 @@ through labscript-utils' `warn_legacy_file`.
   `NI_USB_6343`, which give the NI_DAQmx class.
 - `labscript_devices.TekScope.TekScope`, the driver module, which is
   `labscript_devices.TekScope.driver`.
-- `labscript_devices.atsapi`, which is `labscript_devices.AlazarTechBoard.atsapi`.
+- A name imported from the package of a device that was once a single module,
+  such as `labscript_devices.PulseBlaster`, as upstream gives it.
 - A camera serial number given as an unprefixed string, which is decimal; IMAQdx,
   which read it as hex, warns.
 - Old files: PrawnDO's `pulse_program` dataset, now `PULSE_PROGRAM`; a
@@ -64,8 +65,13 @@ through labscript-utils' `warn_legacy_file`.
   the DDS outputs.
 - **Cameras:** `set_attributes(attributes)`, so a call by `attr_dict=` or
   `attributes_dict=` fails; `configure_acquisition(continuous=True,
-  buffer_count=None)`; the interface classes are `<Device>Interface`;
-  Spinnaker's `set_attribute(name, value)`, with `set_stream_attribute`.
+  buffer_count=None)`; the interface classes are `<Device>Interface`, subclasses
+  of `CameraInterface`, in `labscript_devices.common.triggerable_camera` with
+  the rest of the camera base; Spinnaker's `set_attribute(name, value)`, with
+  `set_stream_attribute`. `mock=True` drives upstream's `MockCamera`, and every
+  shot's images carry `mock_data`.
+- **Moved modules:** `labscript_devices.atsapi` is
+  `labscript_devices.AlazarTechBoard.atsapi`, as upstream's is.
 - **Cicero:** `use_wait_monitor` defaults to True on a master, so a script that
   makes its own WaitMonitor on one fails and needs `use_wait_monitor=False`; a
   secondary asked for one raises.
@@ -121,13 +127,13 @@ through labscript-utils' `warn_legacy_file`.
 
 ## Decisions in force (Ian)
 
-- A public interface that changes keeps its old form working, with a
-  FutureWarning at the user's line and the LEGACY comment; an internal one
-  changes outright. A public name is kept, used or not, unless Ian says
-  otherwise.
-- Each device is a package. Its `__init__` imports the labscript-side names,
-  which make up `__all__`, and gives the BLACS- and runviewer-side names
-  lazily, so a compile never imports BLACS (`tests/test_device_packages.py`).
+- No old form is kept unless Ian says so or upstream keeps it. One that is
+  kept warns at the user's line, through upstream's `deprecated_names` for an
+  import path, and carries the LEGACY comment. A name or path that only the
+  fork's branches had changes outright: the merge into Development replaces it.
+- Each device is a package with upstream's `__init__`: one that was once a
+  single module gives its old names through `deprecated_names`, and the rest
+  are empty. A compile never imports BLACS (`tests/test_device_packages.py`).
 - blacs keeps only the generic `Worker` and `DeviceTab`. `PseudoclockWorker`,
   `PseudoclockTab`, `GuilessTab` and `GuilessWorker` live here, in
   `labscript_devices.common`, with the other code shared by devices.
@@ -156,19 +162,6 @@ For Ian:
   `ShutDown`, as micro-manager's Andor adapter does.
 - NI_DAQmx releases no task before BLACS terminates a worker, on a restart or
   a tab's close; deferred until blacs's quit-message design.
-- Upstream's `common.deprecation.deprecated_names` (#179) for the old import
-  paths, in place of `lazy_attributes(..., legacy=True)`, which `IDIOMS.md` §1
-  prescribes. Taking it adds a second lazy-import function beside
-  `lazy_attributes`, which the package `__init__`s below need.
-- Upstream's package `__init__`s (#178, #179) give the old names with a
-  FutureWarning; the fork's give them silently, as the class-structure plan's
-  card 8 set (step 2.2.1). Taking upstream's changes 34 `__init__`s and every
-  doc and example that imports a device from its package.
-- Upstream's camera base is `labscript_devices.common.triggerable_camera`, with
-  `CameraInterface` and a `MockCamera` (#175), and its own DummyCamera on it
-  (#176). The fork's `TriggerableCamera` has drifted too far to take upstream's
-  code; its location and names could follow upstream's, a rename across about
-  35 files.
 
 Lab checks, on `Development`:
 

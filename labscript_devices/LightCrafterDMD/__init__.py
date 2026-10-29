@@ -26,4 +26,3 @@ __getattr__ = deprecated_names(
         ],
     },
 )
-__all__ = ['arr_to_bmp', 'WIDTH', 'HEIGHT', 'BLANK_BMP', 'ImageSet', 'LightCrafterDMD']

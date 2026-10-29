@@ -22,4 +22,3 @@ __getattr__ = deprecated_names(
         ],
     },
 )
-__all__ = ['bauds', 'NovaTechDDS9M']

@@ -21,4 +21,3 @@ __getattr__ = deprecated_names(
         ],
     },
 )
-__all__ = ['PulseBlaster_SP2_24_100_32k']

@@ -9,4 +9,3 @@ __getattr__ = deprecated_names(
         ],
     },
 )
-__all__ = ['test_device']

@@ -30,4 +30,3 @@ __getattr__ = deprecated_names(
         ],
     },
 )
-__all__ = ['CiceroOpalKellyXEM3001']
