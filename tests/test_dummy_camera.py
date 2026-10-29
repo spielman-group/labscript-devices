@@ -17,6 +17,7 @@ the wrong size.
 """
 import os
 import textwrap
+import time
 import unittest
 from unittest import mock
 
@@ -208,6 +209,12 @@ class DummyCameraTestCase(CompileTestCase):
         Returns the images the compile produced, so that what the shot file
         ends up holding can be compared against them.
         """
+        worker, compiled = self.start_the_shot(**shot_globals)
+        worker.transition_to_manual()
+        return compiled
+
+    def start_the_shot(self, **shot_globals):
+        """Compile the shot, and return a worker acquiring it, and the images."""
         compiled = self.compile_with_globals(**shot_globals)
         worker = self.worker_class.__new__(self.worker_class)
         # What BLACS passes a camera worker when it starts it:
@@ -222,8 +229,7 @@ class DummyCameraTestCase(CompileTestCase):
         with mock.patch.object(camera_workers, 'Context', AZMQContext):
             worker.init()
         worker.transition_to_buffered('camera', self.run_file, {}, True)
-        worker.transition_to_manual()
-        return compiled
+        return worker, compiled
 
 
 class AbsorptionImageTests(DummyCameraTestCase):
@@ -529,6 +535,42 @@ class PlaybackTests(unittest.TestCase):
         self.assertEqual(image.shape, (4, 5))
         self.assertEqual(image.dtype, np.dtype('uint16'))
         self.assertEqual(image.max(), 0)
+
+
+
+class AStillAcquiringCamera(DummyCameraInterface):
+    """A camera whose shot never gets its triggers: grab waits until aborted."""
+
+    acquiring = False
+    closed_while_acquiring = None
+
+    def grab(self):
+        self.acquiring = True
+        while not self._abort_acquisition:
+            time.sleep(0.01)
+        self.acquiring = False
+        return super().grab()
+
+    def close(self):
+        self.closed_while_acquiring = self.acquiring
+
+
+class AStillAcquiringWorker(DummyCameraWorker):
+    interface_class = AStillAcquiringCamera
+
+
+class ShutdownTests(DummyCameraTestCase):
+    shot = ABSORPTION_SHOT
+    worker_class = AStillAcquiringWorker
+
+    def test_shutting_down_mid_shot_ends_the_acquisition_before_closing_the_camera(self):
+        worker, _ = self.start_the_shot(optical_density=1.0)
+        acquisition = worker.acquisition_thread
+
+        worker.shutdown()
+
+        self.assertFalse(acquisition.is_alive())
+        self.assertIs(worker.camera.closed_while_acquiring, False)
 
 
 if __name__ == '__main__':

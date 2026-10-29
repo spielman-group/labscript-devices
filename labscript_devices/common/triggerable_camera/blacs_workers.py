@@ -531,6 +531,10 @@ class TriggerableCameraWorker(Worker):
         return {}
 
     def shutdown(self):
+        # A shot still acquiring is aborted, so the camera is not closed under it, and
+        # continuous acquisition paused for the shot is not resumed.
+        self.continuous_dt = None
+        self.abort()
         if self.continuous_thread is not None:
             self.stop_continuous()
         self.camera.close()
