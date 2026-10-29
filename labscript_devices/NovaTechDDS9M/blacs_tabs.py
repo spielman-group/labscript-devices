@@ -15,22 +15,6 @@ from blacs.device_base_class import DeviceTab
 from labscript_profile.legacy_files import warn_legacy_file
 
 class NovaTechDDS9MTab(DeviceTab):
-    # LEGACY 'channel n' NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-    def upgrade_front_panel(self, settings):
-        """Rename the front panel's 'channel n' entries to 'dds n'."""
-        saved = settings.setdefault('front_panel_settings', {})
-        for name in list(saved):
-            if name.startswith('channel '):
-                warn_legacy_file(
-                    settings['front_panel_settings_file'],
-                    "names the NovaTechDDS9M's channels 'channel n', not 'dds n'",
-                )
-                saved.setdefault('dds ' + name[len('channel '):], saved.pop(name))
-
-    def update_from_settings(self, settings):
-        self.upgrade_front_panel(settings)
-        super().update_from_settings(settings)
-
     def initialise_GUI(self):
         self.base_units =    {'freq':'Hz',          'amp':'Arb',   'phase':'Degrees'}
         self.base_min =      {'freq':0.0,           'amp':0,       'phase':0}

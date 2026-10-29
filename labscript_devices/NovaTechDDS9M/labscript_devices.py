@@ -14,8 +14,6 @@
 from labscript import IntermediateDevice, DDS, StaticDDS, Device, compiler, LabscriptError, set_passed_properties
 from labscript_utils.unitconversions import NovaTechDDS9mFreqConversion, NovaTechDDS9mAmpConversion
 
-import warnings
-
 import numpy as np
 
 # Each baud rate, with the command that sets the NovaTech to it.
@@ -125,14 +123,12 @@ class NovaTechDDS9M(IntermediateDevice):
         self.synchronous_first_line_repeat = synchronous_first_line_repeat
 
     def add_device(self, device):
-        # LEGACY 'channel n' CONNECTION COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
         if device.connection.startswith('channel '):
-            connection = 'dds ' + device.connection.split()[-1]
-            warnings.warn(
-                f"{device.name} connects as {device.connection!r}, not {connection!r}. "
-                "That legacy form will be removed.", FutureWarning, stacklevel=4
+            raise LabscriptError(
+                f"{device.name} connects to {self.name} as {device.connection!r}. A "
+                "NovaTechDDS9M's DDSs connect as 'dds n': here "
+                f"{'dds ' + device.connection.split()[-1]!r}."
             )
-            device.connection = connection
         Device.add_device(self, device)
         # The Novatech doesn't support 0Hz output; set the default frequency of the DDS to 0.1 Hz:
         device.frequency.default_value = 0.1

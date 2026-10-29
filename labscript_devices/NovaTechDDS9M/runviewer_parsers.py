@@ -63,13 +63,12 @@ class NovaTechDDS9MParser:
             data[channel] = (clock_ticks, channel_data)
 
         for channel_name, channel in self.device.child_list.items():
-            # LEGACY 'channel n' CONNECTION COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-            # Shot files compiled before the DDSs were connected as 'dds n'.
-            if channel.parent_port.startswith('channel '):
-                warn_legacy_file(
-                    self.path, "connects the NovaTechDDS9M's DDSs as 'channel n', not 'dds n'"
+            port = channel.parent_port
+            if port.startswith('channel '):
+                raise ValueError(
+                    f"{self.path} connects {channel_name} to {self.name} as {port!r}. A "
+                    "NovaTechDDS9M's DDSs connect as 'dds n': recompile the shot."
                 )
-            port = 'dds ' + channel.parent_port.split()[-1]
             for subchnl_name, subchnl in channel.child_list.items():
                 connection = '%s_%s'%(port, subchnl.parent_port)
                 if connection in data:
