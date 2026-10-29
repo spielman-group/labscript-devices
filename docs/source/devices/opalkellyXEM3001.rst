@@ -13,13 +13,6 @@ The python bindings will need to either be added to the PATH or manually copied 
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: labscript_devices.CiceroOpalKellyXEM3001
-   :ignore-module-all:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
-
 .. automodule:: labscript_devices.CiceroOpalKellyXEM3001.labscript_devices
    :members:
    :undoc-members:

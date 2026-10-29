@@ -10,28 +10,20 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from labscript_devices.common.deprecation import deprecated_names
 
-# The labscript-side names are imported here and make up __all__, so a star
-# import of this package never loads BLACS. Its tab and worker names load only
-# when asked for by name.
-from labscript_devices import lazy_attributes
-from .labscript_devices import (
-    arr_to_bmp, WIDTH, HEIGHT, BLANK_BMP, ImageSet, LightCrafterDMD,
-)
-
-__all__ = [
-    'arr_to_bmp', 'WIDTH', 'HEIGHT', 'BLANK_BMP', 'ImageSet',
-    'LightCrafterDMD',
-]
-
-__getattr__ = lazy_attributes(
+# LEGACY DEVICE MODULE IMPORT PATH COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+__getattr__ = deprecated_names(
     __name__,
     {
-        'blacs_tabs': [
-            'LightCrafterDMDTab',
-        ],
-        'blacs_workers': [
-            'LightCrafterDMDWorker',
+        'labscript_devices': [
+            'arr_to_bmp',
+            'WIDTH',
+            'HEIGHT',
+            'BLANK_BMP',
+            'ImageSet',
+            'LightCrafterDMD',
         ],
     },
 )
+__all__ = ['arr_to_bmp', 'WIDTH', 'HEIGHT', 'BLANK_BMP', 'ImageSet', 'LightCrafterDMD']

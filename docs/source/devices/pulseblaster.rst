@@ -32,7 +32,7 @@ Outputs on `pb.direct_outputs` cannot ramp.
 
 	from labscript import *
 
-	from labscript_devices.PulseBlaster import PulseBlaster, PulseBlasterDDS
+	from labscript_devices.PulseBlaster.labscript_devices import PulseBlaster, PulseBlasterDDS
 
 	PulseBlaster(name='pb',board_number=0,programming_scheme='pb_start/BRANCH')
 
@@ -49,13 +49,6 @@ Outputs on `pb.direct_outputs` cannot ramp.
 
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: labscript_devices.PulseBlaster
-   :ignore-module-all:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
 
 .. automodule:: labscript_devices.PulseBlaster.labscript_devices
    :members:

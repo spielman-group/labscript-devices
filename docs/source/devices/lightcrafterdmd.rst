@@ -9,14 +9,6 @@ relevant class attributes.
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: labscript_devices.LightCrafterDMD
-	:ignore-module-all:
-	:members:
-	:undoc-members:
-	:show-inheritance:
-	:member-order: bysource
-	:private-members:
-
 .. automodule:: labscript_devices.LightCrafterDMD.labscript_devices
 	:members:
 	:undoc-members:

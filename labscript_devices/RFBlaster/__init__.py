@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/RFBlaster/__init__.py                          #
+# RFblaster.py                                                      #
 #                                                                   #
 # Copyright 2013, Monash University                                 #
 #                                                                   #
@@ -10,27 +10,23 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from labscript_devices.common.deprecation import deprecated_names
 
-# The labscript-side names are imported here and make up __all__, so a star
-# import of this package never loads BLACS. Its tab and worker names load only
-# when asked for by name.
-from labscript_devices import lazy_attributes
-from .labscript_devices import (
-    RFBlaster, RFBlasterDirectOutputs,
-)
-
-__all__ = [
-    'RFBlaster', 'RFBlasterDirectOutputs',
-]
-
-__getattr__ = lazy_attributes(
+# LEGACY DEVICE MODULE IMPORT PATH COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+__getattr__ = deprecated_names(
     __name__,
     {
+        'labscript_devices': [
+            'RFBlaster',
+            'RFBlasterDirectOutputs',
+        ],
         'blacs_tabs': [
             'RFBlasterTab',
         ],
         'blacs_workers': [
-            'MultiPartForm', 'RFBlasterWorker',
+            'MultiPartForm',
+            'RFBlasterWorker',
         ],
     },
 )
+__all__ = ['RFBlaster', 'RFBlasterDirectOutputs']

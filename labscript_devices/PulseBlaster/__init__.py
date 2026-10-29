@@ -10,32 +10,23 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
+from labscript_devices.common.deprecation import deprecated_names
 
-# The labscript-side names are imported here and make up __all__, so a star
-# import of this package never loads BLACS. Its tab, worker and parser names
-# load only when asked for by name.
-from labscript_devices import lazy_attributes
-from .labscript_devices import (
-    PulseBlasterDDS, PulseBlasterBase, DDSPulseBlasterMixin, PulseBlaster,
-    PulseBlasterDirectOutputs,
-)
-
-__all__ = [
-    'PulseBlasterDDS', 'PulseBlasterBase', 'DDSPulseBlasterMixin', 'PulseBlaster',
-    'PulseBlasterDirectOutputs',
-]
-
-__getattr__ = lazy_attributes(
+# LEGACY DEVICE MODULE IMPORT PATH COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+__getattr__ = deprecated_names(
     __name__,
     {
-        'blacs_tabs': [
-            'PulseBlasterBaseTab', 'DDSPulseBlasterTabMixin', 'PulseBlasterTab',
+        'labscript_devices': [
+            'PulseBlasterDDS',
+            'PulseBlaster',
+            'PulseBlasterDirectOutputs',
         ],
-        'blacs_workers': [
-            'PulseBlasterBaseWorker', 'DDSPulseBlasterWorkerMixin', 'PulseBlasterWorker',
+        'blacs_tabs': [
+            'PulseBlasterTab',
         ],
         'runviewer_parsers': [
-            'PulseBlasterBaseParser', 'DDSPulseBlasterParserMixin', 'PulseBlasterParser',
+            'PulseBlasterParser',
         ],
     },
 )
+__all__ = ['PulseBlasterDDS', 'PulseBlaster', 'PulseBlasterDirectOutputs']

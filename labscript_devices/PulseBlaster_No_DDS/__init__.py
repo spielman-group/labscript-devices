@@ -10,32 +10,15 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
+from labscript_devices.common.deprecation import deprecated_names
 
-# The labscript-side names are imported here and make up __all__, so a star
-# import of this package never loads BLACS. Its tab, worker and parser names
-# load only when asked for by name.
-from labscript_devices import lazy_attributes
-from labscript_devices.PulseBlaster.labscript_devices import PulseBlaster
-from .labscript_devices import PulseBlaster_No_DDS
-
-__all__ = [
-    'PulseBlaster', 'PulseBlaster_No_DDS',
-]
-
-__getattr__ = lazy_attributes(
+# LEGACY DEVICE MODULE IMPORT PATH COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
+__getattr__ = deprecated_names(
     __name__,
     {
-        'blacs_tabs': [
-            'PulseBlaster_No_DDSTab',
-        ],
-        'blacs_workers': [
-            'PulseBlaster_No_DDSWorker',
-        ],
-        'runviewer_parsers': [
-            'PulseBlaster_No_DDSParser',
-        ],
-        'labscript_devices.PulseBlaster.runviewer_parsers': [
-            'PulseBlasterParser',
+        'labscript_devices': [
+            'PulseBlaster_No_DDS',
         ],
     },
 )
+__all__ = ['PulseBlaster_No_DDS']

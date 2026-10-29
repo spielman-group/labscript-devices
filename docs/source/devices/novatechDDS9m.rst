@@ -15,7 +15,7 @@ Channels 0 and 1 step through a table on each clock tick, so use a `DDS`; channe
 	from labscript import *
 
 	from labscript_devices.DummyPseudoclock.labscript_devices import DummyPseudoclock
-	from labscript_devices.NovaTechDDS9M import NovaTechDDS9M
+	from labscript_devices.NovaTechDDS9M.labscript_devices import NovaTechDDS9M
 
 	DummyPseudoclock(name='pseudoclock')
 	NovaTechDDS9M(name='novatech', parent_device=pseudoclock.clockline, com_port='COM1')
@@ -108,14 +108,6 @@ The last values of the experiment are then programmed in via the normal manual u
 
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: labscript_devices.NovaTechDDS9M
-	:ignore-module-all:
-	:members:
-	:undoc-members:
-	:show-inheritance:
-	:member-order: bysource
-	:private-members:
 
 .. automodule:: labscript_devices.NovaTechDDS9M.labscript_devices
 	:members:

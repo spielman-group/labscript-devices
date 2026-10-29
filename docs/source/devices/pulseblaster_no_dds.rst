@@ -56,7 +56,7 @@ Usage
 
 	from labscript import *
 
-	from labscript_devices.PulseBlaster_No_DDS import PulseBlaster_No_DDS
+	from labscript_devices.PulseBlaster_No_DDS.labscript_devices import PulseBlaster_No_DDS
 
 	PulseBlaster_No_DDS(name='pb',board_number=0,programming_scheme='pb_start/BRANCH')
 
@@ -81,13 +81,6 @@ Detailed Documentation
 
 PulseBlaster_No_DDS
 ^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: labscript_devices.PulseBlaster_No_DDS
-   :ignore-module-all:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
 
 .. automodule:: labscript_devices.PulseBlaster_No_DDS.labscript_devices
    :members:
@@ -116,13 +109,6 @@ PulseBlaster_No_DDS
 PulseBlasterUSB
 ^^^^^^^^^^^^^^^
 
-.. automodule:: labscript_devices.PulseBlasterUSB
-   :ignore-module-all:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
-
 .. automodule:: labscript_devices.PulseBlasterUSB.labscript_devices
    :members:
    :undoc-members:
@@ -149,13 +135,6 @@ PulseBlasterUSB
 
 PulseBlaster_SP2_24_100_32k
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: labscript_devices.PulseBlaster_SP2_24_100_32k
-   :ignore-module-all:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
 
 .. automodule:: labscript_devices.PulseBlaster_SP2_24_100_32k.labscript_devices
    :members:
@@ -184,13 +163,6 @@ PulseBlaster_SP2_24_100_32k
 PulseBlasterESRPro200
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: labscript_devices.PulseBlasterESRPro200
-   :ignore-module-all:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
-
 .. automodule:: labscript_devices.PulseBlasterESRPro200.labscript_devices
    :members:
    :undoc-members:
@@ -217,13 +189,6 @@ PulseBlasterESRPro200
 
 PulseBlasterESRPro500
 ^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: labscript_devices.PulseBlasterESRPro500
-   :ignore-module-all:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
 
 .. automodule:: labscript_devices.PulseBlasterESRPro500.labscript_devices
    :members:

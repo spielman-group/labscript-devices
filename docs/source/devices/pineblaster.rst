@@ -9,13 +9,6 @@ This labscript device controls the `PineBlaster <https://labscriptsuite.org/hard
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: labscript_devices.PineBlaster
-   :ignore-module-all:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
-
 .. automodule:: labscript_devices.PineBlaster.labscript_devices
    :members:
    :undoc-members:

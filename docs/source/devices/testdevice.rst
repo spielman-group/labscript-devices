@@ -6,14 +6,6 @@ A generic test device to aid in testing labscript infrastructure/functionality.
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: labscript_devices.test_device
-   :ignore-module-all:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :member-order: bysource
-   :private-members:
-
 .. automodule:: labscript_devices.test_device.labscript_devices
    :members:
    :undoc-members:

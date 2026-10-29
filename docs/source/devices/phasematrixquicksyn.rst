@@ -15,7 +15,7 @@ Its one output is a `QuickSynDDS` on `'dds 0'`, which has frequency control only
 
 	from labscript import *
 
-	from labscript_devices.PhaseMatrixQuickSyn import PhaseMatrixQuickSyn, QuickSynDDS
+	from labscript_devices.PhaseMatrixQuickSyn.labscript_devices import PhaseMatrixQuickSyn, QuickSynDDS
 
 	PhaseMatrixQuickSyn(name='quicksyn', com_port='COM1')
 	QuickSynDDS(name='microwaves', parent_device=quicksyn, connection='dds 0')
@@ -26,14 +26,6 @@ Its one output is a `QuickSynDDS` on `'dds 0'`, which has frequency control only
 
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: labscript_devices.PhaseMatrixQuickSyn
-	:ignore-module-all:
-	:members:
-	:undoc-members:
-	:show-inheritance:
-	:member-order: bysource
-	:private-members:
 
 .. automodule:: labscript_devices.PhaseMatrixQuickSyn.labscript_devices
 	:members:
