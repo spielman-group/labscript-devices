@@ -45,13 +45,15 @@ def exp_av(av_old, data_new, dt, tau):
 class ImageReceiver(ZMQServer):
     """Receive images from the worker, reply 'ok', and show them with the frame rate."""
 
-    def __init__(self, image_view, label_fps):
+    def __init__(self, image_view, label_fps, autolevels_button):
         ZMQServer.__init__(self, port=None, dtype='multipart')
         self.image_view = image_view
         self.label_fps = label_fps
         self.last_frame_time = None
         self.frame_rate = None
-        self.update_event = None
+        self.image = None
+        self.bg_image = None
+        self.autolevels_button = autolevels_button
         # Set when no received image is waiting to be displayed:
         self.displayed = threading.Event()
         self.displayed.set()
@@ -86,14 +88,8 @@ class ImageReceiver(ZMQServer):
                 else:
                     self.frame_rate = 1 / dt
             self.last_frame_time = this_frame_time
-            if self.image_view.image is None:
-                # First time setting an image. Do autoscaling etc:
-                self.image_view.setImage(image.swapaxes(-1, -2))
-            else:
-                # Updating image. Keep zoom/pan/levels/etc settings.
-                self.image_view.setImage(
-                    image.swapaxes(-1, -2), autoRange=False, autoLevels=False
-                )
+            self.image = image
+            self.update_image()
             if self.frame_rate is not None:
                 self.label_fps.setText(f"{self.frame_rate:.01f} fps")
 
@@ -103,6 +99,43 @@ class ImageReceiver(ZMQServer):
             QtWidgets.QApplication.instance().sendPostedEvents()
         finally:
             self.displayed.set()
+
+    @inmain_decorator(wait_for_return=True)
+    def update_image(self):
+        if self.image is None:
+            return
+        image = self.image
+        bg_image = self.bg_image
+        if bg_image is not None and image.shape[-bg_image.ndim:] == bg_image.shape:
+            # Subtract the background from the image, or from each image of a stack, if
+            # the shapes match:
+            image = image.astype(float) - bg_image.astype(float)
+        autolevels = self.autolevels_button.isChecked()
+        if self.image_view.image is None:
+            # First time setting an image. Do autoscaling etc:
+            self.image_view.setImage(image.swapaxes(-1, -2))
+        else:
+            # Keep zoom and pan, and the levels unless they are scaled automatically.
+            self.image_view.setImage(
+                image.swapaxes(-1, -2),
+                autoRange=False,
+                autoLevels=autolevels,
+                autoHistogramRange=autolevels,
+            )
+
+    @inmain_decorator(wait_for_return=True)
+    def set_bg_image(self):
+        """Use the latest image as the background; False if there is none yet."""
+        if self.image is None:
+            return False
+        self.bg_image = self.image
+        self.update_image()
+        return True
+
+    @inmain_decorator()
+    def clear_bg_image(self):
+        self.bg_image = None
+        self.update_image()
 
 
 class TriggerableCameraTab(DeviceTab):
@@ -126,6 +159,8 @@ class TriggerableCameraTab(DeviceTab):
         self.ui.pushButton_snap.clicked.connect(self.on_snap_clicked)
         self.ui.pushButton_attributes.clicked.connect(self.on_attributes_clicked)
         self.ui.toolButton_nomax.clicked.connect(self.on_reset_rate_clicked)
+        self.ui.pushButton_set_bg.clicked.connect(self.on_set_bg_clicked)
+        self.ui.pushButton_clear_bg.clicked.connect(self.on_clear_bg_clicked)
 
         self.attributes_dialog = UiLoader().load(attributes_ui_filepath)
         self.attributes_dialog.setParent(self.ui.parent())
@@ -145,6 +180,7 @@ class TriggerableCameraTab(DeviceTab):
         )
         self.ui.horizontalLayout.addWidget(self.image)
         self.ui.pushButton_stop.hide()
+        self.ui.pushButton_clear_bg.hide()
         self.ui.doubleSpinBox_maxrate.hide()
         self.ui.toolButton_nomax.hide()
         self.ui.label_fps.hide()
@@ -160,18 +196,39 @@ class TriggerableCameraTab(DeviceTab):
             size_policy.setRetainSizeWhenHidden(True)
             widget.setSizePolicy(size_policy)
 
-        self.image_receiver = ImageReceiver(self.image, self.ui.label_fps)
+        self.image_receiver = ImageReceiver(
+            self.image, self.ui.label_fps, self.ui.pushButtonAutoLevels
+        )
         self.acquiring = False
 
         self.supports_smart_programming(self.use_smart_programming)
 
     def get_save_data(self):
-        return {
+        save_data = {
             'attribute_visibility': self.attributes_dialog.comboBox.currentText(),
             'acquiring': self.acquiring,
             'max_rate': self.ui.doubleSpinBox_maxrate.value(),
-            'colormap': repr(self.image.ui.histogram.gradient.saveState())
+            'colormap': repr(self.image.ui.histogram.gradient.saveState()),
+            'autolevels': self.ui.pushButtonAutoLevels.isChecked(),
         }
+        # The view of the image shown, if any: its shape and dtype, ranges and levels.
+        # BLACS saves these with repr() and restores them with eval(), so numpy scalars
+        # become Python floats.
+        image = self.image.image
+        if image is not None:
+            save_data['image_shape'] = repr(image.shape)
+            save_data['image_dtype'] = str(image.dtype)
+            view_box = self.image.getImageItem().getViewBox()
+            targetRange_x, targetRange_y = view_box.targetRange()
+            save_data['targetRange_x'] = [float(x) for x in targetRange_x]
+            save_data['targetRange_y'] = [float(y) for y in targetRange_y]
+            autoRange_x, autoRange_y = view_box.autoRangeEnabled()
+            save_data['autoRange_x'] = autoRange_x
+            save_data['autoRange_y'] = autoRange_y
+            color_scale_min, color_scale_max = self.image.getLevels()
+            save_data['color_scale_min'] = float(color_scale_min)
+            save_data['color_scale_max'] = float(color_scale_max)
+        return save_data
 
     def restore_save_data(self, data):
         self.attributes_dialog.comboBox.setCurrentText(
@@ -185,6 +242,24 @@ class TriggerableCameraTab(DeviceTab):
             self.image.ui.histogram.gradient.restoreState(
                 ast.literal_eval(data['colormap'])
             )
+        self.ui.pushButtonAutoLevels.setChecked(data.get('autolevels', False))
+        if 'image_shape' in data and 'image_dtype' in data:
+            # A blank image of the saved shape and dtype, so that the first real image
+            # does not reset the view restored here.
+            image_shape = ast.literal_eval(data['image_shape'])
+            image_dtype = np.dtype(data['image_dtype'])
+            self.image.setImage(np.zeros(image_shape, dtype=image_dtype))
+            view_box = self.image.getImageItem().getViewBox()
+            if 'targetRange_x' in data and 'targetRange_y' in data:
+                view_box.setRange(
+                    xRange=data['targetRange_x'],
+                    yRange=data['targetRange_y'],
+                    padding=0,
+                )
+            if 'autoRange_x' in data and 'autoRange_y' in data:
+                view_box.enableAutoRange(x=data['autoRange_x'], y=data['autoRange_y'])
+            if 'color_scale_min' in data and 'color_scale_max' in data:
+                self.image.setLevels(data['color_scale_min'], data['color_scale_max'])
 
     def initialise_workers(self):
         table = self.settings['connection_table']
@@ -252,6 +327,17 @@ class TriggerableCameraTab(DeviceTab):
         self.ui.label_fps.hide()
         self.acquiring = False
         self.stop_continuous()
+
+    def on_set_bg_clicked(self, button=None):
+        if not self.image_receiver.set_bg_image():
+            return
+        self.ui.pushButton_set_bg.hide()
+        self.ui.pushButton_clear_bg.show()
+
+    def on_clear_bg_clicked(self, button=None):
+        self.image_receiver.clear_bg_image()
+        self.ui.pushButton_set_bg.show()
+        self.ui.pushButton_clear_bg.hide()
 
     def on_copy_clicked(self, button):
         text = self.attributes_dialog.plainTextEdit.toPlainText()
