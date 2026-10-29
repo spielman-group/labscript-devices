@@ -12,7 +12,7 @@
 #####################################################################
 
 from blacs.device_base_class import DeviceTab
-from labscript_utils.file_utils import warn_legacy_file
+from labscript_profile.legacy_files import warn_legacy_file
 
 class NovaTechDDS9MTab(DeviceTab):
     # LEGACY 'channel n' NAME COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.

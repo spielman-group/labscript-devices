@@ -13,7 +13,7 @@
 import labscript_utils.h5_lock
 import h5py
 from labscript_utils import dedent
-from labscript_utils.file_utils import warn_legacy_file
+from labscript_profile.legacy_files import warn_legacy_file
 
 from blacs.device_base_class import DeviceTab
 from .utils import split_conn_AO, split_conn_DO

@@ -19,7 +19,7 @@ from blacs.tab_base_classes import (
     MODE_BUFFERED,
 )
 from blacs.device_base_class import DeviceTab
-from labscript_utils.file_utils import warn_legacy_file
+from labscript_profile.legacy_files import warn_legacy_file
 
 
 class RFBlasterTab(DeviceTab):

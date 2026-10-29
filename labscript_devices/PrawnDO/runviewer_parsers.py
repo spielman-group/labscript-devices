@@ -15,7 +15,7 @@ import h5py
 import numpy as np
 
 import labscript_utils.properties as properties
-from labscript_utils.file_utils import warn_legacy_file
+from labscript_profile.legacy_files import warn_legacy_file
 from labscript_devices.common.runviewer import PseudoclockParser
 
 

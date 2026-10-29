@@ -23,7 +23,7 @@ import qtutils.icons
 from qtutils.icons import Icon
 import os
 
-from labscript_utils.file_utils import warn_legacy_file
+from labscript_profile.legacy_files import warn_legacy_file
 from labscript_utils.unitconversions import get_unit_conversion_class
 
 from qtutils.qt import QtGui
