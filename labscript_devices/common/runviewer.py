@@ -97,17 +97,11 @@ class PseudoclockParser:
 
 
 def rising_edge_times(clock):
-    """Return the times of a clock's rising edges.
-
-    Parameters
-    ----------
-    clock : tuple of numpy.ndarray
-        The ``(times, values)`` that runviewer passes to a parser's ``get_traces``
-        as `clock`, with values of 0 and 1. The clock is taken to be low before its
-        first time, so one that starts high rises at its first time.
-    """
-    times, values = clock[0], clock[1]
-    edges = np.where((values[1:] - values[:-1]) == 1)[0] + 1
+    """Return the times of the rising edges of a clock that runviewer passes to a
+    parser, as a (times, values) pair. A clock that is high at the first time has a
+    rising edge at that time."""
+    times, values = clock
+    indices = np.flatnonzero(values[1:] - values[:-1] == 1) + 1
     if values[0] == 1:
-        edges = np.insert(edges, 0, 0)
-    return times[edges]
+        indices = np.insert(indices, 0, 0)
+    return times[indices]
