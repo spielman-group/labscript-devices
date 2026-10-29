@@ -431,6 +431,9 @@ class TriggerableCameraWorker(Worker):
             else:
                 self.camera.abort_acquisition()
                 self.acquisition_thread.join()
+                # The thread may have finished before the abort, leaving the flag set
+                # for the next shot's grab_multiple, which would then return at once.
+                self.camera._abort_acquisition = False
                 print(dedent(msg), file=sys.stderr)
         if self.acquisition_error is not None and self.exception_on_failed_shot:
             error = self.acquisition_error
