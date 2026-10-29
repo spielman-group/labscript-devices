@@ -98,12 +98,12 @@ class LightCrafterDMDWorker(Worker):
             with deadline.timeout_for(socket.timeout):
                 self.sock.settimeout(deadline.remaining())
                 self.sock.send(packet)
-                recv = self._receive(deadline)
+                recv = self._receive_reply(deadline)
             if recv['type'] != "System Busy":
                 return self.receive(recv)
             time.sleep(min(5, deadline.remaining()))
 
-    def _receive(self, deadline):
+    def _receive_reply(self, deadline):
         # Assumes a fresh packet: nothing is waiting in the buffer. The 6-byte header
         # gives the payload length. Each read takes the time left, so the deadline bounds
         # the whole packet, and TCP may split it, so each part is read until it is in.
