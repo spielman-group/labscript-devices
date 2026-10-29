@@ -6,7 +6,7 @@
 import numpy as np
 
 # Importing atsapi loads AlazarTech's SDK library, ATSApi.dll or libATSApi.so.
-import labscript_devices.atsapi as ats
+import labscript_devices.AlazarTechBoard.atsapi as ats
 
 from labscript import Device, AnalogIn, LabscriptError, compiler, set_passed_properties
 
@@ -73,9 +73,9 @@ class AlazarTechBoard(Device):
         **kwargs,
     ):
         """
-        ``ats`` below is `labscript_devices.atsapi`, whose constants set most keywords.
-        Every keyword but `name` and `server` is saved in the shot file for the
-        worker, which makes one acquisition per shot.
+        ``ats`` below is `labscript_devices.AlazarTechBoard.atsapi`, whose constants
+        set most keywords. Every keyword but `name` and `server` is saved in the shot
+        file for the worker, which makes one acquisition per shot.
 
         Parameters
         ----------

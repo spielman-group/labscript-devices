@@ -6,7 +6,7 @@ A labscript device class for data acquisition boards made by Alazar Technologies
 Installation
 ~~~~~~~~~~~~
 
-Its atsapi.py wrapper ships with labscript-devices as ``labscript_devices.atsapi``. It loads
+Its atsapi.py wrapper ships with labscript-devices as ``labscript_devices.AlazarTechBoard.atsapi``. It loads
 AlazarTech's SDK library, ATSApi.dll or libATSApi.so, which must be installed.
 
 It also uses the tqdm progress bar, which is not a standard dependency for the labscript-suite.

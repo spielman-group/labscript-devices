@@ -10,7 +10,7 @@ import sys
 import time
 from tqdm import tqdm
 
-import labscript_devices.atsapi as ats
+import labscript_devices.AlazarTechBoard.atsapi as ats
 import labscript_devices.common.guiless as guiless
 from labscript import LabscriptError
 import labscript_utils.h5_lock
