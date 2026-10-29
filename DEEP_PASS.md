@@ -32,25 +32,14 @@ Kept because upstream's own form keeps them, or Ian said so:
   row 1.
 - A PulseBlaster subclass's or workerarg's `core_clock_freq`, in MHz, for
   `clock_frequency`, in Hz: Ian (`c0c0003`).
-
-For Ian to decide, as each keeps a user's sequence or saved file working:
-
-- Keywords: PineBlaster's `usbport` is `com_port`; RFBlaster's `ip_address` and
-  LightCrafterDMD's `server` are `host`; Cicero's `serial` is `serial_number`.
-  The old keywords are upstream's.
-- A NovaTech DDS connected as `'channel n'`, upstream's form: every DDS connects
-  as `'dds n'`.
-- A PulseBlaster DDS amplitude calibration in `'Vpp'`: every amplitude is
-  `'Arb'`, 0 to 1.
-- `test_device`, upstream's name, which is `TestDevice`.
 - A camera serial number given as an unprefixed string, which is decimal;
-  IMAQdx, which read it as hex, as upstream reads every camera's, warns.
-- Old files: PrawnDO's `pulse_program` dataset, now `PULSE_PROGRAM`; a
-  connection table without NovaTech's or PulseBlaster's newer properties, with
-  NovaTech's phase mode `'default'`, or from NI_DAQmx's old model
-  specification; a front panel saved with NovaTech's old output names or
-  RFBlaster's `%`; a shot file without labscript's saved trigger times, in
-  runviewer.
+  IMAQdx, which read it as hex, as upstream reads every camera's, warns: Ian
+  (C-LD3).
+- Old shot files and connection tables: PrawnDO's `pulse_program` dataset, now
+  `PULSE_PROGRAM`; a connection table without NovaTech's or PulseBlaster's
+  newer properties, or from NI_DAQmx's old model specification; a shot file
+  without labscript's saved trigger times, in runviewer: Ian (C-LD4).
+  NovaTech's phase mode `'default'` is upstream's.
 
 ### Changes with no old form
 
@@ -74,9 +63,23 @@ For Ian to decide, as each keeps a user's sequence or saved file working:
   of `CameraInterface`, in `labscript_devices.common.triggerable_camera` with
   the rest of the camera base; Spinnaker's `set_attribute(name, value)`, with
   `set_stream_attribute`. `mock=True` drives upstream's `MockCamera`, and every
-  shot's images carry `mock_data`.
+  shot's images carry `mock_data`. A worker shut down mid-shot aborts the shot
+  before closing the camera, and one whose init failed still closes it. An
+  abort disarms a camera armed for a shot whose acquisition thread never ran,
+  and stopping continuous acquisition is not held up by a tab that never
+  replies.
 - **Moved modules:** `labscript_devices.atsapi` is
   `labscript_devices.AlazarTechBoard.atsapi`, as upstream's is.
+- **Refused old forms**, each with a message naming the new one (Ian, C-LD1 and
+  C-LD2): a NovaTech DDS connected as `'channel n'`, which connects as
+  `'dds n'`, in a compile or an old shot in runviewer; a PulseBlaster DDS
+  amplitude calibration in `'Vpp'`, whose base unit is `'Arb'`, 0 to 1;
+  `test_device`, which is `TestDevice`; the old keywords: PineBlaster's
+  `usbport` is `com_port`; RFBlaster's `ip_address` and LightCrafterDMD's
+  `server` are `host`; Cicero's `serial` is `serial_number`.
+- **Front panels** saved under NovaTech's `'channel n'` names, or with
+  RFBlaster's amplitudes in `%`, are not converted, and those values are not
+  restored (Ian, C-LD4).
 - **Cicero:** `use_wait_monitor` defaults to True on a master, so a script that
   makes its own WaitMonitor on one fails and needs `use_wait_monitor=False`; a
   secondary asked for one raises.
@@ -166,7 +169,6 @@ For Ian:
 
 - NI_DAQmx releases no task before BLACS terminates a worker, on a restart or
   a tab's close; deferred until blacs's quit-message design.
-- The old forms above that keep a user's sequence or saved file working.
 - A camera class that does not subclass `CameraInterface`, which upstream's
   form supports, runs only under `IMAQdxCameraWorker`, which warns, and
   configures it positionally. Taking upstream's worker-level
