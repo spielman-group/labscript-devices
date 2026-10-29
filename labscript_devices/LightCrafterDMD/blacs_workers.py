@@ -17,7 +17,7 @@ import time
 import labscript_utils.h5_lock, h5py
 from blacs.tab_base_classes import Worker
 
-from ..deadline import Deadline
+from ..common.deadline import Deadline
 from .labscript_devices import BLANK_BMP
 
 

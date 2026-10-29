@@ -4,7 +4,7 @@ import numpy as np
 
 import labscript_utils.properties as properties
 from labscript_utils import dedent
-from labscript_devices.runviewer_parsing import rising_edge_times
+from labscript_devices.common.runviewer import rising_edge_times
 
 
 class NI_DAQmxParser:

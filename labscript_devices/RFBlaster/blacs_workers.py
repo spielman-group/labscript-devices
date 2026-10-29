@@ -11,8 +11,8 @@
 #                                                                   #
 #####################################################################
 
-from labscript_devices.deadline import Deadline
-from labscript_devices.pseudoclock import PseudoclockWorker
+from labscript_devices.common.deadline import Deadline
+from labscript_devices.common.pseudoclock import PseudoclockWorker
 from labscript_utils.setup_logging import setup_logging
 
 

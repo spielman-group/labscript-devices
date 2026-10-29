@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 from labscript_utils.file_utils import warn_legacy_file
-from labscript_devices.pseudoclock import PseudoclockWorker
+from labscript_devices.common.pseudoclock import PseudoclockWorker
 import labscript_utils.h5_lock, h5py
 import labscript_utils
 from labscript import LabscriptError

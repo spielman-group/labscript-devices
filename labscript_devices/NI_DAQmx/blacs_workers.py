@@ -29,7 +29,7 @@ from labscript_utils import ensure_str
 
 from blacs.tab_base_classes import Worker
 
-from ..deadline import Deadline
+from ..common.deadline import Deadline
 from .utils import split_conn_port, split_conn_DO, split_conn_AI
 from .daqmx_utils import incomplete_sample_detection
 

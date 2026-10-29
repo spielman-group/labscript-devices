@@ -8,7 +8,7 @@ from .andor_capabilities import *
 
 from zprocess import rich_print
 
-from labscript_devices.deadline import Deadline
+from labscript_devices.common.deadline import Deadline
 
 s, ms, us, ns = 1.0, 1e-3, 1e-6, 1e-9
 

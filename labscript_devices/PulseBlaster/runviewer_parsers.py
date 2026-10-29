@@ -13,7 +13,7 @@
 
 import numpy as np
 import labscript_utils.h5_lock, h5py
-from labscript_devices.runviewer_parsing import PseudoclockParser
+from labscript_devices.common.runviewer import PseudoclockParser
 
 from .labscript_devices import PulseBlasterBase
 

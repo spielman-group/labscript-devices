@@ -20,7 +20,7 @@ from blacs.tab_base_classes import (
 )
 
 from blacs.device_base_class import DeviceTab
-from labscript_devices.pseudoclock import PseudoclockTab
+from labscript_devices.common.pseudoclock import PseudoclockTab
 
 from qtutils.qt.QtWidgets import QPushButton
 

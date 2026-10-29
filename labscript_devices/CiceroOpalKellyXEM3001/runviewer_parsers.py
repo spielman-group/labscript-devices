@@ -13,7 +13,7 @@
 
 import labscript_utils.h5_lock, h5py
 import labscript_utils.properties
-from labscript_devices.runviewer_parsing import PseudoclockParser
+from labscript_devices.common.runviewer import PseudoclockParser
 
 
 class CiceroOpalKellyXEM3001Parser(PseudoclockParser):

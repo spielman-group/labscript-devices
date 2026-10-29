@@ -15,7 +15,7 @@ import numpy as np
 import labscript_utils.h5_lock, h5py
 import labscript_utils.properties
 from labscript_utils.file_utils import warn_legacy_file
-from labscript_devices.runviewer_parsing import rising_edge_times
+from labscript_devices.common.runviewer import rising_edge_times
 
 
 class NovaTechDDS9MParser:

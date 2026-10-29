@@ -13,7 +13,7 @@
 
 import warnings
 
-from labscript_devices.pseudoclock import PseudoclockWorker
+from labscript_devices.common.pseudoclock import PseudoclockWorker
 
 
 class PulseBlasterBaseWorker(PseudoclockWorker):

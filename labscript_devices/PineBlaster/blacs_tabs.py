@@ -13,7 +13,7 @@
 
 
 from blacs.device_base_class import DeviceTab
-from labscript_devices.pseudoclock import PseudoclockTab
+from labscript_devices.common.pseudoclock import PseudoclockTab
 
 
 class PineBlasterTab(PseudoclockTab):

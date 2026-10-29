@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/runviewer_parsing.py                           #
+# /labscript_devices/common/runviewer.py                            #
 #                                                                   #
 # Copyright 2026, JQI                                               #
 # Author: Ian Spielman                                              #

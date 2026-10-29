@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/guiless.py                                     #
+# /labscript_devices/common/guiless.py                              #
 #                                                                   #
 # Copyright 2026, JQI                                               #
 # Author: Ian Spielman                                              #

@@ -16,7 +16,7 @@ from blacs.tab_base_classes import MODE_MANUAL, MODE_TRANSITION_TO_BUFFERED, MOD
 
 from blacs.device_base_class import DeviceTab
 from labscript_devices import import_class_by_fullname
-from labscript_devices.pseudoclock import PseudoclockTab
+from labscript_devices.common.pseudoclock import PseudoclockTab
 
 from qtutils import UiLoader
 import qtutils.icons

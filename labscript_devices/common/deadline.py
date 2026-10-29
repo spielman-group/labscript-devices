@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/deadline.py                                    #
+# /labscript_devices/common/deadline.py                             #
 #                                                                   #
 # Copyright 2026, JQI                                               #
 # Author: Ian Spielman                                              #

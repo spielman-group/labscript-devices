@@ -4,7 +4,7 @@
 #
 # Copyright (c) Monash University 2017
 
-import labscript_devices.guiless as guiless
+import labscript_devices.common.guiless as guiless
 
 
 class AlazarTechBoardTab(guiless.GuilessTab):

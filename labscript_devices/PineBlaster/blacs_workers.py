@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 
-from labscript_devices.pseudoclock import PseudoclockWorker
+from labscript_devices.common.pseudoclock import PseudoclockWorker
 import labscript_utils.properties
 
 

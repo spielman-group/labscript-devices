@@ -1,6 +1,6 @@
 import labscript_utils.h5_lock  # noqa: F401
 import h5py
-from labscript_devices.runviewer_parsing import PseudoclockParser
+from labscript_devices.common.runviewer import PseudoclockParser
 
 from .labscript_devices import DummyPseudoclock
 
