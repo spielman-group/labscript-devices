@@ -34,7 +34,7 @@ class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
         connection_object = self.settings['connection_table'].find_by_name(self.device_name)
         self.serial_number = str(connection_object.BLACS_connection)
         self.reference_clock = connection_object.properties.get('reference_clock', 'internal')
-        self.logger.debug(f'reference clock scheme is: {self.reference_clock}')
+        self.logger.debug('reference clock scheme is: %s', self.reference_clock)
 
         # The worker programs the whole board for every shot.
         self.supports_smart_programming(False)

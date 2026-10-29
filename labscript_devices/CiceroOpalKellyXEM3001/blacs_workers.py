@@ -123,7 +123,7 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
                 "Put the file there."
             )
 
-        self.logger.debug(f'Flashing FPGA bit file located at: {fpga_path}')
+        self.logger.debug('Flashing FPGA bit file located at: %s', fpga_path)
         self.dev.ConfigureFPGA(fpga_path)
         assert self.dev.IsFrontPanelEnabled(), (
             "Flashing the FPGA failed: the device is not configured correctly with "
@@ -220,12 +220,12 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
             master_samples_generated = bits_to_int(
                 16, self.dev.GetWireOutValue(0x22), self.dev.GetWireOutValue(0x23)
             )
-            self.logger.debug(f'Master samples generated: {master_samples_generated}')
+            self.logger.debug('Master samples generated: %d', master_samples_generated)
 
             clock_frequency = self.connection_table_properties['clock_frequency']
 
             wait_sample = int(self.wait_table[self.current_wait][1]*clock_frequency)
-            self.logger.debug(f'Wait sample: {wait_sample}')
+            self.logger.debug('Wait sample: %d', wait_sample)
             if wait_sample < master_samples_generated:
                 # A wait has happened. Make sure a second has not happened before this poll
                 # noticed the first.
@@ -245,7 +245,7 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
                 retrigger_wait_samples = bits_to_int(
                     16, self.dev.GetWireOutValue(0x26), self.dev.GetWireOutValue(0x27)
                 )
-                self.logger.debug(f'Retrigger wait samples: {retrigger_wait_samples}')
+                self.logger.debug('Retrigger wait samples: %d', retrigger_wait_samples)
                 self.measured_waits[self.current_wait] = (
                     retrigger_wait_samples-self.measured_waits.sum()
                 )
