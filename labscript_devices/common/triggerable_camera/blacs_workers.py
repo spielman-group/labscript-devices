@@ -241,6 +241,12 @@ class TriggerableCameraWorker(Worker):
     # reimplements get_camera().
     interface_class = None
 
+    # Set by init. These defaults let shutdown run after an init that failed part way.
+    camera = None
+    acquisition_thread = None
+    continuous_thread = None
+    continuous_dt = None
+
     def init(self):
         # get_attributes_as_dict is called on the camera, so a worker that
         # overrides it would have the override skipped without a word.
@@ -531,6 +537,8 @@ class TriggerableCameraWorker(Worker):
         return {}
 
     def shutdown(self):
+        if self.camera is None:
+            return
         # A shot still acquiring is aborted, so the camera is not closed under it, and
         # continuous acquisition paused for the shot is not resumed.
         self.continuous_dt = None

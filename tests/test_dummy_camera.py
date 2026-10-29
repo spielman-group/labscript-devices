@@ -216,7 +216,7 @@ class DummyCameraTestCase(CompileTestCase):
     def start_the_shot(self, **shot_globals):
         """Compile the shot, and return a worker acquiring it, and the images."""
         compiled = self.compile_with_globals(**shot_globals)
-        worker = self.worker_class.__new__(self.worker_class)
+        worker = self.started_worker = self.worker_class.__new__(self.worker_class)
         # What BLACS passes a camera worker when it starts it:
         worker.device_name = 'camera'
         worker.serial_number = 0x0
@@ -571,6 +571,35 @@ class ShutdownTests(DummyCameraTestCase):
 
         self.assertFalse(acquisition.is_alive())
         self.assertIs(worker.camera.closed_while_acquiring, False)
+
+
+
+class ACameraThatRefusesItsAttributes(DummyCameraInterface):
+    closed = False
+
+    def set_attributes(self, attributes):
+        raise RuntimeError('refused')
+
+    def close(self):
+        self.closed = True
+
+
+class ARefusedWorker(DummyCameraWorker):
+    interface_class = ACameraThatRefusesItsAttributes
+
+
+class FailedInitTests(DummyCameraTestCase):
+    shot = ABSORPTION_SHOT
+    worker_class = ARefusedWorker
+
+    def test_a_worker_whose_init_failed_still_closes_its_camera(self):
+        with self.assertRaises(RuntimeError):
+            self.start_the_shot(optical_density=1.0)
+        worker = self.started_worker
+
+        worker.shutdown()
+
+        self.assertTrue(worker.camera.closed)
 
 
 if __name__ == '__main__':
