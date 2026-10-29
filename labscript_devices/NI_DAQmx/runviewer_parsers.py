@@ -69,8 +69,10 @@ class NI_DAQmxParser:
 
         triggers = {}
         for channel_name, channel in self.device.child_list.items():
-            if channel.parent_port in traces:
-                trace = traces[channel.parent_port]
+            # A digital connection may have a PFI suffix, as in 'port0/line0 (PFI0)'.
+            connection = channel.parent_port.split()[0]
+            if connection in traces:
+                trace = traces[connection]
                 # A line with child devices, such as a Trigger of any class, clocks them:
                 # return its trace so that runviewer loads them with it as their clock.
                 if channel.child_list:
