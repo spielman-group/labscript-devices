@@ -18,6 +18,7 @@ import numpy as np
 
 from labscript_devices.common.triggerable_camera.blacs_workers import (
     CameraInterface,
+    MockCamera,
     TriggerableCameraWorker,
 )
 
@@ -164,4 +165,6 @@ class GenICamCameraWorker(TriggerableCameraWorker):
     interface_class = GenICamCameraInterface
 
     def get_camera(self):
+        if self.mock:
+            return MockCamera()
         return self.interface_class(self.serial_number, self.cti_file)

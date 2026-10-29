@@ -419,6 +419,8 @@ class ThorlabsTSICameraWorker(TriggerableCameraWorker):
     interface_class = ThorlabsTSICameraInterface
 
     def get_camera(self):
+        if self.mock:
+            return super().get_camera()
         return self.interface_class(self.serial_number, self.logger)
 
     def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):

@@ -15,6 +15,7 @@ from zprocess import rich_print
 from labscript_devices.common.triggerable_camera.blacs_workers import (
     DictAttributesMixin,
     CameraInterface,
+    MockCamera,
     TriggerableCameraWorker,
 )
 
@@ -129,4 +130,7 @@ class AndorSolisWorker(TriggerableCameraWorker):
 
     def get_camera(self):
         """Return the camera. Andor cameras may not be specified by serial numbers."""
-        return self.interface_class()
+        if self.mock:
+            return MockCamera()
+        else:
+            return self.interface_class()

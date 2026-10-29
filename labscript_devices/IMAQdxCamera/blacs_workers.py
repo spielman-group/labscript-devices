@@ -18,8 +18,10 @@ import sys
 from types import MethodType
 
 from labscript_utils import dedent
+# MockCamera is imported for camera packages that import it from this module
 from labscript_devices.common.triggerable_camera.blacs_workers import (
     CameraInterface,
+    MockCamera,
     TriggerableCameraWorker,
 )
 

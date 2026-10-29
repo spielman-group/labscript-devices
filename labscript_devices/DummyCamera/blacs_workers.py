@@ -26,11 +26,11 @@ class DummyCameraInterface(DictAttributesMixin, CameraInterface):
     # Marks the images as mock data. It is an attribute saved beside them, not a
     # watermark over their pixels, which every frame would carry and so make the OD
     # there 0/0.
-    identifying_attributes = {'mock_data': True}
+    mock_data = True
 
     def __init__(self, serial_number=None):
         print("Starting device worker as a dummy camera")
-        self.attributes = dict(self.identifying_attributes)
+        self.attributes = {}
         self.images = None
         self.index = 0
 
@@ -74,14 +74,3 @@ class DummyCameraWorker(TriggerableCameraWorker):
         group = shot_file['devices'][self.device_name]
         images = group['IMAGES'][:] if 'IMAGES' in group else None
         self.camera.load_images(images)
-
-    def transition_to_buffered(self, device_name, h5_file, front_panel_values, fresh):
-        return_value = TriggerableCameraWorker.transition_to_buffered(
-            self, device_name, h5_file, front_panel_values, fresh
-        )
-        # mock_data is saved even when saved_attribute_visibility_level is None,
-        # and goes last so that a camera attribute of the same name cannot override it.
-        self.attributes_to_save = dict(
-            self.attributes_to_save or {}, **DummyCameraInterface.identifying_attributes
-        )
-        return return_value

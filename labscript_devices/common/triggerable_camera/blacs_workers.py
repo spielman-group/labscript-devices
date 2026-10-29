@@ -36,6 +36,9 @@ def _unwritten(camera, method):
 class CameraInterface:
     """What `TriggerableCameraWorker` calls on its camera; cameras subclass it."""
 
+    # Whether the images are generated rather than acquired by a camera:
+    mock_data = False
+
     # Set by the worker, from the device property of the same name, for each shot that
     # has exposures, and read by grab_multiple.
     exception_on_failed_shot = True
@@ -170,6 +173,55 @@ class CameraInterface:
         print(f"Got {len(images)} of {n_images} images.")
 
 
+class MockCamera(CameraInterface):
+    """Mock camera class that returns fake image data."""
+
+    mock_data = True
+
+    def __init__(self):
+        super().__init__()
+        print("Starting device worker as a mock device")
+        self.attributes = {}
+
+    def set_attributes(self, attributes):
+        self.attributes.update(attributes)
+
+    def get_attribute(self, name):
+        return self.attributes[name]
+
+    def get_attribute_names(self, visibility_level=None):
+        return list(self.attributes.keys())
+
+    def configure_acquisition(self, continuous=True, buffer_count=None):
+        pass
+
+    def grab(self):
+        return self.snap()
+
+    def snap(self):
+        N = 500
+        A = 500
+        x = np.linspace(-5, 5, 500)
+        y = x.reshape((N, 1))
+        clean_image = A * (1 - 0.5 * np.exp(-(x ** 2 + y ** 2)))
+
+        # Write text on the image that says "NOT REAL DATA"
+        from PIL import Image, ImageDraw, ImageFont
+
+        font = ImageFont.load_default()
+        canvas = Image.new('L', [N // 5, N // 5], (0,))
+        draw = ImageDraw.Draw(canvas)
+        draw.text((10, 20), "NOT REAL DATA", font=font, fill=1)
+        clean_image += 0.2 * A * np.asarray(canvas.resize((N, N)).rotate(20))
+        return np.random.poisson(clean_image)
+
+    def stop_acquisition(self):
+        pass
+
+    def close(self):
+        pass
+
+
 class DictAttributesMixin:
     """Attributes held in the dict ``self.attributes`` instead of in the camera."""
 
@@ -229,7 +281,10 @@ class TriggerableCameraWorker(Worker):
 
     def get_camera(self):
         """Return the camera; override if it takes more than the serial number."""
-        return self.interface_class(self.serial_number)
+        if self.mock:
+            return MockCamera()
+        else:
+            return self.interface_class(self.serial_number)
 
     def load_shot_data(self, shot_file):
         """Read what else this worker needs from the open shot file.
@@ -404,6 +459,10 @@ class TriggerableCameraWorker(Worker):
 
             # Whether we failed to get all the expected exposures:
             image_group.attrs['failed_shot'] = len(self.images) != len(self.exposures)
+
+            # Interface classes that are not subclasses of CameraInterface do not have
+            # mock_data:
+            image_group.attrs['mock_data'] = getattr(self.camera, 'mock_data', False)
 
             # Key the images by name and frametype. Several images with the same name
             # and frametype are saved as an array in a single dataset.

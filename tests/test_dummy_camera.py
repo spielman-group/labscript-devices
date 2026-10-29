@@ -218,6 +218,7 @@ class DummyCameraTestCase(CompileTestCase):
         worker.manual_mode_camera_attributes = {}
         worker.parent_host = 'localhost'
         worker.image_receiver_port = 0
+        worker.mock = False
         with mock.patch.object(camera_workers, 'Context', AZMQContext):
             worker.init()
         worker.transition_to_buffered('camera', self.run_file, {}, True)

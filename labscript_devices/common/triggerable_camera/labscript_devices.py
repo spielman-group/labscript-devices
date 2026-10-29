@@ -35,6 +35,7 @@ class TriggerableCamera(TriggerableDevice):
                 "pixel_size",
                 "magnification",
                 "manual_mode_camera_attributes",
+                "mock",
             ],
             "device_properties": [
                 "camera_attributes",
@@ -61,6 +62,7 @@ class TriggerableCamera(TriggerableDevice):
         stop_acquisition_timeout=5.0,
         exception_on_failed_shot=True,
         saved_attribute_visibility_level='intermediate',
+        mock=False,
         **kwargs
     ):
         """
@@ -130,6 +132,10 @@ class TriggerableCamera(TriggerableDevice):
             ``'intermediate'`` (the default) or ``'advanced'``. `None` saves none.
             FlyCapture2 has no such levels, so a FlyCapture2Camera saves every
             attribute at any of them.
+        mock : bool, optional
+            For testing, BLACS drives a mock camera, which returns a generated image
+            marked ``mock_data`` in the shot file, in place of the camera; False by
+            default.
         **kwargs
             Passed to :class:`~labscript.TriggerableDevice`.
         """
