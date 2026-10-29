@@ -440,7 +440,7 @@ class NI_DAQmxAcquisitionWorker(DAQmxTaskOwner, Worker):
 
     def shutdown(self):
         if self.task is not None:
-            self.stop_task()
+            self.stop_task(discard=True)
 
     def read(self, task, num_samples):
         """Read the samples of `task`, keeping them if buffered; `task`'s every-N-samples
@@ -534,21 +534,37 @@ class NI_DAQmxAcquisitionWorker(DAQmxTaskOwner, Worker):
                 self.release_tasks()
             raise
 
-    def stop_task(self):
+    def stop_task(self, discard=False):
+        """Stop and clear the task. The samples of the buffered task that are available
+        when this is called are read first, and an overflow of its buffer is raised,
+        unless discard is True. The samples of the manual-mode task are discarded."""
         with self.tasklock:
             if self.task is None:
                 raise RuntimeError('Task not running')
             try:
-                # A shot's samples pending now, read at most a read_array at a time, as
-                # a late callback can leave more than that. An untriggered task has none.
-                if self.buffered_mode:
-                    pending = uInt32()
-                    self.task.GetReadAvailSampPerChan(pending)
-                    remaining = pending.value
+                if self.buffered_mode and not discard:
+                    # Read the samples available now, at most one read_array per call.
+                    # The task continues to acquire until it is stopped, so we do not
+                    # read the samples acquired after this point:
+                    num_samples = self.read_array.shape[0]
+                    available = uInt32()
+                    self.task.GetReadAvailSampPerChan(available)
+                    remaining = available.value
                     while remaining:
-                        num_samples = min(remaining, len(self.read_array))
-                        self.read(self.task, num_samples)
-                        remaining -= num_samples
+                        n = min(num_samples, remaining)
+                        self.read(self.task, n)
+                        remaining -= n
+                    # Once the buffer has overflowed, DAQmx reports no samples
+                    # available, and a read of zero samples raises the overflow error:
+                    self.task.ReadAnalogF64(
+                        0,
+                        0,
+                        DAQmx_Val_GroupByScanNumber,
+                        self.read_array,
+                        self.read_array.size,
+                        int32(),
+                        None,
+                    )
                 self.task.StopTask()
             finally:
                 self.release_tasks()
@@ -599,7 +615,7 @@ class NI_DAQmxAcquisitionWorker(DAQmxTaskOwner, Worker):
                 self.start_task(self.manual_mode_chans, self.manual_mode_rate)
             return True
         if self.task is not None:
-            self.stop_task()
+            self.stop_task(discard=abort)
         self.buffered_mode = False
         self.logger.info('transitioning to manual mode, task stopped')
         self.start_task(self.manual_mode_chans, self.manual_mode_rate)
