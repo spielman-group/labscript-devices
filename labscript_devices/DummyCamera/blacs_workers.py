@@ -23,10 +23,10 @@ from labscript_devices.TriggerableCamera.blacs_workers import (
 class DummyCameraInterface(DictAttributesMixin, TriggerableCameraInterface):
     """A camera that grabs the shot's compiled images; in manual mode, blank frames."""
 
-    # Marks the images as not real data. It is an attribute saved beside them, not a
+    # Marks the images as mock data. It is an attribute saved beside them, not a
     # watermark over their pixels, which every frame would carry and so make the OD
     # there 0/0.
-    identifying_attributes = {'NOT_REAL_DATA': True}
+    identifying_attributes = {'mock_data': True}
 
     def __init__(self, serial_number=None):
         print("Starting device worker as a dummy camera")
@@ -79,7 +79,7 @@ class DummyCameraWorker(TriggerableCameraWorker):
         return_value = TriggerableCameraWorker.transition_to_buffered(
             self, device_name, h5_file, front_panel_values, fresh
         )
-        # NOT_REAL_DATA is saved even when saved_attribute_visibility_level is None,
+        # mock_data is saved even when saved_attribute_visibility_level is None,
         # and goes last so that a camera attribute of the same name cannot override it.
         self.attributes_to_save = dict(
             self.attributes_to_save or {}, **DummyCameraInterface.identifying_attributes

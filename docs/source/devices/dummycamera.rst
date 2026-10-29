@@ -88,8 +88,9 @@ function at all. The camera invents nothing on its own account -- anything in a
 frame got there because a function you wrote put it there.
 
 Noise is the function's business too: the camera adds none. What the camera does add
-is a :code:`NOT_REAL_DATA` attribute beside the images in the shot file, which is
-what marks them as simulated. It is an attribute rather than a watermark drawn
+is a :code:`mock_data` attribute beside the images in the shot file, which is
+what marks them as simulated; lyse puts it in its dataframe, as the column
+:code:`(<orientation>, 'mock_data')`. It is an attribute rather than a watermark drawn
 onto the pixels because a watermark does not cancel in
 :code:`OD = -log((atoms - dark) / (probe - dark))`, and would ruin the analysis
 this camera exists to feed.

@@ -375,13 +375,13 @@ class SavedImageTests(DummyCameraTestCase):
             np.testing.assert_array_equal(group['probe'][:], compiled[1])
             np.testing.assert_array_equal(group['dark'][:], compiled[2])
 
-    def test_the_saved_images_are_marked_as_not_real_data(self):
+    def test_the_saved_images_are_marked_as_mock_data(self):
         self.run_the_shot(optical_density=2.0)
 
         with h5py.File(self.run_file, 'r') as f:
             attrs = dict(f['images/camera'].attrs)
 
-        self.assertTrue(attrs['NOT_REAL_DATA'])
+        self.assertTrue(attrs['mock_data'])
 
     def test_the_datasets_declare_themselves_to_be_images(self):
         self.run_the_shot(optical_density=2.0)
@@ -440,7 +440,7 @@ class UnsavedAttributeTests(DummyCameraTestCase):
         with h5py.File(self.run_file, 'r') as f:
             attrs = dict(f['images/camera'].attrs)
 
-        self.assertTrue(attrs['NOT_REAL_DATA'])
+        self.assertTrue(attrs['mock_data'])
         # The rest of them really are switched off.
         self.assertNotIn('Width', attrs)
 
