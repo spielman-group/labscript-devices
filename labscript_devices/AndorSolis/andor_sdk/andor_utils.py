@@ -69,6 +69,9 @@ class AndorCam:
         # abort has begun; setup_acquisition clears `aborted` for the next.
         self._abort_lock = threading.Lock()
         self.aborted = False
+        # The defaults until the first acquisition, so shutdown knows the shutter's
+        # output level.
+        self.acquisition_attributes = self.default_acquisition_attrs.copy()
         self.initialize_camera()
 
     def initialize_camera(self):
@@ -440,21 +443,20 @@ class AndorCam:
         if attrs['trigger'] == 'external':
             SetFastExtTrigger(1)
 
+    shutter_modes = {
+        'auto': 0,
+        'perm_open': 1,
+        'perm_closed': 2,
+        'open_FVB_series': 4,
+        'open_any_series': 5,
+    }
+    shutter_outputs = {'low': 0, 'high': 1}
+
     def setup_shutter(self, **attrs):
         """Set the shutter output and mode, and its opening and closing times."""
-        modes = {
-            'auto': 0,
-            'perm_open': 1,
-            'perm_closed': 2,
-            'open_FVB_series': 4,
-            'open_any_series': 5,
-        }
-
-        shutter_outputs = {'low': 0, 'high': 1}
-
         SetShutter(
-            shutter_outputs[attrs['shutter_output']],
-            modes[attrs['int_shutter_mode']],
+            self.shutter_outputs[attrs['shutter_output']],
+            self.shutter_modes[attrs['int_shutter_mode']],
             attrs['shutter_t_close'] + int(round(attrs['exposure_time'] / ms)),
             attrs['shutter_t_open'],
         )
@@ -640,11 +642,19 @@ class AndorCam:
         )
 
     def shutdown(self):
-        """Shut the camera down; it must not be armed."""
+        """Close the shutter, stop the cooler and shut the camera down, as
+        micro-manager's Andor adapter does; the camera must not be armed."""
         if self.armed:
             raise ValueError(
                 "Cannot shut down while the camera is armed. Finish or abort the "
                 "current acquisition first."
             )
-        else:
-            ShutDown()
+        SetShutter(
+            self.shutter_outputs[self.acquisition_attributes['shutter_output']],
+            self.shutter_modes['perm_closed'],
+            20,
+            20,
+        )
+        if 'TEMPERATURE' in self.setfuncs:
+            CoolerOFF()
+        ShutDown()
