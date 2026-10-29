@@ -12,7 +12,7 @@ class TekScopeWorker(Worker):
 
     def init(self):
         global TekScope
-        from .driver import TekScope
+        from .TekScope import TekScope
 
         self.scope = TekScope(self.addr, termination=self.termination)
         manufacturer, model, sn, revision = self.scope.idn.split(',')
