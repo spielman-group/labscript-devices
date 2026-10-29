@@ -19,32 +19,9 @@ from blacs.tab_base_classes import (
     MODE_BUFFERED,
 )
 from blacs.device_base_class import DeviceTab
-from labscript_profile.legacy_files import warn_legacy_file
 
 
 class RFBlasterTab(DeviceTab):
-    # LEGACY PERCENT AMPLITUDE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-    def upgrade_front_panel(self, settings):
-        """Convert the amplitudes of a front panel saved when they were shown in %."""
-        saved = settings.setdefault('front_panel_settings', {})
-        # Only the fields saved are converted, BLACS defaulting the rest, and each
-        # output is replaced whole, so a failure leaves it as it was.
-        for name, output in list(saved.items()):
-            if name.endswith('_amp') and output.get('current_units') == '%':
-                warn_legacy_file(
-                    settings['front_panel_settings_file'],
-                    "gives the RFBlaster's amplitudes in '%', not 'Arb'",
-                )
-                upgraded = dict(output, current_units='Arb')
-                for field in ('base_value', 'base_step_size'):
-                    if field in upgraded:
-                        upgraded[field] = upgraded[field] / 100
-                saved[name] = upgraded
-
-    def update_from_settings(self, settings):
-        self.upgrade_front_panel(settings)
-        super().update_from_settings(settings)
-
     def initialise_GUI(self):
         self.base_units =     {'freq':'Hz',        'amp':'Arb',       'phase':'Degrees'}
         self.base_min =       {'freq':500000,      'amp':0.0,         'phase':0}
@@ -52,8 +29,6 @@ class RFBlasterTab(DeviceTab):
         self.base_step =      {'freq':1000000,     'amp':0.01,        'phase':1}
         self.base_decimals =  {'freq':1,           'amp':5,           'phase':3}
         self.num_DDS = 2
-
-        self.upgrade_front_panel(self.settings)
 
         dds_prop = {}
         for i in range(self.num_DDS):
