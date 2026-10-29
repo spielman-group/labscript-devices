@@ -17,6 +17,10 @@ from types import FunctionType
 from labscript_utils import dedent, ensure_str
 import labscript_utils.properties as properties
 
+# Each source file's lines as linecache last gave them, and the source of each
+# function in it, by line number:
+_source_cache = {}
+
 
 def serialise_function(function, *args, **kwargs):
     """Return a function's name and source, and its extra args and kwargs serialised."""
@@ -37,7 +41,16 @@ def serialise_function(function, *args, **kwargs):
             worker finds it by its name in its source code."""
         raise TypeError(dedent(msg))
 
-    source = textwrap.dedent(inspect.getsource(function))
+    # inspect.getsource scans the file for the function's block on every call, which is
+    # slow for a shot of many functions; each block is found once per version of a file.
+    lines, lnum = inspect.findsource(inspect.unwrap(function))
+    cached_lines, sources = _source_cache.get(function.__code__.co_filename, (None, None))
+    if cached_lines is not lines:
+        sources = {}
+        _source_cache[function.__code__.co_filename] = (lines, sources)
+    if lnum not in sources:
+        sources[lnum] = ''.join(inspect.getblock(lines[lnum:]))
+    source = textwrap.dedent(sources[lnum])
     args = properties.serialise(args)
     kwargs = properties.serialise(kwargs)
 
