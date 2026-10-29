@@ -10,12 +10,15 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from labscript_devices import lazy_attributes
+from labscript_devices.common.deprecation import deprecated_names
 
 # LEGACY NI_DAQMX IMPORT PATH COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
-__getattr__ = lazy_attributes(
+__getattr__ = deprecated_names(
     __name__,
-    {'labscript_devices.NI_DAQmx.labscript_devices': ['NI_PCIe_6363']},
-    legacy=True,
+    {
+        'labscript_devices.NI_DAQmx.labscript_devices': [
+            'NI_PCIe_6363',
+        ],
+    },
 )
 __all__ = ['NI_PCIe_6363']

@@ -11,14 +11,17 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from labscript_devices import lazy_attributes
+from labscript_devices.common.deprecation import deprecated_names
 
 # LEGACY TEKSCOPE DRIVER MODULE COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
 # The driver is labscript_devices.TekScope.driver; importing this module still
 # shadows the package's TekScope class, as it always did.
-__getattr__ = lazy_attributes(
+__getattr__ = deprecated_names(
     __name__,
-    {'labscript_devices.TekScope.driver': ['TekScope']},
-    legacy=True,
+    {
+        'labscript_devices.TekScope.driver': [
+            'TekScope',
+        ],
+    },
 )
 __all__ = ['TekScope']
