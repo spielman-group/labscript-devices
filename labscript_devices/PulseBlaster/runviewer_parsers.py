@@ -19,26 +19,14 @@ from .labscript_devices import PulseBlasterBase
 
 
 class PulseBlasterBaseParser(PseudoclockParser):
-    """Runviewer's traces of a PulseBlaster board's program. A board's class sets
-    ``num_flags``, and ``num_dds`` if it has DDS outputs."""
-    num_dds = 0
+    """Runviewer's traces of a PulseBlaster board's program and its flags. A board's
+    class sets ``num_flags``."""
 
     def __init__(self, path, device):
         super().__init__(path, device)
 
         # Lookup tables of the strings used as dictionary keys, so that the methods
         # that add a row to the traces do not format them each time.
-        self.dds_strings = {}
-        for i in range(self.num_dds):
-            self.dds_strings[i] = {}
-            self.dds_strings[i]['ddsfreq'] = 'dds %d_freq'%i
-            self.dds_strings[i]['ddsamp'] = 'dds %d_amp'%i
-            self.dds_strings[i]['ddsphase'] = 'dds %d_phase'%i
-            self.dds_strings[i]['freq'] = 'freq%d'%i
-            self.dds_strings[i]['amp'] = 'amp%d'%i
-            self.dds_strings[i]['phase'] = 'phase%d'%i
-            self.dds_strings[i]['dds_en'] = 'dds_en%d'%i
-
         self.flag_strings = {}
         self.flag_powers = {}
 
@@ -54,19 +42,9 @@ class PulseBlasterBaseParser(PseudoclockParser):
     def get_traces(self, add_trace, clock=None):
         with h5py.File(self.path, 'r') as f:
             pulse_program = f['devices/%s/PULSE_PROGRAM'%self.name][:]
-            dds = {}
-            for i in range(self.num_dds):
-                dds[i] = {}
-                for reg in ['FREQ', 'AMP', 'PHASE']:
-                    dds[i][reg] = f['devices/%s/DDS%d/%s_REGS'%(self.name, i, reg)][:]
 
         times = []
-        traces = {}
-        for i in range(self.num_flags):
-            traces['flag %d'%i] = []
-        for i in range(self.num_dds):
-            for sub_chnl in ['freq', 'amp', 'phase']:
-                traces['dds %d_%s'%(i,sub_chnl)] = []
+        traces = self._new_traces()
 
         resume = self.resume_times(clock, PulseBlasterBase.trigger_delay)
         t = resume(0, 0.)
@@ -93,7 +71,7 @@ class PulseBlasterBaseParser(PseudoclockParser):
                         # traces, so that later passes copy those values
                         if j not in buffer:
                             times.append(t)
-                            self._add_pulse_program_row_to_traces(traces, row, dds)
+                            self._add_pulse_program_row_to_traces(traces, row)
                             buffer[j] = len(times)-1
                         else:
                             times.append(t)
@@ -115,7 +93,7 @@ class PulseBlasterBaseParser(PseudoclockParser):
                     print('Wait at %.9f'%t)
                     pass
                 times.append(t)
-                self._add_pulse_program_row_to_traces(traces,row,dds)
+                self._add_pulse_program_row_to_traces(traces, row)
                 t+= self._duration(row)
 
                 if row['inst'] == 8: # WAIT
@@ -138,43 +116,93 @@ class PulseBlasterBaseParser(PseudoclockParser):
                     parent_device_name = '%s.direct_outputs'%self.name
                     for internal_device_name, internal_device in clock_line.child_list.items():
                         for channel_name, channel in internal_device.child_list.items():
-                            # A DDS of any class, by its 'dds n' connection
-                            if channel.parent_port.split()[0] == 'dds':
-                                for subchnl_name, subchnl in channel.child_list.items():
-                                    connection = '%s_%s'%(channel.parent_port, subchnl.parent_port)
-                                    if connection in to_return:
-                                        add_trace(subchnl.name, to_return[connection], parent_device_name, connection)
-                            else:
-                                # A flag that triggers devices, a Trigger of any class, clocks them
-                                if channel.child_list:
-                                    clocklines_and_triggers[channel_name] = to_return[channel.parent_port]
-                                add_trace(channel_name, to_return[channel.parent_port], parent_device_name, channel.parent_port)
+                            if channel.parent_port not in to_return:
+                                self._add_output_traces(add_trace, channel, to_return, parent_device_name)
+                                continue
+                            # A flag that triggers devices, a Trigger of any class, clocks them
+                            if channel.child_list:
+                                clocklines_and_triggers[channel_name] = to_return[channel.parent_port]
+                            add_trace(channel_name, to_return[channel.parent_port], parent_device_name, channel.parent_port)
                 else:
                     clocklines_and_triggers[clock_line_name] = to_return[clock_line.parent_port]
                     add_trace(clock_line_name, to_return[clock_line.parent_port], self.name, clock_line.parent_port)
 
         return clocklines_and_triggers
 
+    def _new_traces(self):
+        return {self.flag_strings[i]: [] for i in range(self.num_flags)}
+
+    def _add_output_traces(self, add_trace, channel, to_return, parent_device_name):
+        """Add the traces of a direct output that is not a flag; a board without such
+        outputs has none."""
+
     def _add_pulse_program_row_from_buffer(self, traces, index):
         for i in range(self.num_flags):
             traces[self.flag_strings[i]].append(traces[self.flag_strings[i]][index])
 
+    def _add_pulse_program_row_to_traces(self, traces, row):
+        flags = np.binary_repr(row['flags'],self.num_flags)[::-1]
+        for i in range(self.num_flags):
+            traces[self.flag_strings[i]].append(int(flags[i]))
+
+
+class DDSPulseBlasterParserMixin:
+    """The parser's part for the two DDS outputs of a PulseBlaster board that has
+    them. It comes before :class:`PulseBlasterBaseParser` in a board's bases."""
+
+    num_dds = 2
+
+    def __init__(self, path, device):
+        super().__init__(path, device)
+        # Lookup tables of the strings used as dictionary keys, as the flags' are.
+        self.dds_strings = {}
+        for i in range(self.num_dds):
+            self.dds_strings[i] = {}
+            self.dds_strings[i]['ddsfreq'] = 'dds %d_freq'%i
+            self.dds_strings[i]['ddsamp'] = 'dds %d_amp'%i
+            self.dds_strings[i]['ddsphase'] = 'dds %d_phase'%i
+            self.dds_strings[i]['freq'] = 'freq%d'%i
+            self.dds_strings[i]['amp'] = 'amp%d'%i
+            self.dds_strings[i]['phase'] = 'phase%d'%i
+            self.dds_strings[i]['dds_en'] = 'dds_en%d'%i
+
+    def get_traces(self, add_trace, clock=None):
+        with h5py.File(self.path, 'r') as f:
+            self.dds_registers = {}
+            for i in range(self.num_dds):
+                self.dds_registers[i] = {}
+                for reg in ['FREQ', 'AMP', 'PHASE']:
+                    self.dds_registers[i][reg] = f['devices/%s/DDS%d/%s_REGS'%(self.name, i, reg)][:]
+        return super().get_traces(add_trace, clock)
+
+    def _new_traces(self):
+        traces = super()._new_traces()
+        for i in range(self.num_dds):
+            for sub_chnl in ['freq', 'amp', 'phase']:
+                traces['dds %d_%s'%(i,sub_chnl)] = []
+        return traces
+
+    def _add_output_traces(self, add_trace, channel, to_return, parent_device_name):
+        # A DDS of any class has a trace for each of its sub-channels
+        for subchnl_name, subchnl in channel.child_list.items():
+            connection = '%s_%s'%(channel.parent_port, subchnl.parent_port)
+            if connection in to_return:
+                add_trace(subchnl.name, to_return[connection], parent_device_name, connection)
+
+    def _add_pulse_program_row_from_buffer(self, traces, index):
+        super()._add_pulse_program_row_from_buffer(traces, index)
         for i in range(self.num_dds):
             current_strings = self.dds_strings[i]
             traces[current_strings['ddsfreq']].append(traces[current_strings['ddsfreq']][index])
             traces[current_strings['ddsphase']].append(traces[current_strings['ddsphase']][index])
             traces[current_strings['ddsamp']].append(traces[current_strings['ddsamp']][index])
 
-    def _add_pulse_program_row_to_traces(self, traces, row, dds, flags = None):
-        if flags is None:
-            flags = np.binary_repr(row['flags'],self.num_flags)[::-1]
-        for i in range(self.num_flags):
-            traces[self.flag_strings[i]].append(int(flags[i]))
-
+    def _add_pulse_program_row_to_traces(self, traces, row):
+        super()._add_pulse_program_row_to_traces(traces, row)
         # The keys for the traces dictionary and the row array come from self.dds_strings
         for i in range(self.num_dds):
             current_strings = self.dds_strings[i]
-            current_dds = dds[i]
+            current_dds = self.dds_registers[i]
 
             traces[current_strings['ddsfreq']].append(current_dds['FREQ'][row[current_strings['freq']]])
             traces[current_strings['ddsphase']].append(current_dds['PHASE'][row[current_strings['phase']]])
@@ -182,6 +210,5 @@ class PulseBlasterBaseParser(PseudoclockParser):
             traces[current_strings['ddsamp']].append(amp)
 
 
-class PulseBlasterParser(PulseBlasterBaseParser):
-    num_dds = 2
+class PulseBlasterParser(DDSPulseBlasterParserMixin, PulseBlasterBaseParser):
     num_flags = 12

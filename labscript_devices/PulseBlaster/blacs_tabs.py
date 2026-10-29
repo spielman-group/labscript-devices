@@ -58,15 +58,15 @@ class PulseBlasterBaseTab(PseudoclockTab):
             do_prop['flag %d'%i] = {}
 
         self.create_digital_outputs(do_prop)
-        dds_widgets,ao_widgets,do_widgets = self.auto_create_widgets()
+        *other_widgets, do_widgets = self.auto_create_widgets()
 
         def sort(channel):
             flag = channel.replace('flag ','')
             flag = int(flag)
             return '%02d'%(flag)
 
-        # The DDS widgets, if a subclass made DDS outputs, come before the flags.
-        self.auto_place_widgets(("DDS Outputs",dds_widgets),("Flags",do_widgets,sort))
+        # Any other outputs a subclass made come before the flags, in blacs' palettes.
+        self.auto_place_widgets(*other_widgets, ("Flags", do_widgets, sort))
 
         self.board_number = int(connection_object.BLACS_connection)
 

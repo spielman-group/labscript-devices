@@ -142,11 +142,6 @@ For Ian:
 
 - AndorSolis's `shutdown` closes no shutter and calls no `CoolerOFF` before
   `ShutDown`, as micro-manager's Andor adapter does.
-- PulseBlaster's base still knows of DDS outputs in two places: its parser's
-  `num_dds` loop and `'dds'` prefix test, and its tab's empty "DDS Outputs"
-  palette.
-- FunctionRunner opening the shot file once (upstream `db02f86`) waits for
-  labscript-utils' `get_shot_globals` to take an open file, as upstream's does.
 - NI_DAQmx releases no task before BLACS terminates a worker, on a restart or
   a tab's close; Ian deferred it, as only failed and aborted runs leaked.
 

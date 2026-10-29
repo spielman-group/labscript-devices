@@ -35,7 +35,7 @@ __getattr__ = lazy_attributes(
             'PulseBlasterBaseWorker', 'DDSPulseBlasterWorkerMixin', 'PulseBlasterWorker',
         ],
         'runviewer_parsers': [
-            'PulseBlasterBaseParser', 'PulseBlasterParser',
+            'PulseBlasterBaseParser', 'DDSPulseBlasterParserMixin', 'PulseBlasterParser',
         ],
     },
 )
