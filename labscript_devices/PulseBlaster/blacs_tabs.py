@@ -20,12 +20,12 @@ from labscript_devices.pseudoclock import PseudoclockTab
 
 from qtutils import UiLoader
 import qtutils.icons
+from qtutils.icons import Icon
 import os
 
 from labscript_utils.file_utils import warn_legacy_file
 from labscript_utils.unitconversions import get_unit_conversion_class
 
-from qtutils.qt import QtCore
 from qtutils.qt import QtGui
 
 
@@ -142,12 +142,10 @@ class PulseBlasterBaseTab(PseudoclockTab):
 
         for state in self.status_states:
             if self.status[state]:
-                icon = QtGui.QIcon(':/qtutils/fugue/tick')
+                icon = Icon(':/qtutils/fugue/tick')
             else:
-                icon = QtGui.QIcon(':/qtutils/fugue/cross')
-
-            pixmap = icon.pixmap(QtCore.QSize(16, 16))
-            self.status_widgets[state].setPixmap(pixmap)
+                icon = Icon(':/qtutils/fugue/cross')
+            self.status_widgets[state].setIcon(icon)
 
     @define_state(MODE_MANUAL|MODE_BUFFERED|MODE_TRANSITION_TO_BUFFERED|MODE_TRANSITION_TO_MANUAL,True)
     def start(self,widget=None):
