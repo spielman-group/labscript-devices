@@ -12,5 +12,5 @@
 - `AlazarTechBoard/blacs_workers.py`: the DMA buffers are freed only by a successful `transition_to_manual`; after an abort, a trigger timeout or a failure the next shot overwrites `self.buffers` and the memory leaks.
 - `NI_DAQmx/blacs_workers.py`: `stop_task` stops and clears the acquisition task holding `tasklock`, which a late every-N-samples callback waits on; if DAQmx waits for that callback to return before `StopTask` or `ClearTask` returns, the two deadlock. NI's documentation does not say whether it does; upstream has the same structure.
 - `NI_DAQmx/blacs_workers.py`: a wait monitor thread that will not stop is not a daemon, so at shutdown it holds the worker's exit until BLACS's kill deadline; restarting the tab is the remedy.
-- runviewer draws a device below a trigger as if triggered at 0 when no ancestor's parser supplies the trigger's trace, as for a secondary pseudoclock triggered from a DummyIntermediateDevice.
+- runviewer draws a device below a trigger as if triggered at 0 when no ancestor's parser supplies the trigger's trace, as below an RFBlaster, which has no parser.
 - `NI_DAQmx/runviewer_parsers.py`: an NI_DAQmx card on a clock line logs "Failed to load" in runviewer when no ancestor's parser supplies the clock line's trace, as `get_traces` needs a clock (`rising_edge_times(None)`, :49).

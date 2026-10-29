@@ -32,5 +32,8 @@ __getattr__ = lazy_attributes(
         'blacs_workers': [
             'DummyIntermediateDeviceWorker',
         ],
+        'runviewer_parsers': [
+            'DummyIntermediateDeviceParser',
+        ],
     },
 )

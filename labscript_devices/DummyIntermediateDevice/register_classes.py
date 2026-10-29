@@ -15,5 +15,5 @@ from labscript_devices import register_classes
 register_classes(
     'DummyIntermediateDevice',
     BLACS_tab='labscript_devices.DummyIntermediateDevice.blacs_tabs.DummyIntermediateDeviceTab',
-    runviewer_parser=None,
+    runviewer_parser='labscript_devices.DummyIntermediateDevice.runviewer_parsers.DummyIntermediateDeviceParser',
 )
