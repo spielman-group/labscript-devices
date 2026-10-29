@@ -66,8 +66,8 @@ Kept because upstream's own form keeps them, or Ian said so:
   shot's images carry `mock_data`. A worker shut down mid-shot aborts the shot
   before closing the camera, and one whose init failed still closes it. An
   abort disarms a camera armed for a shot whose acquisition thread never ran,
-  and stopping continuous acquisition is not held up by a tab that never
-  replies.
+  and joins one interrupted after it started; stopping continuous acquisition
+  is not held up by a tab that never replies.
 - **Moved modules:** `labscript_devices.atsapi` is
   `labscript_devices.AlazarTechBoard.atsapi`, as upstream's is.
 - **Refused old forms**, each with a message naming the new one (Ian, C-LD1 and
@@ -107,7 +107,8 @@ Kept because upstream's own form keeps them, or Ian said so:
   `em_gain_mode` attribute, 0 by default, is set before the gain range is read.
   A camera without a keep-clean cycle or crop mode can be set up, and only an
   iXon Ultra crops anywhere. Shutting down closes the shutter and stops the
-  cooler before `ShutDown`, as micro-manager's Andor adapter does. A single acquisition's image is saved 2D, without
+  cooler before `ShutDown`, as micro-manager's Andor adapter does. An abort
+  leaves the camera disarmed, so it shuts down after a shot that never began. A single acquisition's image is saved 2D, without
   a leading axis of one.
 - **Cameras' tab:** a frame arriving during a tab restart no longer deadlocks
   BLACS. The tab has Auto Levels and a background subtracted from the
