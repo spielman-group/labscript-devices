@@ -76,10 +76,11 @@ The below script uses external clocking and gating features.
                        reference_mode='external',
                        reference_frequency=10e6)
 
-   # NI_DAQmx needs an even number of digital outputs
-   DigitalOut('ni_spare', ni_6343, 'port0/line1')
    StaticDDS('WF_A', WF, 'channel 0',
              digital_gate={'device':ni_6343, 'connection':'port0/line0'})
+
+   # NI DAQs need an even number of digital outputs
+   DigitalOut('ni_6343_do1', ni_6343, 'port0/line1')
 
    if __name__ == '__main__':
 
@@ -88,6 +89,7 @@ The below script uses external clocking and gating features.
       WF_A.setamp(-24) # in dBm
       WF_A.setphase(45) # in deg
 
+      t = 0
       start()
 
       # enable rf via digital gate for 1 ms at 10 ms

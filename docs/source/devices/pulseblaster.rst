@@ -13,11 +13,7 @@ Installation
 ~~~~~~~~~~~~
 
 Use of the Pulseblaster requires driver installation available from the manufacturer `here <https://www.spincore.com/support/>`_.
-The corresponding python wrapper, `spinapi <https://github.com/chrisjbillington/spinapi/>`_ is available via pip.
-
-.. code-block:: bash
-
-	pip install -U spinapi
+The corresponding python wrapper, `spinapi <https://github.com/chrisjbillington/spinapi/>`_, is a dependency of labscript-devices and is installed with it.
 
 Usage
 ~~~~~
@@ -34,14 +30,14 @@ Outputs on `pb.direct_outputs` cannot ramp.
 
 	from labscript_devices.PulseBlaster.labscript_devices import PulseBlaster, PulseBlasterDDS
 
-	PulseBlaster(name='pb',board_number=0,programming_scheme='pb_start/BRANCH')
+	PulseBlaster(name='pb', board_number=0, programming_scheme='pb_start/BRANCH')
 
-	ClockLine(name='pb_clockline_fast', pseudoclock=pb.pseudoclock,connection='flag 0')
-	ClockLine(name='pb_clockline_slow', pseudoclock=pb.pseudoclock,connection='flag 1')
+	ClockLine(name='pb_clockline_fast', pseudoclock=pb.pseudoclock, connection='flag 0')
+	ClockLine(name='pb_clockline_slow', pseudoclock=pb.pseudoclock, connection='flag 1')
 
-	DigitalOut(name='pb_0',parent_device=pb.direct_outputs,connection='flag 2')
+	DigitalOut(name='pb_0', parent_device=pb.direct_outputs, connection='flag 2')
 
-	PulseBlasterDDS(name='pb_dds_0',parent_device=pb.direct_outputs,connection='dds 0')
+	PulseBlasterDDS(name='pb_dds_0', parent_device=pb.direct_outputs, connection='dds 0')
 
 	start()
 

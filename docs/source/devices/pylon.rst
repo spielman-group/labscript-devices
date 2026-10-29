@@ -47,15 +47,18 @@ Discovery of what parameters are available can be done in three ways:
 
 Below are generic configurations for GigE and USB3 based cameras.
 
+.. fragment
+
 .. code-block:: python
 
    from labscript import *
-   
+
    from labscript_devices.PylonCamera.labscript_devices import PylonCamera
 
-   PylonCamera('gigeCamera',parent_device=parent,connection=conn,
-               serial_number=1234567, # set to the camera serial number
-               minimum_recovery_time=20e-3, # the minimum exposure time depends on the camera model & configuration
+   PylonCamera('gigeCamera', parent_device=digital_out_device, connection='port0/line0',
+               serial_number=1234567, # the camera's serial number
+               trigger_duration=1e-3,
+               minimum_recovery_time=20e-3, # depends on the camera model and configuration
                camera_attributes={
                   'ExposureTimeAbs':1000, #in us
                   'ExposureMode':'Timed',
@@ -64,7 +67,7 @@ Below are generic configurations for GigE and USB3 based cameras.
                   'PixelFormat':'Mono12Packed',
                   'Gamma':1.0,
                   'BlackLevelRaw':0,
-                  'TriggerSource':'Line 1',
+                  'TriggerSource':'Line1',
                   'TriggerMode':'On'
                },
                manual_mode_camera_attributes={
@@ -72,9 +75,10 @@ Below are generic configurations for GigE and USB3 based cameras.
                   'TriggerMode':'Off'
                })
 
-   PylonCamera('usb3Camera',parent_device=parent,connection=conn,
-               serial_number=12345678, 
-               minimum_recovery_time=36e-3, 
+   PylonCamera('usb3Camera', parent_device=digital_out_device, connection='port0/line1',
+               serial_number=12345678,
+               trigger_duration=1e-3,
+               minimum_recovery_time=36e-3,
                camera_attributes={
                   'ExposureTime':1000, #in us
                   'ExposureMode':'Timed',
@@ -83,7 +87,7 @@ Below are generic configurations for GigE and USB3 based cameras.
                   'PixelFormat':'Mono12Packed',
                   'Gamma':1.0,
                   'BlackLevel':0,
-                  'TriggerSource':'Line 1',
+                  'TriggerSource':'Line1',
                   'TriggerMode':'On',
                   'ShutterMode':'Global'
                },
@@ -94,9 +98,9 @@ Below are generic configurations for GigE and USB3 based cameras.
 
    start()
 
-   gigeCamera.expose(t=0.5,'exposure1')
+   gigeCamera.expose(t=0.5, name='exposure1')
 
-   usb3Camera.expose(t=0.45,'exposure2')
+   usb3Camera.expose(t=0.45, name='exposure2')
 
    stop(1)
 
@@ -110,7 +114,7 @@ As a result, live testing of the device is often needed to accurately determine 
 
 The script is run from within the testing folder using
 
-.. code-block:: python
+.. code-block:: bash
 
    python ExposureTiming.py -sn SERIAL
    

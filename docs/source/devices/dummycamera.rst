@@ -35,6 +35,8 @@ its pixels holds and stores as :code:`uint16`, the way a real camera reads out. 
 camera's :code:`pixel_size` and :code:`magnification`, so a function describes a
 cloud in microns rather than in pixels.
 
+.. fragment
+
 .. code-block:: python
 
     DummyCamera(

@@ -66,7 +66,8 @@ class PrawnBlaster(PseudoclockDevice):
     allowed_children = [Pseudoclock]
     allowed_boards = ['pico1', 'pico2']
     max_instructions_map = {'pico1' : 30000, 'pico2' : 60000}
-    """Each pico board's instruction table, shared equally between its pseudoclocks."""
+    """Maximum number of instructions for each pico board, divided evenly among the
+    pseudoclocks."""
     max_frequency_map = {'pico1' : 133e6, 'pico2' : 150e6}
 
     @set_passed_properties(
