@@ -37,7 +37,6 @@ dependencies = [
     "tqdm",
     "PyDAQmx",
     "PyVISA",
-    "PyNIVision",
     "pyqtgraph",
     "pyserial",
     "qtutils>=4.4.1",
