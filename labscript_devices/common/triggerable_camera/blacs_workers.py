@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/TriggerableCamera/blacs_workers.py             #
+# /labscript_devices/common/triggerable_camera/blacs_workers.py     #
 #                                                                   #
 # Copyright 2019, Monash University and contributors                #
 #                                                                   #

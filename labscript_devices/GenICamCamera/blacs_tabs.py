@@ -10,7 +10,7 @@
 # the project for the full license.                                 #
 #                                                                   #
 #####################################################################
-from labscript_devices.TriggerableCamera.blacs_tabs import TriggerableCameraTab
+from labscript_devices.common.triggerable_camera.blacs_tabs import TriggerableCameraTab
 
 
 class GenICamCameraTab(TriggerableCameraTab):

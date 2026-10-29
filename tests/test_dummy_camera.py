@@ -30,7 +30,7 @@ from labscript_devices.DummyCamera.blacs_workers import (
     DummyCameraWorker,
 )
 from labscript_devices.IMAQdxCamera.blacs_workers import IMAQdxCameraWorker
-import labscript_devices.TriggerableCamera.blacs_workers as camera_workers
+import labscript_devices.common.triggerable_camera.blacs_workers as camera_workers
 
 from test_compile_device_tables import CompileTestCase
 

@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/TriggerableCamera/labscript_devices.py         #
+# /labscript_devices/common/triggerable_camera/labscript_devices.py #
 #                                                                   #
 # Copyright 2019, Monash University and contributors                #
 #                                                                   #

@@ -1,6 +1,6 @@
 #####################################################################
 #                                                                   #
-# /labscript_devices/TriggerableCamera/blacs_tabs.py                #
+# /labscript_devices/common/triggerable_camera/blacs_tabs.py        #
 #                                                                   #
 # Copyright 2019, Monash University and contributors                #
 #                                                                   #
@@ -140,7 +140,10 @@ class ImageReceiver(ZMQServer):
 
 class TriggerableCameraTab(DeviceTab):
     # A subclass that only replaces the worker class overrides this.
-    worker_class = 'labscript_devices.TriggerableCamera.blacs_workers.TriggerableCameraWorker'
+    worker_class = (
+        'labscript_devices.common.triggerable_camera.blacs_workers'
+        '.TriggerableCameraWorker'
+    )
     # A subclass overrides this to False to set the camera attributes every shot, even
     # when they are unchanged.
     use_smart_programming = True

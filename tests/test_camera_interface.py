@@ -17,7 +17,7 @@ at all.
 """
 import unittest
 
-from labscript_devices.TriggerableCamera.blacs_workers import (
+from labscript_devices.common.triggerable_camera.blacs_workers import (
     TriggerableCameraInterface,
 )
 from labscript_devices.IMAQdxCamera.blacs_workers import IMAQdxCameraInterface

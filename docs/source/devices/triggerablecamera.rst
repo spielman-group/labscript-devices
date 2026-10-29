@@ -11,7 +11,7 @@ camera API. A camera for a given API is a subclass of this whose BLACS worker
 names an interface class.
 
 That interface class is the object the worker talks to in place of hardware,
-and :obj:`~labscript_devices.TriggerableCamera.blacs_workers.TriggerableCameraInterface`
+and :obj:`~labscript_devices.common.triggerable_camera.blacs_workers.TriggerableCameraInterface`
 is what it implements: the contract the worker calls, an acquisition loop, and
 an abort. A camera should inherit it; a member it has not written then raises
 an error naming that member, rather than an AttributeError. A camera that does
@@ -20,9 +20,9 @@ not must write every member the worker calls; a worker subclassing
 reads such a camera's attributes one at a time, but that route is deprecated.
 
 .. autosummary::
-   labscript_devices.TriggerableCamera.labscript_devices
-   labscript_devices.TriggerableCamera.blacs_tabs
-   labscript_devices.TriggerableCamera.blacs_workers
+   labscript_devices.common.triggerable_camera.labscript_devices
+   labscript_devices.common.triggerable_camera.blacs_tabs
+   labscript_devices.common.triggerable_camera.blacs_workers
 
 Installation
 ~~~~~~~~~~~~
@@ -35,25 +35,19 @@ Usage
 Detailed Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: labscript_devices.TriggerableCamera
+.. automodule:: labscript_devices.common.triggerable_camera.labscript_devices
    :members:
    :undoc-members:
    :show-inheritance:
    :private-members:
 
-.. automodule:: labscript_devices.TriggerableCamera.labscript_devices
+.. automodule:: labscript_devices.common.triggerable_camera.blacs_tabs
    :members:
    :undoc-members:
    :show-inheritance:
    :private-members:
 
-.. automodule:: labscript_devices.TriggerableCamera.blacs_tabs
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
-
-.. automodule:: labscript_devices.TriggerableCamera.blacs_workers
+.. automodule:: labscript_devices.common.triggerable_camera.blacs_workers
    :members:
    :undoc-members:
    :show-inheritance:

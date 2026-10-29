@@ -18,7 +18,7 @@ import h5py
 
 from qtutils.qt import QtWidgets
 
-from labscript_devices.TriggerableCamera.blacs_tabs import TriggerableCameraTab
+from labscript_devices.common.triggerable_camera.blacs_tabs import TriggerableCameraTab
 
 
 ATTRIBUTES = 'AcquisitionAttributes::Bitspp: 8\nCameraAttributes::Gain: 1.0\n'

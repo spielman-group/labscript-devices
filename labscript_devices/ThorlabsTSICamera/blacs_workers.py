@@ -24,7 +24,7 @@ import labscript_utils.h5_lock
 import h5py
 import labscript_utils.properties
 
-from labscript_devices.TriggerableCamera.blacs_workers import (
+from labscript_devices.common.triggerable_camera.blacs_workers import (
     TriggerableCameraInterface,
     TriggerableCameraWorker,
 )

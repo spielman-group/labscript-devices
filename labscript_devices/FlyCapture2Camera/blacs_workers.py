@@ -20,7 +20,7 @@ import numpy as np
 from labscript_utils import dedent
 from enum import IntEnum
 
-from labscript_devices.TriggerableCamera.blacs_workers import (
+from labscript_devices.common.triggerable_camera.blacs_workers import (
     TriggerableCameraInterface,
     TriggerableCameraWorker,
 )

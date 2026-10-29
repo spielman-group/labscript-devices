@@ -21,7 +21,7 @@ from labscript_devices.DummyCamera.sensor import (
     blank_image,
     sensor_size,
 )
-from labscript_devices.TriggerableCamera.labscript_devices import TriggerableCamera
+from labscript_devices.common.triggerable_camera.labscript_devices import TriggerableCamera
 
 
 # The bit depth used when PixelFormat does not give one, and the most there can be:

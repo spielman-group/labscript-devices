@@ -13,7 +13,7 @@
 
 
 from labscript_devices.DummyCamera.sensor import blank_image, sensor_size
-from labscript_devices.TriggerableCamera.blacs_workers import (
+from labscript_devices.common.triggerable_camera.blacs_workers import (
     DictAttributesMixin,
     TriggerableCameraInterface,
     TriggerableCameraWorker,

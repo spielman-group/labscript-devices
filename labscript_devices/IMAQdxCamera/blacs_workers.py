@@ -18,7 +18,7 @@ import sys
 from types import MethodType
 
 from labscript_utils import dedent
-from labscript_devices.TriggerableCamera.blacs_workers import (
+from labscript_devices.common.triggerable_camera.blacs_workers import (
     TriggerableCameraInterface,
     TriggerableCameraWorker,
 )

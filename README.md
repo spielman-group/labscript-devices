@@ -61,7 +61,7 @@ The following devices have been implemented in the _labscript suite_:<sup>†</s
 
 ### Supported cameras
 
-The following cameras are subclasses of `labscript_devices.TriggerableCamera`, each controlled from [**blacs**](https://github.com/labscript-suite/blacs) through its vendor's API.
+The following cameras are subclasses of `TriggerableCamera`, in `labscript_devices.common.triggerable_camera`, each controlled from [**blacs**](https://github.com/labscript-suite/blacs) through its vendor's API.
 
 * [FLIR](https://www.flir.com) cameras (e.g. [FlyCapture 2](https://github.com/labscript-suite/labscript-devices/tree/master/labscript_devices/FlyCapture2Camera)) using the free PyCapture2 API (PR [#71](https://bitbucket-archive.labscriptsuite.org/#!/labscript_suite/labscript_devices/pull-requests/9))
 * [Andor](https://github.com/labscript-suite/labscript-devices/tree/master/labscript_devices/AndorSolis) cameras (PR [#80](https://github.com/labscript-suite/labscript-devices/tree/master/labscript_devices/AndorSolis))

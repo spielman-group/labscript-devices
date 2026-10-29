@@ -12,7 +12,7 @@
 #####################################################################
 
 from labscript import set_passed_properties
-from labscript_devices.TriggerableCamera.labscript_devices import TriggerableCamera
+from labscript_devices.common.triggerable_camera.labscript_devices import TriggerableCamera
 
 
 class ThorlabsTSICamera(TriggerableCamera):
@@ -24,7 +24,7 @@ class ThorlabsTSICamera(TriggerableCamera):
         the Thorlabs camera SDK and triggered with a digital pulse.
 
         The arguments are those of :obj:`TriggerableCamera
-        <labscript_devices.TriggerableCamera.labscript_devices.TriggerableCamera>`,
+        <labscript_devices.common.triggerable_camera.labscript_devices.TriggerableCamera>`,
         with these differences:
 
         Args:

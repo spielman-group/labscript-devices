@@ -15,7 +15,7 @@
 # Refactored as a BLACS worker by cbillington
 # Ported to Pylon API by dihm
 
-from labscript_devices.TriggerableCamera.blacs_workers import (
+from labscript_devices.common.triggerable_camera.blacs_workers import (
     TriggerableCameraInterface,
     TriggerableCameraWorker,
 )

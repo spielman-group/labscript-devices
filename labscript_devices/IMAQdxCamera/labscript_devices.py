@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 
-from labscript_devices.TriggerableCamera.labscript_devices import TriggerableCamera
+from labscript_devices.common.triggerable_camera.labscript_devices import TriggerableCamera
 
 
 class IMAQdxCamera(TriggerableCamera):
