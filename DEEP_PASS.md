@@ -21,25 +21,30 @@ Every lab recompiles its connection table once after the merge.
 
 Each warns at the script's line and is marked `# LEGACY … DEPRECATED CODE, WILL
 BE REMOVED.` in the code. Reading a file written before a change warns once,
-through labscript-utils' `warn_legacy_file`.
+through labscript_profile's `warn_legacy_file`.
+
+Kept because upstream's own form keeps them, or Ian said so:
+
+- A name imported from the package of a device that was once a single module,
+  such as `labscript_devices.PulseBlaster`, as upstream gives it.
+- The pre-NI_DAQmx import paths `NI_PCI_6733`, `NI_PCIe_6363` and
+  `NI_USB_6343`, which give the NI_DAQmx class: upstream's, and Ian's step 2.4
+  row 1.
+- A PulseBlaster subclass's or workerarg's `core_clock_freq`, in MHz, for
+  `clock_frequency`, in Hz: Ian (`c0c0003`).
+
+For Ian to decide, as each keeps a user's sequence or saved file working:
 
 - Keywords: PineBlaster's `usbport` is `com_port`; RFBlaster's `ip_address` and
   LightCrafterDMD's `server` are `host`; Cicero's `serial` is `serial_number`.
-- A PulseBlaster subclass's or workerarg's `core_clock_freq`, in MHz, for
-  `clock_frequency`, in Hz.
-- A NovaTech DDS connected as `'channel n'`: every DDS connects as `'dds n'`.
+  The old keywords are upstream's.
+- A NovaTech DDS connected as `'channel n'`, upstream's form: every DDS connects
+  as `'dds n'`.
 - A PulseBlaster DDS amplitude calibration in `'Vpp'`: every amplitude is
   `'Arb'`, 0 to 1.
-- `test_device`, which is `TestDevice`.
-- `PineBlaster.clock_type` and `PhaseMatrixQuickSyn.generation`, wherever read.
-- The pre-NI_DAQmx import paths `NI_PCI_6733`, `NI_PCIe_6363` and
-  `NI_USB_6343`, which give the NI_DAQmx class.
-- `labscript_devices.TekScope.TekScope`, the driver module, which is
-  `labscript_devices.TekScope.driver`.
-- A name imported from the package of a device that was once a single module,
-  such as `labscript_devices.PulseBlaster`, as upstream gives it.
-- A camera serial number given as an unprefixed string, which is decimal; IMAQdx,
-  which read it as hex, warns.
+- `test_device`, upstream's name, which is `TestDevice`.
+- A camera serial number given as an unprefixed string, which is decimal;
+  IMAQdx, which read it as hex, as upstream reads every camera's, warns.
 - Old files: PrawnDO's `pulse_program` dataset, now `PULSE_PROGRAM`; a
   connection table without NovaTech's or PulseBlaster's newer properties, with
   NovaTech's phase mode `'default'`, or from NI_DAQmx's old model
@@ -98,7 +103,8 @@ through labscript-utils' `warn_legacy_file`.
   starts without waiting; the temperature is printed every shot. The
   `em_gain_mode` attribute, 0 by default, is set before the gain range is read.
   A camera without a keep-clean cycle or crop mode can be set up, and only an
-  iXon Ultra crops anywhere. A single acquisition's image is saved 2D, without
+  iXon Ultra crops anywhere. Shutting down closes the shutter and stops the
+  cooler before `ShutDown`, as micro-manager's Andor adapter does. A single acquisition's image is saved 2D, without
   a leading axis of one.
 - **Cameras' tab:** a frame arriving during a tab restart no longer deadlocks
   BLACS. The tab has Auto Levels and a background subtracted from the
@@ -158,10 +164,19 @@ through labscript-utils' `warn_legacy_file`.
 
 For Ian:
 
-- AndorSolis's `shutdown` closes no shutter and calls no `CoolerOFF` before
-  `ShutDown`, as micro-manager's Andor adapter does.
 - NI_DAQmx releases no task before BLACS terminates a worker, on a restart or
   a tab's close; deferred until blacs's quit-message design.
+- The old forms above that keep a user's sequence or saved file working.
+- A camera class that does not subclass `CameraInterface`, which upstream's
+  form supports, runs only under `IMAQdxCameraWorker`, which warns, and
+  configures it positionally. Taking upstream's worker-level
+  `get_attributes_as_dict` would make that route unneeded.
+- The camera base's interface differs from upstream's:
+  `configure_acquisition(continuous, buffer_count=None)`, not `bufferCount=5`;
+  `set_attributes(attributes)`, not `attr_dict`; `get_attributes_as_dict` on the
+  camera, not the worker; `transition_to_buffered`'s `h5_file`, not
+  `h5_filepath`; `restore_save_data(data)`; a camera's `__init__` need not call
+  `super().__init__()`.
 
 Lab checks, on `Development`:
 
@@ -191,3 +206,6 @@ Lab checks, on `Development`:
 - NI_DAQmx: analog input whose read callback falls behind by more than the
   buffer raises the overflow at the end of the shot, and the next shot runs.
 - The new devices: none has run on hardware here; a lab with one runs a shot.
+- AndorSolis: quitting BLACS closes the shutter and stops the cooler.
+- Cameras: a shot whose acquisition times out with `exception_on_failed_shot`
+  False is followed by a shot that acquires every image.
