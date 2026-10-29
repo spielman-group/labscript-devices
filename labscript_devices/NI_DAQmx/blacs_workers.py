@@ -444,12 +444,14 @@ class NI_DAQmxAcquisitionWorker(DAQmxTaskOwner, Worker):
         if self.task is not None:
             self.stop_task()
 
-    def read(self, task_handle, event_type, num_samples, callback_data=None):
-        """DAQmx's every-N-samples callback: read the samples, keeping them if buffered."""
+    def read(self, task, num_samples):
+        """Read the samples of `task`, keeping them if buffered; `task`'s every-N-samples
+        callback calls it."""
         samples_read = int32()
         with self.tasklock:
-            if self.task is None or task_handle != self.task.taskHandle.value:
-                # Task stopped already.
+            if task is not self.task:
+                # Task stopped already. DAQmx reuses task handles, so the task objects
+                # are compared, not the handles.
                 return 0
             self.task.ReadAnalogF64(
                 num_samples,
@@ -516,8 +518,13 @@ class NI_DAQmxAcquisitionWorker(DAQmxTaskOwner, Worker):
             if self.buffered_mode:
                 self.task.CfgDigEdgeStartTrig(self.clock_terminal, DAQmx_Val_Rising)
 
+            task = self.task
+
+            def callback(task_handle, event_type, num_samples, callback_data):
+                return self.read(task, num_samples)
+
             # This must not be garbage collected until the task is:
-            self.task.callback_ptr = DAQmxEveryNSamplesEventCallbackPtr(self.read)
+            self.task.callback_ptr = DAQmxEveryNSamplesEventCallbackPtr(callback)
 
             self.task.RegisterEveryNSamplesEvent(
                 DAQmx_Val_Acquired_Into_Buffer, num_samples, 0, self.task.callback_ptr, 100
@@ -542,7 +549,7 @@ class NI_DAQmxAcquisitionWorker(DAQmxTaskOwner, Worker):
                     remaining = pending.value
                     while remaining:
                         num_samples = min(remaining, len(self.read_array))
-                        self.read(self.task.taskHandle.value, None, num_samples)
+                        self.read(self.task, num_samples)
                         remaining -= num_samples
                 self.task.StopTask()
             finally:
