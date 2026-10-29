@@ -10,6 +10,8 @@ leaves open. It is deleted in the last commit before `CodeHealth` merges into
 `CodeHealth` needs the other repos' `CodeHealth` at or after labscript
 `b273fbf`, labscript-utils `84dde2b`, blacs `6a2c5a2` and runviewer `edcc0a7`.
 
+It needs Python 3.13 and qtutils 4.4.1, and no longer PyNIVision.
+
 Every lab recompiles its connection table once after the merge.
 
 ## What a lab sees
@@ -79,13 +81,33 @@ through labscript-utils' `warn_legacy_file`.
 - **NI_DAQmx:** every task is cleared on every path, and analog input keeps the
   samples after its last full chunk.
 - **AndorSolis:** an EM gain without `cooldown` warns, not refused; cooling
-  starts without waiting; the temperature is printed every shot.
+  starts without waiting; the temperature is printed every shot. The
+  `em_gain_mode` attribute, 0 by default, is set before the gain range is read.
+  A camera without a keep-clean cycle or crop mode can be set up, and only an
+  iXon Ultra crops anywhere. A single acquisition's image is saved 2D, without
+  a leading axis of one.
+- **Cameras' tab:** a frame arriving during a tab restart no longer deadlocks
+  BLACS. The tab has Auto Levels and a background subtracted from the
+  displayed image, and keeps its view across a restart of BLACS.
+- **IMAQdxCamera:** NI-IMAQdx is called through ctypes, not pynivision; boolean
+  attributes are saved as booleans.
+- **DummyCamera:** its images are marked `mock_data`, not `NOT_REAL_DATA`, so
+  lyse's column is `(<orientation>, 'mock_data')`.
 - **TekScope:** `acquire_mode`, `stop_after` and `channels` keywords; `int16`
   traces read correctly.
+- **More refusals:** two analog outputs in one bank of an NI PCIe-6738 or
+  PXIe-6738 above 400 kS/s (pass `max_AO_sample_rate=400e3`); a PrawnBlaster
+  wait timeout, period or repeat count, or a PrawnDO interval, beyond the
+  firmware's 32 bits, which wrapped silently.
+- **PulseBlaster:** the direct outputs use their board's own `clock_limit`; the
+  ESR-PRO-500 has 24 flags. **PhaseMatrixQuickSyn** ends its `OUTP:STAT`
+  command with `\r`.
 - **runviewer:** it shows ESRPro500 shots, and draws every trace on script time,
   in which a wait takes no time: a trace moves earlier by its master's
   `wait_delay` for each wait before it, a secondary PineBlaster starts 350 ns
-  after its trigger, and a secondary PulseBlaster at its trigger.
+  after its trigger, and a secondary PulseBlaster at its trigger. It draws a
+  DummyIntermediateDevice's outputs, which give a trigger's trace to the
+  devices below, and an NI_DAQmx output whose connection has a PFI suffix.
 - **Compiles that failed:** an AlazarTechBoard with two acquisitions, and PrawnDO
   ramps and `repeat_pulse_sequence`, compile.
 
@@ -111,6 +133,8 @@ through labscript-utils' `warn_legacy_file`.
 - runviewer draws on script time: a secondary starts `trigger_delay` after the
   trigger times labscript saves (`PseudoclockParser`).
 - lyse tooling inside FunctionRunner's functions is not supported.
+- An upstream fix is ported by hand onto `CodeHealth`, crediting its upstream
+  commit. `master` is never merged in, and `DummyCamera` never merged inward.
 
 ## Open
 
@@ -121,8 +145,8 @@ For Ian:
 - PulseBlaster's base still knows of DDS outputs in two places: its parser's
   `num_dds` loop and `'dds'` prefix test, and its tab's empty "DDS Outputs"
   palette.
-- runviewer under a DummyIntermediateDevice trigger (`KNOWN_ISSUES.md`): a
-  parser for DummyIntermediateDevice would supply the trigger's trace.
+- FunctionRunner opening the shot file once (upstream `db02f86`) waits for
+  labscript-utils' `get_shot_globals` to take an open file, as upstream's does.
 - NI_DAQmx releases no task before BLACS terminates a worker, on a restart or
   a tab's close; Ian deferred it, as only failed and aborted runs leaked.
 
@@ -144,4 +168,10 @@ Lab checks, on `Development`:
   attributes at each visibility level.
 - AndorSolis: EMCCD gain with cooldown, the temperature printed at set-up; an
   abort during a series; a preamp gain such as 2.4.
-- IMAQdxCamera: a camera given an unprefixed serial.
+- IMAQdxCamera: a camera given an unprefixed serial; a shot and continuous
+  acquisition through the ctypes module.
+- Cameras' tab: a restart during continuous acquisition; Auto Levels and the
+  background buttons.
+- AndorSolis: an older camera without a keep-clean cycle or crop mode, and an
+  iXon Ultra cropping.
+- PulseBlaster: the status icons on a high-DPI screen.
