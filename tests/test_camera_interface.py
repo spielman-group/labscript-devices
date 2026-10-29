@@ -62,6 +62,8 @@ def written_by_the_camera(camera, name):
 
 
 class ContractTests(unittest.TestCase):
+    # How the vendor cameras are written, not what they do: their SDKs are absent
+    # here, so this is the only check that runs on them.
     def test_every_camera_writes_the_members_only_it_can(self):
         for camera in EVERY_CAMERA:
             for name in VENDOR_MUST_WRITE:
