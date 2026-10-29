@@ -15,12 +15,12 @@
 from labscript_devices.DummyCamera.sensor import blank_image, sensor_size
 from labscript_devices.common.triggerable_camera.blacs_workers import (
     DictAttributesMixin,
-    TriggerableCameraInterface,
+    CameraInterface,
     TriggerableCameraWorker,
 )
 
 
-class DummyCameraInterface(DictAttributesMixin, TriggerableCameraInterface):
+class DummyCameraInterface(DictAttributesMixin, CameraInterface):
     """A camera that grabs the shot's compiled images; in manual mode, blank frames."""
 
     # Marks the images as mock data. It is an attribute saved beside them, not a

@@ -16,7 +16,7 @@
 # Ported to Pylon API by dihm
 
 from labscript_devices.common.triggerable_camera.blacs_workers import (
-    TriggerableCameraInterface,
+    CameraInterface,
     TriggerableCameraWorker,
 )
 
@@ -27,7 +27,7 @@ pylon = None
 genicam = None
 
 
-class PylonCameraInterface(TriggerableCameraInterface):
+class PylonCameraInterface(CameraInterface):
     """A Basler camera driven through pypylon, found by serial number."""
 
     def __init__(self, serial_number):

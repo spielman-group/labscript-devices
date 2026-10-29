@@ -33,7 +33,7 @@ def _unwritten(camera, method):
     return dedent(msg)
 
 
-class TriggerableCameraInterface:
+class CameraInterface:
     """What `TriggerableCameraWorker` calls on its camera; cameras subclass it."""
 
     # Set by the worker, from the device property of the same name, for each shot that

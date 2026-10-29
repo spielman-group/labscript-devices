@@ -25,7 +25,7 @@ import h5py
 import labscript_utils.properties
 
 from labscript_devices.common.triggerable_camera.blacs_workers import (
-    TriggerableCameraInterface,
+    CameraInterface,
     TriggerableCameraWorker,
 )
 
@@ -107,7 +107,7 @@ def _dispose_sdk():
             _sdk.dispose()
 
 
-class ThorlabsTSICameraInterface(TriggerableCameraInterface):
+class ThorlabsTSICameraInterface(CameraInterface):
     """Interface to a Thorlabs scientific camera through the thorlabs_tsi_sdk package.
 
     The camera stays armed between hardware-triggered acquisitions. It is disarmed when

@@ -14,12 +14,12 @@
 from zprocess import rich_print
 from labscript_devices.common.triggerable_camera.blacs_workers import (
     DictAttributesMixin,
-    TriggerableCameraInterface,
+    CameraInterface,
     TriggerableCameraWorker,
 )
 
 
-class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
+class AndorSolisInterface(DictAttributesMixin, CameraInterface):
     """An Andor camera driven through `AndorCam`."""
 
     def __init__(self):
@@ -115,7 +115,7 @@ class AndorSolisInterface(DictAttributesMixin, TriggerableCameraInterface):
     def abort_acquisition(self):
         # The flag first, so grab_multiple stops once the SDK call has ended its
         # acquisition, and the camera starts none after it.
-        TriggerableCameraInterface.abort_acquisition(self)
+        CameraInterface.abort_acquisition(self)
         self.camera.abort_acquisition()
 
     def close(self):

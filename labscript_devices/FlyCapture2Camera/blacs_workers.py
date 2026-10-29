@@ -21,7 +21,7 @@ from labscript_utils import dedent
 from enum import IntEnum
 
 from labscript_devices.common.triggerable_camera.blacs_workers import (
-    TriggerableCameraInterface,
+    CameraInterface,
     TriggerableCameraWorker,
 )
 
@@ -30,7 +30,7 @@ from labscript_devices.common.triggerable_camera.blacs_workers import (
 PyCapture2 = None
 
 
-class FlyCapture2CameraInterface(TriggerableCameraInterface):
+class FlyCapture2CameraInterface(CameraInterface):
     """A FLIR camera driven through PyCapture2, found by serial number."""
 
     def __init__(self, serial_number):

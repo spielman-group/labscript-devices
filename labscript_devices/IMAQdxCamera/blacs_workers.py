@@ -19,7 +19,7 @@ from types import MethodType
 
 from labscript_utils import dedent
 from labscript_devices.common.triggerable_camera.blacs_workers import (
-    TriggerableCameraInterface,
+    CameraInterface,
     TriggerableCameraWorker,
 )
 
@@ -29,7 +29,7 @@ from labscript_devices.common.triggerable_camera.blacs_workers import (
 nv = None
 
 
-class IMAQdxCameraInterface(TriggerableCameraInterface):
+class IMAQdxCameraInterface(CameraInterface):
     """A camera driven through NI-IMAQdx, found by serial number."""
 
     def __init__(self, serial_number):
@@ -127,16 +127,16 @@ class IMAQdxCameraWorker(TriggerableCameraWorker):
     def init(self):
         super().init()
         # A camera without get_attributes_as_dict, such as one that does not subclass
-        # TriggerableCameraInterface, is given that class's, with a deprecation warning.
+        # CameraInterface, is given that class's, with a deprecation warning.
         # Here, not in get_camera, which a lab's own worker may override.
         if not hasattr(self.camera, 'get_attributes_as_dict'):
             msg = f"""Warning: {type(self.camera).__name__} does not subclass
-                TriggerableCameraInterface. Driving such a camera by subclassing
+                CameraInterface. Driving such a camera by subclassing
                 IMAQdxCameraWorker is deprecated. Use the TriggerableCamera
                 device, with a camera class that subclasses
-                TriggerableCameraInterface and a worker that subclasses
+                CameraInterface and a worker that subclasses
                 TriggerableCameraWorker."""
             print(dedent(msg), file=sys.stderr)
             self.camera.get_attributes_as_dict = MethodType(
-                TriggerableCameraInterface.get_attributes_as_dict, self.camera
+                CameraInterface.get_attributes_as_dict, self.camera
             )

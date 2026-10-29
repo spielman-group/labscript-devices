@@ -20,12 +20,12 @@ from labscript_utils import dedent
 from time import sleep
 
 from labscript_devices.common.triggerable_camera.blacs_workers import (
-    TriggerableCameraInterface,
+    CameraInterface,
     TriggerableCameraWorker,
 )
 
 
-class SpinnakerCameraInterface(TriggerableCameraInterface):
+class SpinnakerCameraInterface(CameraInterface):
     """A FLIR camera driven through PySpin."""
 
     def __init__(self, serial_number):

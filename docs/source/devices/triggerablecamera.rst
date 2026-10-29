@@ -11,7 +11,7 @@ camera API. A camera for a given API is a subclass of this whose BLACS worker
 names an interface class.
 
 That interface class is the object the worker talks to in place of hardware,
-and :obj:`~labscript_devices.common.triggerable_camera.blacs_workers.TriggerableCameraInterface`
+and :obj:`~labscript_devices.common.triggerable_camera.blacs_workers.CameraInterface`
 is what it implements: the contract the worker calls, an acquisition loop, and
 an abort. A camera should inherit it; a member it has not written then raises
 an error naming that member, rather than an AttributeError. A camera that does

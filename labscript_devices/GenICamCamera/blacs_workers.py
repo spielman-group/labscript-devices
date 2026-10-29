@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 
 from labscript_devices.common.triggerable_camera.blacs_workers import (
-    TriggerableCameraInterface,
+    CameraInterface,
     TriggerableCameraWorker,
 )
 
@@ -51,7 +51,7 @@ def producer_files():
     return [str(p) for d in directories if d for p in sorted(Path(d).glob('*.cti'))]
 
 
-class GenICamCameraInterface(TriggerableCameraInterface):
+class GenICamCameraInterface(CameraInterface):
     # Timeout in seconds of grab(), and of each attempt of grab_multiple() to get an
     # image, after which it checks whether the acquisition has been aborted:
     timeout = 5

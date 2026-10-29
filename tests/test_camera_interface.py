@@ -4,7 +4,7 @@ TriggerableCameraWorker duck-types its camera: it calls a set of methods and
 reaches for two attributes, and nothing declares that set anywhere the worker
 can check. A camera missing one of them fails partway through a shot, on
 hardware, which is the worst place to find out -- with a NotImplementedError
-naming it if it inherits TriggerableCameraInterface, and an AttributeError if
+naming it if it inherits CameraInterface, and an AttributeError if
 it does not.
 
 The first test here is that list, checked against every camera in the tree. The
@@ -18,7 +18,7 @@ at all.
 import unittest
 
 from labscript_devices.common.triggerable_camera.blacs_workers import (
-    TriggerableCameraInterface,
+    CameraInterface,
 )
 from labscript_devices.IMAQdxCamera.blacs_workers import IMAQdxCameraInterface
 from labscript_devices.PylonCamera.blacs_workers import PylonCameraInterface
@@ -57,12 +57,12 @@ def written_by_the_camera(camera, name):
     """Whether this camera writes `name` itself.
 
     Resolving the name is not enough once every camera inherits
-    TriggerableCameraInterface: it supplies a stub for each member of the
+    CameraInterface: it supplies a stub for each member of the
     contract, so getattr succeeds whether or not the camera implements it and
     the failure moves to the middle of a shot. What this asks is whether the
     camera brought its own.
     """
-    return getattr(camera, name, None) is not getattr(TriggerableCameraInterface, name, None)
+    return getattr(camera, name, None) is not getattr(CameraInterface, name, None)
 
 
 class ContractTests(unittest.TestCase):
@@ -94,7 +94,7 @@ class ACameraFault(Exception):
     """What a camera's own API raises when something is wrong with it."""
 
 
-class AScriptedCamera(TriggerableCameraInterface):
+class AScriptedCamera(CameraInterface):
     """A camera whose every grab is dictated by the test.
 
     Each entry of `outcomes` is either an image to return or an exception to
