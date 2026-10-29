@@ -32,4 +32,3 @@ In particular, this code provides the interface between **labscript** high-level
    Source Code <https://github.com/labscript-suite/labscript-devices>
    PyPI <https://pypi.org/project/labscript-devices/>
    Anaconda Cloud <https://anaconda.org/labscript-suite/labscript-devices>
-   BitBucket Archive <http://bitbucket-archive.labscriptsuite.org/#!/labscript_suite/labscript_devices>
