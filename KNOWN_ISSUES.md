@@ -1,6 +1,6 @@
 # Known issues
 
-- `PhaseMatrixQuickSyn/blacs_workers.py`: the worker's `update_reference_out`, `update_blanking` and `update_lock_recovery` do nothing, and `transition_to_buffered` writes `OUTP:STAT 1` without the `\r` every other command ends with and ignores the shot's gate, so `QuickSynDDS.disable()` has no effect.
+- `PhaseMatrixQuickSyn/blacs_workers.py`: the worker's `update_reference_out`, `update_blanking` and `update_lock_recovery` do nothing, and `transition_to_buffered` writes `OUTP:STAT 1` whatever the shot's gate, so `QuickSynDDS.disable()` has no effect.
 - `FlyCapture2Camera/blacs_workers.py`: `_send_format7_config` skips Format7 settings that fail validation without saying so.
 - `PulseBlaster/labscript_devices.py`, `PulseBlaster_No_DDS/labscript_devices.py`: each delay reaches SpinAPI as float nanoseconds (`delaydouble`), about 9% of them ~1e-12 cycles below a whole core cycle. Linux's `libspinapi64.so` (spinapi 3.2.2) rounds `length * clock - 3` to the nearest cycle in `pb_inst_pbonly64` and `pb_inst_dds2`, so loses nothing; the labs' Windows `spinapi64.dll` is a separate binary, unchecked. If it truncates, every repetition of such a looped step runs one cycle short (about 39 µs over a 2,905-step ramp). Needed: the same disassembly of that DLL, or a long looped ramp timed on a board.
 - `RFBlaster/blacs_workers.py`: the board has no status readback, so `shot_finished` is the default True, and the transition to manual does not wait for a secondary RFBlaster to end. Deferred: it needs the board's protocol.

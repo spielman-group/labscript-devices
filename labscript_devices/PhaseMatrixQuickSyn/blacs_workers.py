@@ -154,7 +154,7 @@ class PhaseMatrixQuickSynWorker(Worker):
 
         self.connection.write(b'FREQ %i\r'%(data['freq0']))
         time.sleep(0.05)
-        self.connection.write(b'OUTP:STAT 1')
+        self.connection.write(b'OUTP:STAT 1\r')
 
         # BLACS shows these in the front panel when the shot ends.
         final_values = {'dds 0':{}}
