@@ -17,11 +17,13 @@ the wrong size.
 """
 import os
 import textwrap
+import threading
 import time
 import unittest
 from unittest import mock
 
 import numpy as np
+import zmq
 
 import labscript_utils.h5_lock  # must precede h5py, as labscript itself does
 import h5py
@@ -216,6 +218,13 @@ class DummyCameraTestCase(CompileTestCase):
     def start_the_shot(self, **shot_globals):
         """Compile the shot, and return a worker acquiring it, and the images."""
         compiled = self.compile_with_globals(**shot_globals)
+        worker = self.new_worker()
+        worker.transition_to_buffered('camera', self.run_file, {}, True)
+        return worker, compiled
+
+    def new_worker(self, context=None, image_receiver_port=0):
+        """Start a worker as BLACS does, sending its images to `context`'s socket,
+        by default an :obj:`AZMQContext`'s."""
         worker = self.started_worker = self.worker_class.__new__(self.worker_class)
         # What BLACS passes a camera worker when it starts it:
         worker.device_name = 'camera'
@@ -223,13 +232,12 @@ class DummyCameraTestCase(CompileTestCase):
         worker.orientation = None
         worker.camera_attributes = {'Width': 64, 'Height': 48}
         worker.manual_mode_camera_attributes = {}
-        worker.parent_host = 'localhost'
-        worker.image_receiver_port = 0
+        worker.parent_host = '127.0.0.1'
+        worker.image_receiver_port = image_receiver_port
         worker.mock = False
-        with mock.patch.object(camera_workers, 'Context', AZMQContext):
+        with mock.patch.object(camera_workers, 'Context', context or AZMQContext):
             worker.init()
-        worker.transition_to_buffered('camera', self.run_file, {}, True)
-        return worker, compiled
+        return worker
 
 
 class AbsorptionImageTests(DummyCameraTestCase):
@@ -329,6 +337,12 @@ class AnImageSocket:
 
     def connect(self, address):
         pass
+
+    def setsockopt(self, option, value):
+        pass
+
+    def poll(self, timeout):
+        return True
 
     def send_json(self, metadata, flags=0):
         self.metadata = metadata
@@ -600,6 +614,72 @@ class FailedInitTests(DummyCameraTestCase):
         worker.shutdown()
 
         self.assertTrue(worker.camera.closed)
+
+
+
+class ARecordingCamera(DummyCameraInterface):
+    calls = ()
+
+    def abort_acquisition(self):
+        self.calls += ('abort',)
+        super().abort_acquisition()
+
+    def stop_acquisition(self):
+        self.calls += ('stop',)
+
+
+class ARecordingWorker(DummyCameraWorker):
+    interface_class = ARecordingCamera
+
+
+class ArmedWithoutAThreadTests(DummyCameraTestCase):
+    """The camera is armed before its acquisition thread runs: abort disarms it."""
+
+    shot = ABSORPTION_SHOT
+    worker_class = ARecordingWorker
+
+    def abort_after_a_failed_start(self, failure):
+        with mock.patch.object(camera_workers.threading, 'Thread', failure):
+            with self.assertRaises(RuntimeError):
+                self.start_the_shot(optical_density=1.0)
+        worker = self.started_worker
+        worker.abort()
+        return worker.camera.calls
+
+    def test_abort_disarms_a_camera_whose_thread_was_never_made(self):
+        def no_thread(*args, **kwargs):
+            raise RuntimeError('no thread')
+
+        self.assertEqual(self.abort_after_a_failed_start(no_thread), ('abort', 'stop'))
+
+    def test_abort_disarms_a_camera_whose_thread_never_started(self):
+        class AThreadThatWillNotStart(threading.Thread):
+            def start(self):
+                raise RuntimeError('not started')
+
+        self.assertEqual(
+            self.abort_after_a_failed_start(AThreadThatWillNotStart), ('abort', 'stop')
+        )
+
+
+class AnAbsentTabTests(DummyCameraTestCase):
+    shot = ABSORPTION_SHOT
+
+    def test_continuous_acquisition_stops_though_the_tab_never_replies(self):
+        # The suite's secure context, as BLACS's image receiver uses.
+        tab = camera_workers.Context().socket(zmq.REP)
+        self.addCleanup(tab.close, linger=0)
+        port = tab.bind_to_random_port('tcp://127.0.0.1')
+        worker = self.new_worker(camera_workers.Context, port)
+        worker.start_continuous(None)
+        self.assertTrue(tab.poll(5000))
+        tab.recv_multipart()  # The first frame, which is never answered.
+
+        stopping = threading.Thread(target=worker.shutdown, daemon=True)
+        stopping.start()
+        stopping.join(5)
+
+        self.assertFalse(stopping.is_alive())
 
 
 if __name__ == '__main__':

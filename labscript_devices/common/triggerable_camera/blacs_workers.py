@@ -243,6 +243,7 @@ class TriggerableCameraWorker(Worker):
 
     # Set by init. These defaults let shutdown run after an init that failed part way.
     camera = None
+    acquisition_armed = False
     acquisition_thread = None
     continuous_thread = None
     continuous_dt = None
@@ -269,6 +270,10 @@ class TriggerableCameraWorker(Worker):
         self.continuous_thread = None
         self.continuous_dt = None
         self.image_socket = Context().socket(zmq.REQ)
+        # So the socket can send again after a reply abandoned when continuous
+        # acquisition stopped:
+        self.image_socket.setsockopt(zmq.REQ_RELAXED, 1)
+        self.image_socket.setsockopt(zmq.REQ_CORRELATE, 1)
         self.image_socket.connect(
             f'tcp://{self.parent_host}:{self.image_receiver_port}'
         )
@@ -279,6 +284,7 @@ class TriggerableCameraWorker(Worker):
         self.n_images = None
         self.attributes_to_save = None
         self.exposures = None
+        self.acquisition_armed = False
         self.acquisition_thread = None
         self.acquisition_error = None
         self.h5_file = None
@@ -327,6 +333,11 @@ class TriggerableCameraWorker(Worker):
         metadata = dict(dtype=str(image.dtype), shape=image.shape)
         self.image_socket.send_json(metadata, zmq.SNDMORE)
         self.image_socket.send(image, copy=False)
+        # Polled, so that stopping continuous acquisition is not held up by a tab that
+        # will never reply, such as one whose BLACS has died.
+        while not self.image_socket.poll(100):
+            if self.continuous_stop.is_set():
+                return
         response = self.image_socket.recv()
         assert response == b'ok', response
 
@@ -404,6 +415,8 @@ class TriggerableCameraWorker(Worker):
         # Positional, as a camera on IMAQdxCameraWorker's deprecated route names it
         # bufferCount.
         self.camera.configure_acquisition(False, self.n_images)
+        # The camera is armed from here, with or without the thread that grabs.
+        self.acquisition_armed = True
         self.images = []
 
         def grab_multiple():
@@ -414,8 +427,9 @@ class TriggerableCameraWorker(Worker):
                 self.acquisition_error = e
                 raise
 
-        self.acquisition_thread = threading.Thread(target=grab_multiple, daemon=True)
-        self.acquisition_thread.start()
+        acquisition_thread = threading.Thread(target=grab_multiple, daemon=True)
+        acquisition_thread.start()
+        self.acquisition_thread = acquisition_thread
         return {}
 
     def transition_to_manual(self):
@@ -449,6 +463,7 @@ class TriggerableCameraWorker(Worker):
 
         print("Stopping acquisition.")
         self.camera.stop_acquisition()
+        self.acquisition_armed = False
 
         print(f"Saving {len(self.images)}/{len(self.exposures)} images.")
 
@@ -516,10 +531,10 @@ class TriggerableCameraWorker(Worker):
         return True
 
     def abort(self):
-        if self.acquisition_thread is not None:
+        if self.acquisition_armed:
             self.camera.abort_acquisition()
-            self.acquisition_thread.join()
-            self.acquisition_thread = None
+            if self.acquisition_thread is not None:
+                self.acquisition_thread.join()
             self.camera.stop_acquisition()
         self.camera._abort_acquisition = False
         self._clear_shot_state()
