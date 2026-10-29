@@ -26,6 +26,8 @@ from labscript_devices.SpinnakerCamera.blacs_workers import SpinnakerCameraInter
 from labscript_devices.FlyCapture2Camera.blacs_workers import FlyCapture2CameraInterface
 from labscript_devices.AndorSolis.blacs_workers import AndorSolisInterface
 from labscript_devices.DummyCamera.blacs_workers import DummyCameraInterface
+from labscript_devices.ThorlabsTSICamera.blacs_workers import ThorlabsTSICameraInterface
+from labscript_devices.GenICamCamera.blacs_workers import GenICamCameraInterface
 
 
 # What TriggerableCameraWorker calls on self.camera that no base can supply,
@@ -46,6 +48,8 @@ EVERY_CAMERA = [
     FlyCapture2CameraInterface,
     AndorSolisInterface,
     DummyCameraInterface,
+    ThorlabsTSICameraInterface,
+    GenICamCameraInterface,
 ]
 
 

@@ -50,6 +50,8 @@ The generic camera class which provides the core functionality and from which th
    devices/flycapture2
    devices/spinnaker
    devices/andorsolis
+   devices/thorlabs_tsi
+   devices/genicam
    devices/dummycamera
 
 
