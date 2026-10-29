@@ -627,6 +627,9 @@ class ARecordingCamera(DummyCameraInterface):
     def stop_acquisition(self):
         self.calls += ('stop',)
 
+    def close(self):
+        self.calls += ('close',)
+
 
 class ARecordingWorker(DummyCameraWorker):
     interface_class = ARecordingCamera
@@ -664,6 +667,7 @@ class ArmedWithoutAThreadTests(DummyCameraTestCase):
 
 class AnAbsentTabTests(DummyCameraTestCase):
     shot = ABSORPTION_SHOT
+    worker_class = ARecordingWorker
 
     def test_continuous_acquisition_stops_though_the_tab_never_replies(self):
         # The suite's secure context, as BLACS's image receiver uses.
@@ -672,14 +676,48 @@ class AnAbsentTabTests(DummyCameraTestCase):
         port = tab.bind_to_random_port('tcp://127.0.0.1')
         worker = self.new_worker(camera_workers.Context, port)
         worker.start_continuous(None)
+        acquiring = worker.continuous_thread
         self.assertTrue(tab.poll(5000))
         tab.recv_multipart()  # The first frame, which is never answered.
 
-        stopping = threading.Thread(target=worker.shutdown, daemon=True)
+        errors = []
+
+        def shut_down():
+            try:
+                worker.shutdown()
+            except Exception as e:
+                errors.append(e)
+
+        stopping = threading.Thread(target=shut_down, daemon=True)
         stopping.start()
         stopping.join(5)
 
         self.assertFalse(stopping.is_alive())
+        if errors:
+            raise errors[0]
+        self.assertFalse(acquiring.is_alive())
+        self.assertEqual(worker.camera.calls[-1], 'close')
+
+
+class AnInterruptedStartTests(DummyCameraTestCase):
+    shot = ABSORPTION_SHOT
+    worker_class = AStillAcquiringWorker
+
+    def test_abort_ends_an_acquisition_interrupted_once_its_thread_started(self):
+        class AnInterruptedThread(threading.Thread):
+            def start(self):
+                super().start()
+                raise RuntimeError('interrupted')
+
+        with mock.patch.object(camera_workers.threading, 'Thread', AnInterruptedThread):
+            with self.assertRaises(RuntimeError):
+                self.start_the_shot(optical_density=1.0)
+        worker = self.started_worker
+        acquiring = worker.acquisition_thread
+
+        worker.abort()
+
+        self.assertFalse(acquiring.is_alive())
 
 
 if __name__ == '__main__':

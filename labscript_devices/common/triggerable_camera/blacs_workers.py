@@ -427,9 +427,9 @@ class TriggerableCameraWorker(Worker):
                 self.acquisition_error = e
                 raise
 
-        acquisition_thread = threading.Thread(target=grab_multiple, daemon=True)
-        acquisition_thread.start()
-        self.acquisition_thread = acquisition_thread
+        # Kept before it starts, so that cleanup after any interruption can join it.
+        self.acquisition_thread = threading.Thread(target=grab_multiple, daemon=True)
+        self.acquisition_thread.start()
         return {}
 
     def transition_to_manual(self):
@@ -533,8 +533,10 @@ class TriggerableCameraWorker(Worker):
     def abort(self):
         if self.acquisition_armed:
             self.camera.abort_acquisition()
-            if self.acquisition_thread is not None:
-                self.acquisition_thread.join()
+            # A thread that never started has nothing to join.
+            thread = self.acquisition_thread
+            if thread is not None and thread.ident is not None:
+                thread.join()
             self.camera.stop_acquisition()
         self.camera._abort_acquisition = False
         self._clear_shot_state()
