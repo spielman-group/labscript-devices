@@ -713,8 +713,12 @@ class PulseBlasterDirectOutputs(IntermediateDevice):
     """The internal device that a PulseBlaster's digital outputs and DDSs connect to."""
 
     allowed_children = [DigitalOut]
-    clock_limit = PulseBlaster.clock_limit
     description = 'PB-DDSII-300 Direct Outputs'
+
+    @property
+    def clock_limit(self):
+        """The parent board's clock_limit, which a fixed pulse_width can lower."""
+        return self.pseudoclock_device.clock_limit
 
     def add_device(self, device):
         IntermediateDevice.add_device(self, device)
