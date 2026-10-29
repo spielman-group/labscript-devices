@@ -33,9 +33,9 @@ def reformat_files(filepaths):
     try:
         import black
     except ImportError:
-        msg = """Cannot import the code formatting library 'black', so the generated
-            labscript device code may be poorly formatted. Install black with pip and
-            run again to format the files."""
+        msg = """Cannot import code formatting library 'black'. Generated labscript
+            device code may be poorly formatted. Install black via
+            pip and run again to produce better formatted files"""
         warnings.warn(dedent(msg))
         return
 
