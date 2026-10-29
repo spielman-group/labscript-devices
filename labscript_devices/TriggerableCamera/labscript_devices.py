@@ -139,28 +139,7 @@ class TriggerableCamera(TriggerableDevice):
         self.orientation = orientation
         self.pixel_size = pixel_size
         self.magnification = magnification
-        if isinstance(serial_number, bytes):
-            serial_number = serial_number.decode()
-        if isinstance(serial_number, str):
-            if serial_number.lower().startswith('0x'):
-                serial_number = int(serial_number, 16)
-            else:
-                if not serial_number.isdigit():
-                    raise LabscriptError(
-                        f"{name}'s serial_number {serial_number!r} is not a decimal "
-                        f"number. If it is hex, write '0x{serial_number}'."
-                    )
-                # LEGACY HEX SERIAL NUMBER WARNING. DEPRECATED CODE, WILL BE REMOVED.
-                if self.hex_serial_numbers:
-                    warnings.warn(
-                        f"{name}'s serial_number {serial_number!r} is now read as "
-                        f"decimal. If it is hex, write '0x{serial_number}'.",
-                        FutureWarning,
-                        stacklevel=3,
-                    )
-                serial_number = int(serial_number)
-        self.serial_number = serial_number
-        self.BLACS_connection = hex(self.serial_number)[2:].upper()
+        self._set_serial_number(serial_number)
         if camera_attributes is None:
             camera_attributes = {}
         if manual_mode_camera_attributes is None:
@@ -179,6 +158,32 @@ class TriggerableCamera(TriggerableDevice):
         self.manual_mode_camera_attributes = manual_mode_camera_attributes
         self.exposures = []
         TriggerableDevice.__init__(self, name, parent_device, connection, **kwargs)
+
+    def _set_serial_number(self, serial_number):
+        """Set `serial_number` and `BLACS_connection` from the serial number given to
+        `__init__`. A camera with another serial number format overrides this."""
+        if isinstance(serial_number, bytes):
+            serial_number = serial_number.decode()
+        if isinstance(serial_number, str):
+            if serial_number.lower().startswith('0x'):
+                serial_number = int(serial_number, 16)
+            else:
+                if not serial_number.isdigit():
+                    raise LabscriptError(
+                        f"The serial_number {serial_number!r} is not a decimal number. "
+                        f"If it is hex, write '0x{serial_number}'."
+                    )
+                # LEGACY HEX SERIAL NUMBER WARNING. DEPRECATED CODE, WILL BE REMOVED.
+                if self.hex_serial_numbers:
+                    warnings.warn(
+                        f"The serial_number {serial_number!r} is now read as decimal. "
+                        f"If it is hex, write '0x{serial_number}'.",
+                        FutureWarning,
+                        stacklevel=4,
+                    )
+                serial_number = int(serial_number)
+        self.serial_number = serial_number
+        self.BLACS_connection = hex(self.serial_number)[2:].upper()
 
     def expose(self, t, name, frametype='frame', trigger_duration=None):
         """Request an exposure at time `t` by triggering the camera.
