@@ -2,12 +2,6 @@ Dummy Intermediate Device
 =========================
 
 .. automodule:: labscript_devices.DummyIntermediateDevice
-	:ignore-module-all:
-	:members:
-	:undoc-members:
-	:show-inheritance:
-	:member-order: bysource
-	:private-members:
 
 .. automodule:: labscript_devices.DummyIntermediateDevice.labscript_devices
 	:members:
@@ -24,6 +18,13 @@ Dummy Intermediate Device
 	:private-members:
 
 .. automodule:: labscript_devices.DummyIntermediateDevice.blacs_workers
+	:members:
+	:undoc-members:
+	:show-inheritance:
+	:member-order: bysource
+	:private-members:
+
+.. automodule:: labscript_devices.DummyIntermediateDevice.runviewer_parsers
 	:members:
 	:undoc-members:
 	:show-inheritance:

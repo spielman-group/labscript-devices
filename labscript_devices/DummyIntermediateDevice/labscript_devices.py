@@ -11,45 +11,6 @@
 #                                                                   #
 #####################################################################
 
-"""
-Overview
-~~~~~~~~
-
-A dummy intermediate device, for testing BLACS and labscript. Attached to a
-clock line of a pseudoclock device, it tests the pseudoclock's behaviour
-without a real intermediate device.
-
-Any number of :class:`~labscript.DigitalOut` and :class:`~labscript.AnalogOut`
-outputs, or subclasses of them, can be attached; a device of any other class
-raises ``LabscriptError`` when attached. The device writes the raw values of its
-outputs, one row for each clock tick, to the ``OUTPUTS`` table of its group in
-the shot file; with no outputs it writes no table.
-
-Usage
-~~~~~
-
-.. code-block:: python
-
-    from labscript import *
-
-    from labscript_devices.DummyPseudoclock.labscript_devices import DummyPseudoclock
-    from labscript_devices.DummyIntermediateDevice.labscript_devices import DummyIntermediateDevice
-
-    DummyPseudoclock(name='dummy_clock', BLACS_connection='dummy')
-    DummyIntermediateDevice(name='dummy_device', BLACS_connection='dummy2',
-                            parent_device=dummy_clock.clockline)
-
-    DigitalOut(name='do1', parent_device=dummy_device, connection='dummy_do1')
-    DigitalOut(name='do2', parent_device=dummy_device, connection='dummy_do2')
-
-    start()
-    stop(1)
-
-Detailed Documentation
-~~~~~~~~~~~~~~~~~~~~~~
-
-"""
-
 from labscript import IntermediateDevice, DigitalOut, AnalogOut, compiler
 import numpy as np
 
