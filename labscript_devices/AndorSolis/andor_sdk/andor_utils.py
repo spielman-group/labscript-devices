@@ -640,6 +640,8 @@ class AndorCam:
         Deadline('The Andor camera', 'stop acquiring', 5).wait(
             lambda: GetStatus() != 'DRV_ACQUIRING'
         )
+        # Idle now, whether or not an acquisition had started.
+        self.armed = False
 
     def shutdown(self):
         """Close the shutter, stop the cooler and shut the camera down, as

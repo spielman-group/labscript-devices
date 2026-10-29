@@ -12,6 +12,7 @@
 #                                                                   #
 #####################################################################
 import ctypes
+import threading
 import unittest
 from unittest import mock
 
@@ -49,6 +50,25 @@ class ShutdownTests(unittest.TestCase):
         self.assertEqual(
             [call[0] for call in self.shut_down([])], ['SetShutter', 'ShutDown']
         )
+
+    def test_a_camera_armed_but_never_started_shuts_down_after_an_abort(self):
+        calls = []
+        camera = andor_utils.AndorCam.__new__(andor_utils.AndorCam)
+        camera.chatty = False
+        camera._abort_lock = threading.Lock()
+        camera.armed = True
+        camera.setfuncs = []
+        camera.acquisition_attributes = dict(camera.default_acquisition_attrs)
+        with mock.patch.multiple(
+            andor_utils,
+            AbortAcquisition=lambda: calls.append('AbortAcquisition'),
+            GetStatus=lambda: 'DRV_IDLE',
+            SetShutter=lambda *args: calls.append('SetShutter'),
+            ShutDown=lambda: calls.append('ShutDown'),
+        ):
+            camera.abort_acquisition()
+            camera.shutdown()
+        self.assertEqual(calls[-1], 'ShutDown')
 
 
 if __name__ == '__main__':
