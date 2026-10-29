@@ -13,6 +13,7 @@
 
 import os
 import json
+import threading
 from time import perf_counter
 import ast
 
@@ -51,13 +52,18 @@ class ImageReceiver(ZMQServer):
         self.last_frame_time = None
         self.frame_rate = None
         self.update_event = None
+        # Set when no received image is waiting to be displayed:
+        self.displayed = threading.Event()
+        self.displayed.set()
 
-    @inmain_decorator(wait_for_return=True)
     def handler(self, data):
-        # Acknowledge at once so that the worker can acquire the next frame while this
-        # one is drawn. No backlog builds up, since only one call to this method can
-        # run at a time.
-        self.send([b'ok'])
+        # In the server thread, which never waits for the main thread, so a tab restart
+        # cannot deadlock with an arriving image. The reply waits only for the previous
+        # image's display, so at most one image is waiting.
+        while not self.displayed.wait(timeout=0.1):
+            if self.stopping:
+                return [b'ok']
+        self.displayed.clear()
         md = json.loads(data[0])
         image = np.frombuffer(memoryview(data[1]), dtype=md['dtype'])
         image = image.reshape(md['shape'])
@@ -65,31 +71,38 @@ class ImageReceiver(ZMQServer):
             # transition_to_manual sends a shot's images as one 3D stack; show a single
             # image as 2D.
             image = image.reshape(image.shape[1:])
-        this_frame_time = perf_counter()
-        if self.last_frame_time is not None:
-            dt = this_frame_time - self.last_frame_time
-            if self.frame_rate is not None:
-                # Exponential moving average of the frame rate over 1 second:
-                self.frame_rate = exp_av(self.frame_rate, 1 / dt, dt, 1.0)
-            else:
-                self.frame_rate = 1 / dt
-        self.last_frame_time = this_frame_time
-        if self.image_view.image is None:
-            # First time setting an image. Do autoscaling etc:
-            self.image_view.setImage(image.swapaxes(-1, -2))
-        else:
-            # Updating image. Keep zoom/pan/levels/etc settings.
-            self.image_view.setImage(
-                image.swapaxes(-1, -2), autoRange=False, autoLevels=False
-            )
-        if self.frame_rate is not None:
-            self.label_fps.setText(f"{self.frame_rate:.01f} fps")
+        self.display(image)
+        return [b'ok']
 
-        # qtutils CallEvents, which call this method in the main thread, cannot be given
-        # low enough priority for paint events to run before the next call, so they back
-        # up. Sending posted events here prevents it (issue #36).
-        QtWidgets.QApplication.instance().sendPostedEvents()
-        return self.NO_RESPONSE
+    @inmain_decorator(wait_for_return=False)
+    def display(self, image):
+        try:
+            this_frame_time = perf_counter()
+            if self.last_frame_time is not None:
+                dt = this_frame_time - self.last_frame_time
+                if self.frame_rate is not None:
+                    # Exponential moving average of the frame rate over 1 second:
+                    self.frame_rate = exp_av(self.frame_rate, 1 / dt, dt, 1.0)
+                else:
+                    self.frame_rate = 1 / dt
+            self.last_frame_time = this_frame_time
+            if self.image_view.image is None:
+                # First time setting an image. Do autoscaling etc:
+                self.image_view.setImage(image.swapaxes(-1, -2))
+            else:
+                # Updating image. Keep zoom/pan/levels/etc settings.
+                self.image_view.setImage(
+                    image.swapaxes(-1, -2), autoRange=False, autoLevels=False
+                )
+            if self.frame_rate is not None:
+                self.label_fps.setText(f"{self.frame_rate:.01f} fps")
+
+            # qtutils CallEvents, which call this method in the main thread, cannot be
+            # given low enough priority for paint events to run before the next call, so
+            # they back up. Sending posted events here prevents it (issue #36).
+            QtWidgets.QApplication.instance().sendPostedEvents()
+        finally:
+            self.displayed.set()
 
 
 class TriggerableCameraTab(DeviceTab):
