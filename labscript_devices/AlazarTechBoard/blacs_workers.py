@@ -487,7 +487,3 @@ class AlazarTechBoardWorker(guiless.GuilessWorker):
         if self.aborting:
             print('Proceeding in lieu of complete abort.')
         return
-
-
-# labscript_devices.AlazarTechBoard.GuilessWorker is this board's worker.
-GuilessWorker = AlazarTechBoardWorker

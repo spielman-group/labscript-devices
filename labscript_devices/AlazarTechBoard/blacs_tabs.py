@@ -9,7 +9,3 @@ import labscript_devices.common.guiless as guiless
 
 class AlazarTechBoardTab(guiless.GuilessTab):
     worker_class = 'labscript_devices.AlazarTechBoard.blacs_workers.AlazarTechBoardWorker'
-
-
-# labscript_devices.AlazarTechBoard.GuilessTab is this board's tab.
-GuilessTab = AlazarTechBoardTab

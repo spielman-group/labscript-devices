@@ -11,9 +11,6 @@ __getattr__ = deprecated_names(
         'labscript_devices': [
             'AlazarTechBoard',
         ],
-        'blacs_tabs': [
-            'GuilessTab',
-        ],
         'blacs_workers': [
             'tqdm_kwargs',
             'atsRanges',
@@ -22,7 +19,6 @@ __getattr__ = deprecated_names(
             'find_nearest_internal_clock',
             'find_clock_and_r',
             'ats9462_clock',
-            'GuilessWorker',
         ],
     },
 )
