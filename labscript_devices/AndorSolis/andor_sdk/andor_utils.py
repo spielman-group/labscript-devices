@@ -22,6 +22,7 @@ class AndorCam:
         'acquisition': 'single',
         'emccd': False,
         'emccd_gain': 50,
+        'em_gain_mode': 0,
         'preamp': False,
         'preamp_gain': 1.0,
         'exposure_time': 20 * ms,
@@ -196,9 +197,8 @@ class AndorCam:
                 f"to a gain from {low} to {high}."
             )
 
-        # The default EM gain mode is 0, where the gain is controlled by internal DAC
-        # settings in the default range (see self.emgain_caps). For higher ranges use
-        # SetEMGainMode().
+        # The range depends on the EM gain mode and the sensor temperature;
+        # setup_acquisition reads it just before.
         SetEMCCDGain(emccd_gain)
         self.emccd_gain = GetEMCCDGain()
         self.emccd = True
@@ -300,6 +300,9 @@ class AndorCam:
                     "faster on a warm sensor. Set the 'cooldown' attribute to True, or "
                     "'emccd' to False."
                 )
+            # The gain range depends on the mode, as in micro-manager's adapter.
+            SetEMGainMode(self.acquisition_attributes['em_gain_mode'])
+            self.emccd_gain_range = GetEMGainRange()
             self.enable_emccd(self.acquisition_attributes['emccd_gain'])
 
         modes = {
@@ -346,7 +349,13 @@ class AndorCam:
 
         self.armed = True
 
-        self.keepClean_time = GetKeepCleanTime()
+        try:
+            self.keepClean_time = GetKeepCleanTime()
+        except AndorException as e:
+            # A camera without a keep-clean cycle has none, as micro-manager takes it.
+            if 'DRV_NOT_AVAILABLE' not in str(e):
+                raise
+            self.keepClean_time = 0
         # Note: The GetReadOutTime call breaks in FK mode for unknown reasons
         if 'fast_kinetics' not in self.acquisition_mode:
             self.readout_time = GetReadOutTime()
@@ -481,26 +490,37 @@ class AndorCam:
             if self.acquisition_attributes['crop']:
                 SetOutputAmplifier(0)
                 SetFrameTransferMode(1)
-                SetIsolatedCropModeEx(
-                    int(1),
+                # Only an iXon Ultra crops anywhere; other cameras crop at the bottom
+                # corner, without the start arguments, as in micro-manager's adapter.
+                if 'IXONULTRA' in self.model:
+                    SetIsolatedCropModeEx(
+                        int(1),
+                        int(attrs['height']),
+                        int(attrs['width']),
+                        attrs['ybin'],
+                        attrs['xbin'],
+                        attrs['left_start'],
+                        attrs['bottom_start'],
+                    )
+                else:
+                    SetIsolatedCropMode(
+                        int(1),
+                        int(attrs['height']),
+                        int(attrs['width']),
+                        attrs['ybin'],
+                        attrs['xbin'],
+                    )
+        else:
+            SetFrameTransferMode(0)
+            # A camera without crop mode refuses even to turn it off.
+            if 'CROPMODE' in self.setfuncs:
+                SetIsolatedCropMode(
+                    int(0),
                     int(attrs['height']),
                     int(attrs['width']),
                     attrs['ybin'],
                     attrs['xbin'],
-                    attrs['left_start'],
-                    attrs['bottom_start'],
                 )
-        else:
-            SetFrameTransferMode(0)
-            SetIsolatedCropModeEx(
-                int(0),
-                int(attrs['height']),
-                int(attrs['width']),
-                attrs['ybin'],
-                attrs['xbin'],
-                attrs['left_start'],
-                attrs['bottom_start'],
-            )
         SetImage(
             attrs['xbin'],
             attrs['ybin'],
@@ -527,7 +547,7 @@ class AndorCam:
                         color='firebrick',
                     )
                     break
-                time.sleep(0.05)
+                time.sleep(0.001)
             if self.chatty:
                 rich_print(
                     f"Leaving homemade_wait with status {self.acquisition_status} ",
