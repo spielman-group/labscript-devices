@@ -108,9 +108,11 @@ class NI_DAQmx(IntermediateDevice):
         AI_timebase_terminal=None,
         AI_timebase_rate=None,
         AO_range=None,
+        AO_bank_size=None,
         max_AI_multi_chan_rate=None,
         max_AI_single_chan_rate=None,
         max_AO_sample_rate=None,
+        max_AO_bank_sample_rate=None,
         max_DO_sample_rate=None,
         min_semiperiod_measurement=None,
         num_AI=0,
@@ -204,6 +206,9 @@ class NI_DAQmx(IntermediateDevice):
             Needed if the device has analog outputs. A value outside it by more than
             1e-10 of the range raises :class:`~labscript.LabscriptError` when the shot
             compiles, and a smaller excess is clipped.
+        AO_bank_size : int, optional
+            Number of analog outputs in each bank, on a device whose maximum sample
+            rate is lower with more than one analog output of a bank in use.
         max_AI_multi_chan_rate : float, optional
             Highest analog input sample rate, in samples per second, with more than
             one channel in use; the channels share it unless
@@ -215,6 +220,9 @@ class NI_DAQmx(IntermediateDevice):
             Highest sample rate, in samples per second, of buffered analog and digital
             output. The device's ``clock_limit`` is the lower of the two for the kinds
             of output that support buffering.
+        max_AO_bank_sample_rate : float, optional
+            Highest analog output sample rate with more than one analog output of a
+            bank of `AO_bank_size` in use.
         min_semiperiod_measurement : float, optional
             Shortest semiperiod, in seconds, the device can measure. If the device is
             the acquisition device of the wait monitor, trigger pulses are at least
@@ -281,9 +289,11 @@ class NI_DAQmx(IntermediateDevice):
 
         self.acquisition_rate = acquisition_rate
         self.AO_range = AO_range
+        self.AO_bank_size = AO_bank_size
         self.max_AI_multi_chan_rate = max_AI_multi_chan_rate
         self.max_AI_single_chan_rate = max_AI_single_chan_rate
         self.max_AO_sample_rate = max_AO_sample_rate
+        self.max_AO_bank_sample_rate = max_AO_bank_sample_rate
         self.max_DO_sample_rate = max_DO_sample_rate
         self.min_semiperiod_measurement = min_semiperiod_measurement
         self.num_AI = num_AI
@@ -399,6 +409,28 @@ class NI_DAQmx(IntermediateDevice):
                 msg = f"""Cannot add output with connection string '{device.connection}'
                     to {self.name}, which has num_AO={self.num_AO}."""
                 raise ValueError(dedent(msg))
+            # DAQmx reports the single-output rate as the maximum, so a clock limit
+            # above the bank's rate fails only at the transition to buffered.
+            if (
+                isinstance(device, AnalogOut)
+                and self.AO_bank_size is not None
+                and self.clock_limit > self.max_AO_bank_sample_rate
+            ):
+                bank = ao_num // self.AO_bank_size
+                for other in self.child_devices:
+                    if not isinstance(other, AnalogOut):
+                        continue
+                    if split_conn_AO(other.connection) // self.AO_bank_size == bank:
+                        first = bank * self.AO_bank_size
+                        msg = f"""{self.description} {self.name}: analog outputs
+                            {other.connection} and {device.connection} are in the same
+                            bank, ao{first} to ao{first + self.AO_bank_size - 1}. With
+                            more than one analog output in a bank, the maximum sample rate
+                            is {self.max_AO_bank_sample_rate} Hz, lower than the clock
+                            limit of {self.clock_limit} Hz. Use at most one analog output
+                            in each bank, or pass
+                            max_AO_sample_rate={self.max_AO_bank_sample_rate}."""
+                        raise LabscriptError(dedent(msg))
         elif isinstance(device, (DigitalOut, StaticDigitalOut)):
             port, line = split_conn_DO(device.connection)
             port_str = f'port{port}'

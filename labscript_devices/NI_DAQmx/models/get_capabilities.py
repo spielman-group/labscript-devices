@@ -169,6 +169,36 @@ def port_supports_buffered(device_name, port, clock_terminal=None):
             return True
 
 
+def AO_bank_sample_rate(device_name):
+    """Return the analog outputs' bank size and the highest sample rate with two of
+    them in one bank, or (None, None) if the outputs are not in banks."""
+    chans = DAQmxGetDevAOPhysicalChans(device_name)
+    Vmin, Vmax = DAQmxGetDevAOVoltageRngs(device_name)[0:2]
+    single_rate = DAQmxGetDevAOMaxRate(device_name)
+    rates = []
+    for chan in chans[1:]:
+        with Task() as task:
+            for pair_chan in [chans[0], chan]:
+                task.CreateAOVoltageChan(
+                    device_name + '/' + pair_chan, "", Vmin, Vmax, c.DAQmx_Val_Volts, None
+                )
+            task.CfgSampClkTiming(
+                "", 1000, c.DAQmx_Val_Rising, c.DAQmx_Val_FiniteSamps, 1000
+            )
+            rate = float64()
+            task.GetSampClkMaxRate(rate)
+            rates.append(rate.value)
+    if not rates or min(rates) >= single_rate:
+        return None, None
+    # The first output that keeps the single-output rate when paired with ao0 starts
+    # the second bank. With none, the rate depends on how many outputs are in use, and
+    # there are no banks.
+    for n, rate in enumerate(rates, start=1):
+        if rate >= single_rate:
+            return n, min(rates)
+    return None, None
+
+
 def AI_start_delay(device_name):
     """Empirically determine the analog inputs' start delay in seconds (None without PFI0)."""
     if 'PFI0' not in DAQmxGetDevTerminals(device_name):
@@ -366,6 +396,11 @@ if __name__ == '__main__':
             capabilities[model]["max_AO_sample_rate"] = DAQmxGetDevAOMaxRate(name)
         else:
             capabilities[model]["max_AO_sample_rate"] = None
+        if capabilities[model]["supports_buffered_AO"]:
+            bank_size, bank_rate = AO_bank_sample_rate(name)
+            if bank_size is not None:
+                capabilities[model]["AO_bank_size"] = bank_size
+                capabilities[model]["max_AO_bank_sample_rate"] = bank_rate
 
         capabilities[model]["num_AO"] = len(DAQmxGetDevAOPhysicalChans(name))
         capabilities[model]["num_AI"] = len(DAQmxGetDevAIPhysicalChans(name))
