@@ -10,8 +10,8 @@ leaves open. It is deleted in the last commit before `CodeHealth` merges into
 `CodeHealth` needs the other repos' `CodeHealth` at or after labscript
 `b273fbf`, labscript-utils `84dde2b`, blacs `6a2c5a2` and runviewer `edcc0a7`.
 
-It needs Python 3.13, qtutils 4.4.1 and filelock 3.12, and no longer
-PyNIVision.
+It needs Python 3.13, qtutils 4.4.3, zprocess 3.0.1 and filelock 3.12, and no
+longer PyNIVision.
 
 Every lab recompiles its connection table once after the merge.
 
@@ -82,7 +82,8 @@ Kept because upstream's own form keeps them, or Ian said so:
   restored (Ian, C-LD4).
 - **Cicero:** `use_wait_monitor` defaults to True on a master, so a script that
   makes its own WaitMonitor on one fails and needs `use_wait_monitor=False`; a
-  secondary asked for one raises.
+  secondary asked for one raises. Its firmware `.bit` files go in the
+  `CiceroOpalKellyXEM3001` package folder, as upstream's, not `labscript_devices/`.
 - **Refused when compiled or connected**, where they compiled or failed later:
   a DDS on a PulseBlaster without DDS; a `digital_gate` on a PulseBlasterDDS; an
   RFBlaster without `trigger_device`, or with a value outside the board's range;
@@ -163,6 +164,24 @@ Kept because upstream's own form keeps them, or Ian said so:
 - Where upstream's form differs and fits, the fork takes upstream's. An owner
   rules a change only "not possible", for code that has drifted too far or an
   earlier decision of Ian's; any other choice is Ian's.
+
+## Upstream
+
+`CodeHealth` has upstream's `master` to `63648fd`: each of its commits is in,
+ported by hand or cherry-picked with `-x`, or left by a decision in
+`issues/upstream_adoption_review.md`. Where the fork keeps its own form:
+
+- The docs link Qt names to the PyQt6 inventory, the suite's binding.
+- `FunctionRunner.add_function`'s docstring documents the fork's refusals and
+  runmanager's `set_values`, without upstream's `lyse.Run` example.
+- The camera list names no `Camera` or `PythonCamera`, which the fork lacks.
+- IMAQdx reads an unprefixed string serial number as decimal, and warns.
+- The Python classifiers start at 3.13, the suite's floor.
+
+Left by decision: AndorSolis's `SetupAcquisitionFast` and acquisition-start
+semaphores (#144, of which only the camera-compatibility parts were taken),
+the legacy `Camera` device (#168) and upstream's `DummyCamera` (#176; the
+fork has its own).
 
 ## Open
 
