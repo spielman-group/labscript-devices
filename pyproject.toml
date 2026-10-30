@@ -40,7 +40,7 @@ dependencies = [
     "PyVISA",
     "pyqtgraph",
     "pyserial",
-    "qtutils>=4.4.1",
+    "qtutils>=4.4.3",
     "spinapi",
     "zprocess>=3.0.1",
 ]
