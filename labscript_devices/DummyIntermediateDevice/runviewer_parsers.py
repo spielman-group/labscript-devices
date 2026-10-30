@@ -28,6 +28,10 @@ class DummyIntermediateDeviceParser:
                 f'No clock passed to {self.name}. The DummyIntermediateDevice must be '
                 'clocked by another device.'
             )
+
+        if not self.device.child_list:
+            return {}
+
         clock_ticks = rising_edge_times(clock)
 
         with h5py.File(self.path, 'r') as f:
