@@ -555,18 +555,26 @@ class PlaybackTests(unittest.TestCase):
 class AStillAcquiringCamera(DummyCameraInterface):
     """A camera whose shot never gets its triggers: grab waits until aborted."""
 
-    acquiring = False
-    closed_while_acquiring = None
+    aborted_while_grabbing = None
+    closed_while_grabbing = None
+
+    def __init__(self, serial_number=None):
+        super().__init__(serial_number)
+        self.grabbing = threading.Event()
 
     def grab(self):
-        self.acquiring = True
+        self.grabbing.set()
         while not self._abort_acquisition:
             time.sleep(0.01)
-        self.acquiring = False
+        self.grabbing.clear()
         return super().grab()
 
+    def abort_acquisition(self):
+        self.aborted_while_grabbing = self.grabbing.is_set()
+        super().abort_acquisition()
+
     def close(self):
-        self.closed_while_acquiring = self.acquiring
+        self.closed_while_grabbing = self.grabbing.is_set()
 
 
 class AStillAcquiringWorker(DummyCameraWorker):
@@ -580,11 +588,13 @@ class ShutdownTests(DummyCameraTestCase):
     def test_shutting_down_mid_shot_ends_the_acquisition_before_closing_the_camera(self):
         worker, _ = self.start_the_shot(optical_density=1.0)
         acquisition = worker.acquisition_thread
+        self.assertTrue(worker.camera.grabbing.wait(timeout=5))
 
         worker.shutdown()
 
+        self.assertIs(worker.camera.aborted_while_grabbing, True)
         self.assertFalse(acquisition.is_alive())
-        self.assertIs(worker.camera.closed_while_acquiring, False)
+        self.assertIs(worker.camera.closed_while_grabbing, False)
 
 
 
