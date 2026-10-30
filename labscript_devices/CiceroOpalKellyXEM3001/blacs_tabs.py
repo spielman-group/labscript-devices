@@ -22,7 +22,7 @@ from blacs.tab_base_classes import (
 from blacs.device_base_class import DeviceTab
 from labscript_devices.common.pseudoclock import PseudoclockTab
 
-from qtutils.qt.QtWidgets import QPushButton
+from qtutils.qt.QtWidgets import QToolButton
 
 
 class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
@@ -39,10 +39,10 @@ class CiceroOpalKellyXEM3001Tab(PseudoclockTab):
         # The worker programs the whole board for every shot.
         self.supports_smart_programming(False)
 
-        self.flash_fpga_button = QPushButton(
-            'Flash FPGA firmware (this should be handled automatically by BLACS, '
-            'if the device is not working correctly, try this button!)'
-        )
+        self.flash_fpga_button = QToolButton()
+        self.flash_fpga_button.setText('Flash FPGA firmware')
+        self.flash_fpga_button.setToolTip('BLACS flashes the firmware automatically. Use this button if the device is not working correctly.')
+        self.flash_fpga_button.setAutoRaise(True)
         self.flash_fpga_button.clicked.connect(self.flash_fpga)
         self.get_tab_layout().insertWidget(self.get_tab_layout().count()-1, self.flash_fpga_button)
 
