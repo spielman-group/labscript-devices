@@ -85,7 +85,7 @@ class CiceroOpalKellyXEM3001(PseudoclockDevice):
             FPGA firmware runs from. BLACS flashes the matching bit file,
             ``CiceroOpalKellyXEM3001_fpga_internal.bit`` or
             ``CiceroOpalKellyXEM3001_fpga_external.bit``, from the
-            `labscript_devices` folder.
+            `CiceroOpalKellyXEM3001` package folder.
         clock_frequency : float, optional
             Frequency of the reference clock in Hz; ``100e6`` by default.
             Instructions count its cycles, so its period is the clock resolution

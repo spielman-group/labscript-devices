@@ -100,12 +100,12 @@ class CiceroOpalKellyXEM3001Worker(PseudoclockWorker):
         import os
         if self.reference_clock == 'internal':
             fpga_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                os.path.dirname(os.path.realpath(__file__)),
                 'CiceroOpalKellyXEM3001_fpga_internal.bit',
             )
         elif self.reference_clock == 'external':
             fpga_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+                os.path.dirname(os.path.realpath(__file__)),
                 'CiceroOpalKellyXEM3001_fpga_external.bit',
             )
         else:
