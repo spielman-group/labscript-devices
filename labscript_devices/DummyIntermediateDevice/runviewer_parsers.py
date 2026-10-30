@@ -35,9 +35,6 @@ class DummyIntermediateDeviceParser:
         clock_ticks = rising_edge_times(clock)
 
         with h5py.File(self.path, 'r') as f:
-            # A device with no outputs writes no table.
-            if 'OUTPUTS' not in f[f'devices/{self.name}']:
-                return {}
             outputs = f[f'devices/{self.name}/OUTPUTS'][:]
 
         triggers = {}

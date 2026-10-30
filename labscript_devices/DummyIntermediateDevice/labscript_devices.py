@@ -64,9 +64,6 @@ class DummyIntermediateDevice(IntermediateDevice):
             elif isinstance(device, AnalogOut):
                 device_dtype = np.float64
             dtypes.append((device.name, device_dtype))
-        # h5py cannot write a table whose rows have no fields.
-        if not dtypes:
-            return
 
         out_table = np.zeros(len(times), dtype=dtypes)
         for device in self.child_devices:
