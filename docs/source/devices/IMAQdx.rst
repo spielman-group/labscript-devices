@@ -26,7 +26,8 @@ Usage
 
 The camera is configured as described for :doc:`triggerable cameras <triggerablecamera>`,
 and the attributes are those shown by NI MAX. A serial number given as a string is
-hexadecimal. Attributes that the connection table does not set keep the values that are
+hexadecimal if it starts with `0x` and decimal otherwise; an unprefixed one warns, as
+IMAQdx once read it as hexadecimal. Attributes that the connection table does not set keep the values that are
 saved in NI MAX; attributes set by BLACS are not saved in the camera.
 
 
