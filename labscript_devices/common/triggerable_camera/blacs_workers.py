@@ -411,12 +411,13 @@ class TriggerableCameraWorker(Worker):
         else:
             self.attributes_to_save = None
         print(f"Configuring camera for {self.n_images} images.")
+        # Set before arming, so that cleanup after an interruption at any point of the
+        # configuration disarms the camera, with or without the thread that grabs.
+        self.acquisition_armed = True
         # LEGACY BUFFERCOUNT COMPATIBILITY. DEPRECATED CODE, WILL BE REMOVED.
         # Positional, as a camera on IMAQdxCameraWorker's deprecated route names it
         # bufferCount.
         self.camera.configure_acquisition(False, self.n_images)
-        # The camera is armed from here, with or without the thread that grabs.
-        self.acquisition_armed = True
         self.images = []
 
         def grab_multiple():

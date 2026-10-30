@@ -14,3 +14,4 @@
 - `NI_DAQmx/blacs_workers.py`: a wait monitor thread that will not stop is not a daemon, so at shutdown it holds the worker's exit until BLACS's kill deadline; restarting the tab is the remedy.
 - runviewer draws a device below a trigger as if triggered at 0 when no ancestor's parser supplies the trigger's trace, as below an RFBlaster, which has no parser.
 - `NI_DAQmx/runviewer_parsers.py`: an NI_DAQmx card on a clock line logs "Failed to load" in runviewer when no ancestor's parser supplies the clock line's trace, as `get_traces` needs a clock (`rising_edge_times(None)`, :49).
+- `common/triggerable_camera/blacs_workers.py`: `start_continuous` configures the camera before it records `continuous_thread`, so an interruption between the two leaves the camera acquiring, and `shutdown` closes it without `stop_acquisition`.

@@ -674,6 +674,18 @@ class ArmedWithoutAThreadTests(DummyCameraTestCase):
             self.abort_after_a_failed_start(AThreadThatWillNotStart), ('abort', 'stop')
         )
 
+    def test_shutdown_disarms_a_camera_interrupted_while_it_armed(self):
+        with mock.patch.object(
+            ARecordingCamera, 'configure_acquisition', side_effect=KeyboardInterrupt
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                self.start_the_shot(optical_density=1.0)
+        worker = self.started_worker
+
+        worker.shutdown()
+
+        self.assertEqual(worker.camera.calls, ('abort', 'stop', 'close'))
+
 
 class AnAbsentTabTests(DummyCameraTestCase):
     shot = ABSORPTION_SHOT
