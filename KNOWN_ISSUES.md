@@ -1,5 +1,8 @@
 # Known issues
 
+- `common/triggerable_camera/blacs_workers.py`, `grab_multiple`/`transition_to_manual`: if a skippable grab error consumes a non-final frame, lost exposure positions can save later images under earlier labels; vendor frame-consumption behavior remains unverified.
+- `common/triggerable_camera/blacs_workers.py`, `set_attributes_smart`: the smart cache is updated before bulk hardware programming succeeds, so a retry can skip attributes never accepted after a partial setter failure (source review; not executed).
+
 - `PhaseMatrixQuickSyn/blacs_workers.py`: the worker's `update_reference_out`, `update_blanking` and `update_lock_recovery` do nothing, and `transition_to_buffered` writes `OUTP:STAT 1` whatever the shot's gate, so `QuickSynDDS.disable()` has no effect.
 - `FlyCapture2Camera/blacs_workers.py`: `_send_format7_config` skips Format7 settings that fail validation without saying so.
 - `PulseBlaster/labscript_devices.py`, `PulseBlaster_No_DDS/labscript_devices.py`: each delay reaches SpinAPI as float nanoseconds (`delaydouble`), about 9% of them ~1e-12 cycles below a whole core cycle. Linux's `libspinapi64.so` (spinapi 3.2.2) rounds `length * clock - 3` to the nearest cycle in `pb_inst_pbonly64` and `pb_inst_dds2`, so loses nothing; the labs' Windows `spinapi64.dll` is a separate binary, unchecked. If it truncates, every repetition of such a looped step runs one cycle short (about 39 µs over a 2,905-step ramp). Needed: the same disassembly of that DLL, or a long looped ramp timed on a board.
