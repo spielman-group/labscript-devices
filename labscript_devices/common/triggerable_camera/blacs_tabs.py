@@ -233,6 +233,10 @@ class TriggerableCameraTab(DeviceTab):
             save_data['color_scale_max'] = float(color_scale_max)
         return save_data
 
+    def get_device_save_data(self):
+        """Keep display and live-view preferences out of shot files."""
+        return {}
+
     def restore_save_data(self, data):
         self.attributes_dialog.comboBox.setCurrentText(
             data.get('attribute_visibility', 'simple')
