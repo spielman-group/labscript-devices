@@ -41,7 +41,7 @@ dependencies = [
     "tqdm",
     "PyDAQmx",
     "PyVISA",
-    "pyqtgraph",
+    "pyqtgraph>=0.13.0",
     "pyserial",
     "qtutils>=4.4.3",
     "spinapi",
