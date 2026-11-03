@@ -23,8 +23,6 @@ class NovaTechDDS9MTab(DeviceTab):
         self.base_decimals = {'freq':1,             'amp':4,       'phase':3}
         self.num_DDS = 4
 
-        self.upgrade_front_panel(self.settings)
-
         dds_prop = {}
         for i in range(self.num_DDS):
             dds_prop['dds %d'%i] = {}
