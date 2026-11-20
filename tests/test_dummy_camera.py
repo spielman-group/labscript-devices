@@ -27,6 +27,7 @@ import zmq
 
 import labscript_utils.h5_lock  # must precede h5py, as labscript itself does
 import h5py
+import labscript_utils.properties
 
 from labscript_devices.DummyCamera.blacs_workers import (
     DummyCameraInterface,
@@ -178,6 +179,30 @@ WRONG_SHAPE_SHOT = PREAMBLE + textwrap.dedent(
     '''
 )
 
+# Beside the preamble's camera, one identified by its server's address.
+ADDRESSED_CAMERA_SHOT = PREAMBLE + textwrap.dedent(
+    '''
+    class AnAddressedCamera(DummyCamera):
+        def _set_serial_number(self, serial_number):
+            self.serial_number = None
+            self.BLACS_connection = 'camera-server:7000'
+
+    Trigger(
+        name='addressed_trigger',
+        parent_device=intermediate_device,
+        connection='port0/line1',
+    )
+    AnAddressedCamera(
+        name='addressed_camera',
+        parent_device=addressed_trigger,
+        connection='trigger',
+        camera_attributes={'Width': 64, 'Height': 48},
+    )
+    start()
+    stop(1.0)
+    '''
+)
+
 
 class DummyCameraTestCase(CompileTestCase):
     """CompileTestCase that can compile the shot more than once, with globals.
@@ -322,6 +347,21 @@ class SensorSizeTests(DummyCameraTestCase):
 
         with h5py.File(self.run_file, 'r') as f:
             self.assertNotIn('devices', f)
+
+
+class SerialNumberPropertyTests(DummyCameraTestCase):
+    shot = ADDRESSED_CAMERA_SHOT
+
+    def test_only_a_camera_with_a_serial_number_saves_one(self):
+        self.compile_the_shot()
+
+        with h5py.File(self.run_file, 'r') as f:
+            camera, addressed_camera = [
+                labscript_utils.properties.get(f, name, 'connection_table_properties')
+                for name in ['camera', 'addressed_camera']
+            ]
+        self.assertEqual(camera['serial_number'], 0x0)
+        self.assertNotIn('serial_number', addressed_camera)
 
 
 class AnImageSocket:

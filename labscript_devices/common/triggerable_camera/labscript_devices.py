@@ -30,7 +30,6 @@ class TriggerableCamera(TriggerableDevice):
     @set_passed_properties(
         property_names={
             "connection_table_properties": [
-                "serial_number",
                 "orientation",
                 "pixel_size",
                 "magnification",
@@ -164,10 +163,16 @@ class TriggerableCamera(TriggerableDevice):
         self.manual_mode_camera_attributes = manual_mode_camera_attributes
         self.exposures = []
         TriggerableDevice.__init__(self, name, parent_device, connection, **kwargs)
+        # A camera identified by something other than a serial number saves none.
+        if self.serial_number is not None:
+            self.set_property(
+                'serial_number', self.serial_number, 'connection_table_properties'
+            )
 
     def _set_serial_number(self, serial_number):
         """Set `serial_number` and `BLACS_connection` from the serial number given to
-        `__init__`. A camera with another serial number format overrides this."""
+        `__init__`. A camera with another serial number format overrides this; one
+        identified by something else sets `serial_number` to None."""
         if isinstance(serial_number, bytes):
             serial_number = serial_number.decode()
         if isinstance(serial_number, str):
