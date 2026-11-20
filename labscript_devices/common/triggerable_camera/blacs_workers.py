@@ -235,6 +235,30 @@ class DictAttributesMixin:
         return list(self.attributes.keys())
 
 
+def write_images(image_group, images):
+    """Save images as HDF5 image datasets, and return them by key.
+
+    `images` maps each ``(name, frametype)`` to a list of images, saved as the
+    dataset ``<name>/<frametype>`` of `image_group`: one image as it is, several
+    stacked.
+    """
+    datasets = {}
+    for (name, frametype), imagelist in images.items():
+        data = imagelist[0] if len(imagelist) == 1 else np.array(imagelist)
+        print(f"Saving frame(s) {name}/{frametype}.")
+        group = image_group.require_group(name)
+        dset = group.create_dataset(
+            frametype, data=data, dtype='uint16', compression='gzip'
+        )
+        # Specify this dataset should be viewed as an image
+        dset.attrs['CLASS'] = np.bytes_('IMAGE')
+        dset.attrs['IMAGE_VERSION'] = np.bytes_('1.2')
+        dset.attrs['IMAGE_SUBCLASS'] = np.bytes_('IMAGE_GRAYSCALE')
+        dset.attrs['IMAGE_WHITE_IS_ZERO'] = np.uint8(0)
+        datasets[name, frametype] = dset
+    return datasets
+
+
 class TriggerableCameraWorker(Worker):
     # The camera interface class this worker drives. A subclass names its own here if
     # it takes only the serial number as an instantiation argument, otherwise it
@@ -501,19 +525,7 @@ class TriggerableCameraWorker(Worker):
             self.exposures.sort(order='t')
             for image, exposure in zip(self.images, self.exposures):
                 images[(exposure['name'], exposure['frametype'])].append(image)
-
-            for (name, frametype), imagelist in images.items():
-                data = imagelist[0] if len(imagelist) == 1 else np.array(imagelist)
-                print(f"Saving frame(s) {name}/{frametype}.")
-                group = image_group.require_group(name)
-                dset = group.create_dataset(
-                    frametype, data=data, dtype='uint16', compression='gzip'
-                )
-                # Specify this dataset should be viewed as an image
-                dset.attrs['CLASS'] = np.bytes_('IMAGE')
-                dset.attrs['IMAGE_VERSION'] = np.bytes_('1.2')
-                dset.attrs['IMAGE_SUBCLASS'] = np.bytes_('IMAGE_GRAYSCALE')
-                dset.attrs['IMAGE_WHITE_IS_ZERO'] = np.uint8(0)
+            write_images(image_group, images)
 
         # If the images are all the same shape, send them to the GUI for display:
         try:

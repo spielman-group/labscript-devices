@@ -382,6 +382,19 @@ class CameraSubclassTests(DummyCameraTestCase):
         self.assertEqual(list(exposures['dark']), [True, False])
 
 
+class WriteImagesTests(unittest.TestCase):
+    def test_each_key_s_images_are_saved_and_returned_as_its_dataset(self):
+        image = np.zeros((48, 64), dtype='uint16')
+        with h5py.File('images.h5', 'w', driver='core', backing_store=False) as f:
+            datasets = camera_workers.write_images(
+                f.create_group('images'),
+                {('mot', 'frame'): [image], ('mot', 'dark'): [image, image]},
+            )
+            self.assertEqual(datasets['mot', 'frame'].name, '/images/mot/frame')
+            self.assertEqual(datasets['mot', 'frame'].shape, (48, 64))
+            self.assertEqual(datasets['mot', 'dark'].shape, (2, 48, 64))
+
+
 class AnImageSocket:
     """The socket the worker sends each acquired frame to the BLACS tab down.
 
