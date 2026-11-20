@@ -179,13 +179,20 @@ WRONG_SHAPE_SHOT = PREAMBLE + textwrap.dedent(
     '''
 )
 
-# Beside the preamble's camera, one identified by its server's address.
+# Beside the preamble's camera, one identified by its server's address, whose
+# exposures carry a column of their own, as mot-instrument's MOTInstrument does.
 ADDRESSED_CAMERA_SHOT = PREAMBLE + textwrap.dedent(
     '''
     class AnAddressedCamera(DummyCamera):
+        exposures_table_dtypes = DummyCamera.exposures_table_dtypes + [('dark', bool)]
+
         def _set_serial_number(self, serial_number):
             self.serial_number = None
             self.BLACS_connection = 'camera-server:7000'
+
+        def expose(self, t, name, dark=False):
+            super().expose(t, name)
+            self.exposures[-1] += (dark,)
 
     Trigger(
         name='addressed_trigger',
@@ -196,9 +203,12 @@ ADDRESSED_CAMERA_SHOT = PREAMBLE + textwrap.dedent(
         name='addressed_camera',
         parent_device=addressed_trigger,
         connection='trigger',
+        trigger_duration=0.01,
         camera_attributes={'Width': 64, 'Height': 48},
     )
     start()
+    addressed_camera.expose(0.1, 'mot', dark=True)
+    addressed_camera.expose(0.2, 'mot')
     stop(1.0)
     '''
 )
@@ -349,7 +359,7 @@ class SensorSizeTests(DummyCameraTestCase):
             self.assertNotIn('devices', f)
 
 
-class SerialNumberPropertyTests(DummyCameraTestCase):
+class CameraSubclassTests(DummyCameraTestCase):
     shot = ADDRESSED_CAMERA_SHOT
 
     def test_only_a_camera_with_a_serial_number_saves_one(self):
@@ -362,6 +372,14 @@ class SerialNumberPropertyTests(DummyCameraTestCase):
             ]
         self.assertEqual(camera['serial_number'], 0x0)
         self.assertNotIn('serial_number', addressed_camera)
+
+    def test_a_subclass_s_extra_exposure_columns_are_saved_with_its_exposures(self):
+        self.compile_the_shot()
+
+        with h5py.File(self.run_file, 'r') as f:
+            exposures = f['devices/addressed_camera/EXPOSURES'][:]
+        self.assertEqual(list(exposures['t']), [0.1, 0.2])
+        self.assertEqual(list(exposures['dark']), [True, False])
 
 
 class AnImageSocket:

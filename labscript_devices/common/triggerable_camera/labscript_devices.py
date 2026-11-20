@@ -26,6 +26,14 @@ class TriggerableCamera(TriggerableDevice):
     # Whether this class's serial numbers were hex by convention, so an unprefixed
     # string, now read as decimal, may once have been meant as hex.
     hex_serial_numbers = False
+    # The EXPOSURES table's columns, one for each value of an exposure. A subclass
+    # whose exposures carry more appends its own to these.
+    exposures_table_dtypes = [
+        ('t', float),
+        ('name', h5py.string_dtype()),
+        ('frametype', h5py.string_dtype()),
+        ('trigger_duration', float),
+    ]
 
     @set_passed_properties(
         property_names={
@@ -244,14 +252,7 @@ class TriggerableCamera(TriggerableDevice):
     def generate_code(self, hdf5_file):
         """Write the exposures to an EXPOSURES dataset, if there are any."""
         self.do_checks()
-        vlenstr = h5py.special_dtype(vlen=str)
-        table_dtypes = [
-            ('t', float),
-            ('name', vlenstr),
-            ('frametype', vlenstr),
-            ('trigger_duration', float),
-        ]
-        data = np.array(self.exposures, dtype=table_dtypes)
+        data = np.array(self.exposures, dtype=self.exposures_table_dtypes)
         group = self.init_device_group(hdf5_file)
         if self.exposures:
             group.create_dataset('EXPOSURES', data=data)
